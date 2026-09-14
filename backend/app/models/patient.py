@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 import enum
 from datetime import datetime, date, timezone
-from sqlalchemy import String, Boolean, DateTime, Date, Enum as SAEnum, Text, Sequence
+from sqlalchemy import String, Boolean, DateTime, Date, Enum as SAEnum, Text, Sequence, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.core.database import Base
@@ -77,5 +77,26 @@ class Patient(Base):
     nursing_notes: Mapped[list["NursingNote"]] = relationship(back_populates="patient", cascade="all, delete-orphan")
     billing_invoices: Mapped[list["BillingInvoice"]] = relationship(back_populates="patient", cascade="all, delete-orphan")
     medication_administrations: Mapped[list["MedicationAdministration"]] = relationship(back_populates="patient", cascade="all, delete-orphan")
+    allergies: Mapped[list["PatientAllergy"]] = relationship(back_populates="patient", cascade="all, delete-orphan")
+
+
+class PatientAllergy(Base):
+    __tablename__ = "patient_allergies"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid.uuid4()))
+    patient_id: Mapped[str] = mapped_column(ForeignKey("patients.id"), nullable=False, index=True)
+    allergen: Mapped[str] = mapped_column(String(200), nullable=False)
+    reaction: Mapped[str | None] = mapped_column(Text, nullable=True)
+    severity: Mapped[str] = mapped_column(String(20), nullable=False, default="moderate")
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc), nullable=False,
+    )
+
+    patient: Mapped["Patient"] = relationship(back_populates="allergies")
 
 

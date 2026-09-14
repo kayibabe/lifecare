@@ -1,5 +1,5 @@
 from app.models.user import User, UserRole
-from app.models.patient import Patient
+from app.models.patient import Patient, PatientAllergy
 from app.models.encounter import Encounter, TriageAssessment, ClinicalNote
 from app.models.admission import Admission, Ward, Bed
 from app.models.lab import LabTest, LabOrder, LabOrderItem
@@ -16,7 +16,7 @@ from app.models.insurance import Insurer, SchemeMember, PreAuthorization, Insura
 
 __all__ = [
     "User", "UserRole",
-    "Patient",
+    "Patient", "PatientAllergy",
     "Encounter", "TriageAssessment", "ClinicalNote",
     "Admission", "Ward", "Bed",
     "LabTest", "LabOrder", "LabOrderItem",

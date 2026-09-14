@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+from typing import Literal
 from datetime import datetime
 from app.models.encounter import EncounterType, EncounterStatus, TriageCategory
 
@@ -8,6 +9,7 @@ class EncounterCreate(BaseModel):
     encounter_type: EncounterType = EncounterType.opd
     attending_doctor_id: str | None = None
     chief_complaint: str | None = None
+    queue_status: Literal["waiting", "triaged", "in_consultation", "in_lab", "in_pharmacy", "admitted", "closed"] = "waiting"
     # NOTE: no `department` field — the Encounter model has no such column;
     # including it made Encounter(**model_dump()) raise TypeError on every create.
 
@@ -16,6 +18,7 @@ class EncounterUpdate(BaseModel):
     attending_doctor_id: str | None = None
     status: EncounterStatus | None = None
     chief_complaint: str | None = None
+    queue_status: Literal["waiting", "triaged", "in_consultation", "in_lab", "in_pharmacy", "admitted", "closed"] | None = None
 
 
 class TriageCreate(BaseModel):
@@ -35,6 +38,10 @@ class TriageCreate(BaseModel):
 
 
 class ClinicalNoteCreate(BaseModel):
+    chief_complaint: str | None = None
+    history_present_illness: str | None = None
+    physical_examination: str | None = None
+    clinical_notes: str | None = None
     subjective: str | None = None
     objective: str | None = None
     assessment: str | None = None
@@ -66,6 +73,11 @@ class ClinicalNoteResponse(BaseModel):
     id: str
     encounter_id: str
     author_id: str
+    patient_id: str | None = None
+    chief_complaint: str | None = None
+    history_present_illness: str | None = None
+    physical_examination: str | None = None
+    clinical_notes: str | None = None
     subjective: str | None
     objective: str | None
     assessment: str | None
@@ -83,6 +95,7 @@ class EncounterListResponse(BaseModel):
     encounter_type: EncounterType
     encounter_date: datetime
     status: EncounterStatus
+    queue_status: str
     chief_complaint: str | None
     attending_doctor_id: str | None
     created_at: datetime
@@ -98,6 +111,7 @@ class EncounterResponse(BaseModel):
     attending_doctor_id: str | None
     chief_complaint: str | None
     status: EncounterStatus
+    queue_status: str
     created_by: str
     created_at: datetime
     updated_at: datetime

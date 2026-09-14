@@ -6,7 +6,7 @@ from app.core.database import get_db
 from app.core.auth import require_role
 from app.core.audit import log_action
 from app.models.user import User, UserRole
-from app.models.patient import Patient
+from app.models.patient import Patient, PatientAllergy
 from app.models.pharmacy import Drug, DrugStock, Prescription, PrescriptionItem, PrescriptionStatus
 from app.schemas.pharmacy import (
     DrugCreate, DrugStockCreate, PrescriptionCreate, DispenseCreate,
@@ -38,7 +38,15 @@ async def _safety_conflicts(db: AsyncSession, patient_id: str, drug_ids: list[st
     patient = result.scalar_one_or_none()
     if not patient:
         return []
-    allergies = _split_terms(patient.known_allergies)
+    structured_allergies = (await db.execute(
+        select(PatientAllergy.allergen).where(
+            PatientAllergy.patient_id == patient_id,
+            PatientAllergy.is_active == True,
+        )
+    )).scalars().all()
+    allergies = list(dict.fromkeys(
+        _split_terms(patient.known_allergies) + [item.strip().lower() for item in structured_allergies]
+    ))
     conditions = _split_terms(patient.chronic_conditions)
 
     drugs = (await db.execute(select(Drug).where(Drug.id.in_(drug_ids)))).scalars().all()

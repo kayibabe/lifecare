@@ -6,8 +6,11 @@ from app.core.database import get_db
 from app.core.auth import require_role
 from app.core.audit import log_action
 from app.models.user import User, UserRole
-from app.models.patient import Patient
-from app.schemas.patient import PatientCreate, PatientUpdate, PatientResponse, PatientListResponse
+from app.models.patient import Patient, PatientAllergy
+from app.schemas.patient import (
+    PatientCreate, PatientUpdate, PatientResponse, PatientListResponse,
+    PatientAllergyCreate, PatientAllergyResponse,
+)
 import uuid
 
 router = APIRouter(prefix="/patients", tags=["patients"])
@@ -162,3 +165,50 @@ async def update_patient(
     await db.flush()
     await db.refresh(patient)
     return patient
+
+
+@router.get("/{patient_id}/allergies", response_model=list[PatientAllergyResponse])
+async def list_patient_allergies(
+    patient_id: str,
+    active_only: bool = True,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role(
+        UserRole.admin, UserRole.receptionist, UserRole.doctor, UserRole.nurse,
+        UserRole.clinician, UserRole.pharmacist,
+    )),
+):
+    if not (await db.execute(select(Patient.id).where(
+        Patient.id == patient_id, Patient.is_deleted == False
+    ))).scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Patient not found")
+    stmt = select(PatientAllergy).where(PatientAllergy.patient_id == patient_id)
+    if active_only:
+        stmt = stmt.where(PatientAllergy.is_active == True)
+    result = await db.execute(stmt.order_by(PatientAllergy.created_at.desc()))
+    return result.scalars().all()
+
+
+@router.post("/{patient_id}/allergies", response_model=PatientAllergyResponse, status_code=status.HTTP_201_CREATED)
+async def create_patient_allergy(
+    patient_id: str,
+    body: PatientAllergyCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role(
+        UserRole.admin, UserRole.receptionist, UserRole.doctor, UserRole.nurse,
+        UserRole.clinician,
+    )),
+):
+    if not (await db.execute(select(Patient.id).where(
+        Patient.id == patient_id, Patient.is_deleted == False
+    ))).scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Patient not found")
+    allergy = PatientAllergy(id=str(uuid.uuid4()), patient_id=patient_id, **body.model_dump())
+    db.add(allergy)
+    await db.flush()
+    await db.refresh(allergy)
+    await log_action(
+        db, action="create", entity_type="patient_allergy",
+        user_id=current_user.id, entity_id=allergy.id, request=None,
+        new_value={"patient_id": patient_id, "allergen": allergy.allergen, "severity": allergy.severity},
+    )
+    return allergy

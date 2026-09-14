@@ -139,6 +139,23 @@ const ALL_NAV_GROUPS = [
   },
 ];
 
+// These routes still depend on adapter entities or serverless functions that
+// the self-hosted backend does not implement. Keep them out of navigation so
+// staff cannot enter workflows whose writes are guaranteed to fail closed.
+const UNSUPPORTED_ROUTES = new Set([
+  "/imaging", "/radiology-reports", "/maternal", "/discharge-checklist",
+  "/surgical-dashboard", "/surgery-calendar", "/surgical-requisitions",
+  "/surgical-dispensing", "/surgical-supply-tracker", "/doctor-schedule",
+  "/staff-shifts", "/doctor-handover", "/journey-map", "/patient-outcomes",
+  "/patient-feedback", "/moh-reports", "/physician-performance", "/waste",
+  "/my-signatures", "/signature-audit", "/portal", "/inventory-audit",
+  "/surge",
+]);
+
+const NAV_GROUPS = ALL_NAV_GROUPS
+  .map((group) => ({ ...group, items: group.items.filter((item) => !UNSUPPORTED_ROUTES.has(item.path)) }))
+  .filter((group) => group.items.length > 0);
+
 export default function Layout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -150,12 +167,12 @@ export default function Layout() {
   const navigate = useNavigate();
 
   // Derive the active section group from the current route
-  const activeGroup = ALL_NAV_GROUPS.find(
+  const activeGroup = NAV_GROUPS.find(
     (g) => g.label !== "Main" && g.items.some(
       (item) => item.path === location.pathname ||
         (item.path !== "/" && location.pathname.startsWith(item.path + "/"))
     )
-  ) ?? ALL_NAV_GROUPS[0];
+  ) ?? NAV_GROUPS[0];
 
   const toggleGroupCollapse = (groupLabel) => {
     setCollapsedGroups((prev) => {
@@ -166,7 +183,7 @@ export default function Layout() {
 
   // Auto-expand the group containing the active route
   useEffect(() => {
-    for (const group of ALL_NAV_GROUPS) {
+    for (const group of NAV_GROUPS) {
       if (group.label === "Main") continue;
       const hasActive = group.items.some(
         item => item.path === location.pathname || (item.path !== "/" && location.pathname.startsWith(item.path + "/"))
@@ -217,7 +234,7 @@ export default function Layout() {
 
       {/* Navigation */}
       <nav className="flex-1 py-3 px-2 space-y-4 overflow-y-auto">
-        {ALL_NAV_GROUPS.map((group) => {
+        {NAV_GROUPS.map((group) => {
           const visibleItems = group.items.filter((item) => item.roles.includes(userRole));
           if (visibleItems.length === 0) return null;
           const isMainGroup = group.label === "Main";

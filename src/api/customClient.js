@@ -154,7 +154,7 @@ export const ENTITY_DEFS = {
       ...e,
       visit_type: e.encounter_type,
       visit_date: e.encounter_date || e.created_at,
-      queue_status: e.status,
+      queue_status: e.queue_status ?? e.status,
       created_date: e.created_at,
       updated_date: e.updated_at,
     }),
@@ -163,11 +163,12 @@ export const ENTITY_DEFS = {
       // Map frontend visit_type labels to backend EncounterType enum (opd|ipd|emergency)
       encounter_type: ({ outpatient: 'opd', inpatient: 'ipd', emergency: 'emergency', anc: 'opd', postnatal: 'opd', procedure: 'opd', initial_intake: 'opd' })[d.visit_type] || d.visit_type || d.encounter_type || 'opd',
       encounter_date: d.visit_date || d.encounter_date,
-      status: d.queue_status || d.status,
+      queue_status: d.queue_status || d.status || 'waiting',
+      status: d.status || (d.queue_status === 'closed' ? 'closed' : 'open'),
     }),
     filterMap: {
       visit_type: 'encounter_type',
-      queue_status: 'status',
+      queue_status: 'queue_status',
       visit_date: 'encounter_date',
       created_date: 'created_at',
     },
@@ -361,6 +362,31 @@ export const ENTITY_DEFS = {
     }),
     filterMap: {},
   },
+
+  Consultation: {
+    endpoint: '/encounters/clinical-notes',
+    fromAPI: (note) => note && ({
+      ...note,
+      visit_id: note.encounter_id,
+      doctor_id: note.author_id,
+      consultation_date: note.created_at,
+      created_date: note.created_at,
+      is_draft: false,
+      status: 'completed',
+    }),
+    toAPI: (data) => ({
+      chief_complaint: data.chief_complaint || null,
+      history_present_illness: data.history_present_illness || null,
+      physical_examination: data.physical_examination || null,
+      clinical_notes: data.clinical_notes || null,
+      subjective: data.history_present_illness || null,
+      objective: data.physical_examination || null,
+      assessment: data.assessment || null,
+      plan: data.plan || null,
+      diagnoses: data.diagnoses || null,
+    }),
+    filterMap: { visit_id: 'encounter_id' },
+  },
 };
 
 const APPT_TYPE_TO_API = {
@@ -379,7 +405,7 @@ const STUB_ENTITIES = new Set([
   'InvoiceSplit', 'PharmacyDispensing', 'ImagingOrder',
   'ImagingResult', 'SurgicalBooking', 'SurgicalChecklist', 'SurgicalRequisition',
   'SurgicalDispensing', 'SurgicalSupplyKit', 'MaternalVisit', 'NewbornRecord',
-  'PartographEntry', 'WardTransfer', 'Discharge', 'Diagnosis', 'PatientAllergy',
+  'PartographEntry', 'WardTransfer', 'Discharge', 'Diagnosis',
   'LabReagent', 'AuditFlag', 'IncidentReport', 'DigitalSignature',
   'IPCSurveillance', 'WasteLog', 'WasteCategory', 'DeathCertificate',
   'DHIS2Export', 'DoctorSchedule', 'DoctorHandover', 'ShiftHandoverLog',
@@ -435,18 +461,85 @@ function noopSubscribe() {
   return () => {};
 }
 
-function stubHandler() {
+export class UnsupportedFeatureError extends Error {
+  constructor(feature, operation) {
+    super(`${feature} is not supported by the LifeCare backend (${operation})`);
+    this.name = 'UnsupportedFeatureError';
+    this.code = 'UNSUPPORTED_FEATURE';
+  }
+}
+
+function unsupportedHandler(entityName) {
+  const fail = (operation) => async () => { throw new UnsupportedFeatureError(entityName, operation); };
   return {
+    // Known unsupported modules are hidden from navigation. Empty reads keep
+    // optional widgets on otherwise-supported pages from taking down the page.
     list: async () => [],
     filter: async () => [],
-    get: async () => null,
-    create: async (data) => ({
-      ...data,
-      id: crypto.randomUUID(),
-      created_date: new Date().toISOString(),
-    }),
-    update: async (id, data) => ({ id, ...data }),
-    delete: async () => {},
+    get: fail('get'),
+    create: fail('create'),
+    update: fail('update'),
+    delete: fail('delete'),
+    subscribe: noopSubscribe,
+  };
+}
+
+function makeConsultationHandler(http) {
+  const def = ENTITY_DEFS.Consultation;
+  const normalise = (data) => (Array.isArray(data) ? data : []).map(def.fromAPI);
+  return {
+    async list(_sortBy, limit) {
+      return normalise(await http.get(def.endpoint, { params: { limit: limit || 100 } }));
+    },
+    async filter(filters, _sortBy, limit) {
+      const params = buildParams(filters, def, limit);
+      return normalise(await http.get(def.endpoint, { params }));
+    },
+    async get(id) {
+      const all = await http.get(def.endpoint, { params: { limit: 500 } });
+      const found = all.find((note) => note.id === id);
+      if (!found) throw new Error('Consultation not found');
+      return def.fromAPI(found);
+    },
+    async create(body) {
+      if (!body.visit_id) throw new Error('A visit is required to save a consultation');
+      const data = await http.post(`/encounters/${body.visit_id}/notes`, def.toAPI(body));
+      return def.fromAPI(data);
+    },
+    async update() { throw new UnsupportedFeatureError('Consultation', 'update; notes are append-only'); },
+    async delete() { throw new UnsupportedFeatureError('Consultation', 'delete; notes are append-only'); },
+    subscribe: noopSubscribe,
+  };
+}
+
+function makePatientAllergyHandler(http) {
+  const fromAPI = (item) => item && ({
+    ...item,
+    drug_name: item.allergen,
+    reaction_type: item.reaction,
+    created_date: item.created_at,
+  });
+  return {
+    async list() {
+      throw new Error('PatientAllergy.list requires a patient_id filter');
+    },
+    async filter(filters) {
+      if (!filters?.patient_id) throw new Error('PatientAllergy.filter requires patient_id');
+      const data = await http.get(`/patients/${filters.patient_id}/allergies`);
+      return data.map(fromAPI);
+    },
+    async get() { throw new UnsupportedFeatureError('PatientAllergy', 'get without patient context'); },
+    async create(body) {
+      if (!body.patient_id) throw new Error('A patient is required to save an allergy');
+      const data = await http.post(`/patients/${body.patient_id}/allergies`, {
+        allergen: body.allergen || body.drug_name,
+        reaction: body.reaction || body.reaction_type || null,
+        severity: body.severity || 'moderate',
+      });
+      return fromAPI(data);
+    },
+    async update() { throw new UnsupportedFeatureError('PatientAllergy', 'update'); },
+    async delete() { throw new UnsupportedFeatureError('PatientAllergy', 'delete'); },
     subscribe: noopSubscribe,
   };
 }
@@ -626,39 +719,27 @@ async function invokeFunction(name, params, http) {
   }
 
   if (name === 'checkInventoryAlerts') {
-    try {
-      const raw = await http.get('/pharmacy/drugs', { params: { limit: 500 } });
-      const drugs = Array.isArray(raw) ? raw : (raw?.items || raw?.results || []);
-      const allAlerts = [];
-      let lowStock = 0;
-      for (const d of drugs) {
-        const qty = d.quantity_in_stock ?? (Array.isArray(d.stock) ? d.stock.reduce((s, b) => s + (b.quantity_remaining || 0), 0) : 0);
-        const reorder = d.reorder_level ?? 10;
-        if (qty === 0) {
-          lowStock++;
-          allAlerts.push({ severity: 'critical', message: `${d.name}: Out of stock` });
-        } else if (qty <= reorder) {
-          lowStock++;
-          allAlerts.push({ severity: 'warning', message: `${d.name}: Low stock (${qty} remaining)` });
-        }
+    const raw = await http.get('/pharmacy/drugs', { params: { limit: 500 } });
+    const drugs = Array.isArray(raw) ? raw : (raw?.items || raw?.results || []);
+    const allAlerts = [];
+    let lowStock = 0;
+    for (const d of drugs) {
+      const qty = d.quantity_in_stock ?? (Array.isArray(d.stock) ? d.stock.reduce((s, b) => s + (b.quantity_remaining || 0), 0) : 0);
+      const reorder = d.reorder_level ?? 10;
+      if (qty === 0) {
+        lowStock++;
+        allAlerts.push({ severity: 'critical', message: `${d.name}: Out of stock` });
+      } else if (qty <= reorder) {
+        lowStock++;
+        allAlerts.push({ severity: 'warning', message: `${d.name}: Low stock (${qty} remaining)` });
       }
-      return { data: { total_alerts: allAlerts.length, alerts: allAlerts, low_stock_count: lowStock, expiring_count: 0, expired_count: 0 } };
-    } catch {
-      return { data: { total_alerts: 0, alerts: [], low_stock_count: 0, expiring_count: 0, expired_count: 0 } };
     }
-  }
-
-  if (name === 'runExpiryAlerts') {
-    return { data: { total_notifications: 0, notifications: [] } };
+    return { data: { total_alerts: allAlerts.length, alerts: allAlerts, low_stock_count: lowStock, expiring_count: 0, expired_count: 0 } };
   }
 
   // All other Base44 serverless functions are stubs.
   // Add cases here as FastAPI equivalents are built.
-  // Return `data: null` (not a truthy placeholder): components consistently
-  // guard with `if (!data) return null` or fall back via `result || emptyData`,
-  // both of which only work when the stub result is falsy.
-  console.info(`[lifecare-custom] function stub: ${name}`, params);
-  return { data: null };
+  throw new UnsupportedFeatureError(`Function ${name}`, 'invoke');
 }
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
@@ -729,11 +810,12 @@ export function createCustomClient(baseURL) {
         get(_, entityName) {
           if (typeof entityName !== 'string') return undefined;
           if (entityName === 'InsuranceClaim') return makeInsuranceClaimHandler(http);
-          if (STUB_ENTITIES.has(entityName)) return stubHandler();
+          if (entityName === 'Consultation') return makeConsultationHandler(http);
+          if (entityName === 'PatientAllergy') return makePatientAllergyHandler(http);
+          if (STUB_ENTITIES.has(entityName)) return unsupportedHandler(entityName);
           const def = ENTITY_DEFS[entityName];
           if (!def) {
-            console.warn(`[lifecare-custom] Unknown entity: ${entityName} — returning empty stub`);
-            return stubHandler();
+            throw new UnsupportedFeatureError(entityName, 'access');
           }
           return liveHandler(def, http);
         },

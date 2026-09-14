@@ -1,5 +1,6 @@
 from __future__ import annotations
 from pydantic import BaseModel, field_validator
+from typing import Literal
 from datetime import date, datetime
 from app.models.patient import Gender, BloodGroup
 
@@ -106,6 +107,35 @@ class PatientListResponse(BaseModel):
     date_of_birth: date | None
     phone: str | None
     insurance_provider: str | None
+
+    model_config = {"from_attributes": True}
+
+
+class PatientAllergyCreate(BaseModel):
+    allergen: str
+    reaction: str | None = None
+    severity: Literal["mild", "moderate", "severe"] = "moderate"
+
+    @field_validator("allergen")
+    @classmethod
+    def validate_allergen(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Allergen cannot be empty")
+        if len(value) > 200:
+            raise ValueError("Allergen must be 200 characters or less")
+        return value
+
+
+class PatientAllergyResponse(BaseModel):
+    id: str
+    patient_id: str
+    allergen: str
+    reaction: str | None
+    severity: str
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
 
     model_config = {"from_attributes": True}
 

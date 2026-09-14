@@ -24,6 +24,7 @@ _CLINICAL = (
 async def list_encounters(
     patient_id: str | None = Query(None),
     status: EncounterStatus | None = Query(None),
+    queue_status: str | None = Query(None),
     encounter_date: date | None = Query(None),
     doctor_id: str | None = Query(None),
     encounter_type: EncounterType | None = Query(None),
@@ -37,6 +38,8 @@ async def list_encounters(
         stmt = stmt.where(Encounter.patient_id == patient_id)
     if status:
         stmt = stmt.where(Encounter.status == status)
+    if queue_status:
+        stmt = stmt.where(Encounter.queue_status == queue_status)
     if doctor_id:
         stmt = stmt.where(Encounter.attending_doctor_id == doctor_id)
     if encounter_type:
@@ -68,6 +71,28 @@ async def create_encounter(
     await db.flush()
     await db.refresh(encounter)
     return encounter
+
+
+@router.get("/clinical-notes", response_model=list[ClinicalNoteResponse])
+async def list_clinical_notes(
+    encounter_id: str | None = Query(None),
+    patient_id: str | None = Query(None),
+    skip: int = 0,
+    limit: int = Query(50, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role(UserRole.doctor, UserRole.clinician, UserRole.nurse, UserRole.admin)),
+):
+    stmt = select(ClinicalNote, Encounter.patient_id).join(
+        Encounter, Encounter.id == ClinicalNote.encounter_id
+    )
+    if encounter_id:
+        stmt = stmt.where(ClinicalNote.encounter_id == encounter_id)
+    if patient_id:
+        stmt = stmt.where(Encounter.patient_id == patient_id)
+    rows = (await db.execute(
+        stmt.order_by(ClinicalNote.created_at.desc()).offset(skip).limit(limit)
+    )).all()
+    return [ClinicalNoteResponse.model_validate(note).model_copy(update={"patient_id": pid}) for note, pid in rows]
 
 
 @router.get("/{encounter_id}", response_model=EncounterDetailResponse)
@@ -159,11 +184,19 @@ async def list_notes(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role(UserRole.doctor, UserRole.clinician, UserRole.nurse, UserRole.admin)),
 ):
+    patient_id = (await db.execute(
+        select(Encounter.patient_id).where(Encounter.id == encounter_id)
+    )).scalar_one_or_none()
+    if not patient_id:
+        raise HTTPException(status_code=404, detail="Encounter not found")
     result = await db.execute(
         select(ClinicalNote).where(ClinicalNote.encounter_id == encounter_id)
         .order_by(ClinicalNote.created_at)
     )
-    return result.scalars().all()
+    return [
+        ClinicalNoteResponse.model_validate(note).model_copy(update={"patient_id": patient_id})
+        for note in result.scalars().all()
+    ]
 
 
 @router.post("/{encounter_id}/notes", response_model=ClinicalNoteResponse, status_code=status.HTTP_201_CREATED)
@@ -174,7 +207,8 @@ async def add_note(
     current_user: User = Depends(require_role(UserRole.doctor, UserRole.clinician, UserRole.admin)),
 ):
     enc_result = await db.execute(select(Encounter).where(Encounter.id == encounter_id))
-    if not enc_result.scalar_one_or_none():
+    encounter = enc_result.scalar_one_or_none()
+    if not encounter:
         raise HTTPException(status_code=404, detail="Encounter not found")
 
     note = ClinicalNote(
@@ -186,4 +220,4 @@ async def add_note(
     db.add(note)
     await db.flush()
     await db.refresh(note)
-    return note
+    return ClinicalNoteResponse.model_validate(note).model_copy(update={"patient_id": encounter.patient_id})

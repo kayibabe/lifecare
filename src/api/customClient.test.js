@@ -2,8 +2,8 @@
  * Adapter regression tests (audit N9/H1): the FastAPI adapter must map
  * backend field names to the names the pages actually read.
  */
-import { describe, it, expect } from 'vitest';
-import { ENTITY_DEFS, formatApiError } from './customClient';
+import { describe, it, expect, vi } from 'vitest';
+import { createCustomClient, ENTITY_DEFS, formatApiError, UnsupportedFeatureError } from './customClient';
 
 describe('Admission mapping', () => {
   it('preserves the backend admission_date (regression: admitted_at override)', () => {
@@ -108,5 +108,84 @@ describe('formatApiError', () => {
   });
   it('falls back to the error message', () => {
     expect(formatApiError(new Error('boom'))).toBe('boom');
+  });
+});
+
+describe('consultation mapping', () => {
+  it('maps all clinical fields without discarding the diagnosis payload', () => {
+    const input = {
+      visit_id: 'enc-1', chief_complaint: 'Fever', history_present_illness: 'Three days',
+      physical_examination: 'Temp 38.4', assessment: 'Malaria', plan: 'Treat',
+      clinical_notes: 'Safety net', diagnoses: [{ code: 'B54', label: 'Malaria' }],
+    };
+    expect(ENTITY_DEFS.Consultation.toAPI(input)).toEqual({
+      chief_complaint: 'Fever', history_present_illness: 'Three days',
+      physical_examination: 'Temp 38.4', clinical_notes: 'Safety net',
+      subjective: 'Three days', objective: 'Temp 38.4', assessment: 'Malaria',
+      plan: 'Treat', diagnoses: [{ code: 'B54', label: 'Malaria' }],
+    });
+  });
+});
+
+describe('unsupported features fail closed', () => {
+  it('rejects writes instead of fabricating a successful record', async () => {
+    const client = createCustomClient('http://localhost/api/v1');
+    await expect(client.entities.DeathCertificate.create({ patient_id: 'p1' }))
+      .rejects.toBeInstanceOf(UnsupportedFeatureError);
+  });
+
+  it('rejects unknown entities immediately', () => {
+    const client = createCustomClient('http://localhost/api/v1');
+    expect(() => client.entities.DoesNotExist).toThrow(UnsupportedFeatureError);
+  });
+});
+
+describe('persisted clinical handlers', () => {
+  const response = (body) => ({
+    ok: true,
+    status: 201,
+    headers: { get: () => 'application/json' },
+    json: async () => body,
+  });
+
+  it('posts allergy capture to the selected patient endpoint', async () => {
+    vi.stubGlobal('localStorage', { getItem: () => null, setItem: vi.fn(), removeItem: vi.fn() });
+    vi.stubGlobal('window', { location: { origin: 'http://localhost' } });
+    const fetchMock = vi.fn().mockResolvedValue(response({
+      id: 'a1', patient_id: 'p1', allergen: 'Penicillin', reaction: 'Rash', severity: 'severe',
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    const client = createCustomClient('http://localhost/api/v1');
+
+    const saved = await client.entities.PatientAllergy.create({
+      patient_id: 'p1', drug_name: 'Penicillin', reaction_type: 'Rash', severity: 'severe',
+    });
+
+    expect(saved.allergen).toBe('Penicillin');
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost/api/v1/patients/p1/allergies',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ allergen: 'Penicillin', reaction: 'Rash', severity: 'severe' }),
+      }),
+    );
+    vi.unstubAllGlobals();
+  });
+
+  it('posts consultations to the encounter notes endpoint', async () => {
+    vi.stubGlobal('localStorage', { getItem: () => null, setItem: vi.fn(), removeItem: vi.fn() });
+    vi.stubGlobal('window', { location: { origin: 'http://localhost' } });
+    const fetchMock = vi.fn().mockResolvedValue(response({
+      id: 'n1', encounter_id: 'enc-1', author_id: 'doc-1', created_at: '2026-09-14T06:00:00Z',
+      chief_complaint: 'Fever', diagnoses: [],
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    const client = createCustomClient('http://localhost/api/v1');
+
+    const saved = await client.entities.Consultation.create({ visit_id: 'enc-1', chief_complaint: 'Fever' });
+
+    expect(saved.visit_id).toBe('enc-1');
+    expect(fetchMock.mock.calls[0][0]).toBe('http://localhost/api/v1/encounters/enc-1/notes');
+    vi.unstubAllGlobals();
   });
 });

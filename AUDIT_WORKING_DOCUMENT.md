@@ -264,6 +264,8 @@ Discovered and fixed en route: N5 (config `extra="ignore"`), MRN/invoice sequenc
 
 **Not deployed** — per instruction, work stops at committed, tested code on `audit-fixes`.
 
+**14 September 2026 — fail-closed adapter and clinical persistence follow-up:** unsupported entity writes no longer return locally fabricated success records, and unsupported module navigation is hidden. Migration `009_allergies_consultations` adds structured patient allergies, complete consultation fields, and persisted encounter queue stages. The primary intake and clinical UI now write allergies and consultation notes through real FastAPI endpoints; structured allergies participate in the server-side pharmacy safety gate. Verified with **79 backend tests**, **15 adapter tests**, offline upgrade/downgrade SQL, ESLint, and a production Vite build. No deployment or production access was performed.
+
 ---
 
 # ADVISORY

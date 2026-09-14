@@ -65,6 +65,16 @@ export default function Clinical() {
   const [drugSafetyConfirm, setDrugSafetyConfirm] = useState(null); // { title, message, onConfirm }
   const [labDuplicateConfirm, setLabDuplicateConfirm] = useState(null); // { count, onConfirm }
 
+  const diagnosesFromConsultations = (items) => items.flatMap((consultation) =>
+    (consultation.diagnoses || []).map((diagnosis) => ({
+      consultation_id: consultation.id,
+      visit_id: consultation.visit_id,
+      diagnosis_name: diagnosis.label || diagnosis.diagnosis_name || '',
+      icd10_code: diagnosis.code || diagnosis.icd10_code || '',
+      type: diagnosis.type || 'primary',
+    }))
+  );
+
   useEffect(() => {
     async function load() {
       try {
@@ -105,6 +115,7 @@ export default function Clinical() {
       ]);
       setVitals(vList[0] || null);
       setConsultations(cList);
+      setDiagnoses(diagnosesFromConsultations(cList));
       setPrescriptions(pList);
 
       // Second batch: patient-wide data (2 calls)
@@ -112,7 +123,6 @@ export default function Clinical() {
         base44.entities.Diagnosis.filter({ visit_id: visit.id }, "-created_date", 20),
         base44.entities.LabOrder.filter({ patient_id: visit.patient_id }, "-created_date", 30),
       ]);
-      setDiagnoses(dList);
       setLabOrders(lList);
 
       // Third batch: journey and handovers (2 calls)
@@ -161,50 +171,31 @@ export default function Clinical() {
   const saveConsultation = async () => {
     if (!selectedVisit) return;
 
-    // Enforce single active consultation per visit
-    const existingDrafts = consultations.filter(c => c.is_draft === true || c.status === "in_progress");
-    if (existingDrafts.length > 0) {
-      setConsultConfirmOpen(true);
-      return;
-    }
     await doSaveConsultation();
   };
 
   const doSaveConsultation = async () => {
     if (!selectedVisit) return;
 
-    const consultation = await base44.entities.Consultation.create({
+    const diagnosesPayload = diagnosisForm.diagnosis_name.trim() ? [{
+      label: diagnosisForm.diagnosis_name.trim(),
+      code: diagnosisForm.icd10_code.trim() || null,
+      type: diagnosisForm.type,
+    }] : [];
+    await base44.entities.Consultation.create({
       visit_id: selectedVisit.id, patient_id: selectedVisit.patient_id,
-      ...consultForm, consultation_date: new Date().toISOString(), is_draft: true,
+      ...consultForm, diagnoses: diagnosesPayload,
     });
-    // Save diagnosis if name provided
-    if (diagnosisForm.diagnosis_name.trim()) {
-      await base44.entities.Diagnosis.create({
-        consultation_id: consultation.id,
-        visit_id: selectedVisit.id,
-        patient_id: selectedVisit.patient_id,
-        diagnosis_name: diagnosisForm.diagnosis_name,
-        icd10_code: diagnosisForm.icd10_code,
-        type: diagnosisForm.type,
-        diagnosis_date: new Date().toISOString(),
-      });
+    if (diagnosesPayload.length) {
       setDiagnosisForm({ diagnosis_name: "", icd10_code: "", type: "primary" });
     }
     setConsultForm({ chief_complaint: "", history_present_illness: "", physical_examination: "", assessment: "", plan: "", clinical_notes: "" });
-    const [c, d] = await Promise.all([
-      base44.entities.Consultation.filter({ visit_id: selectedVisit.id }, "-created_date", 10),
-      base44.entities.Diagnosis.filter({ visit_id: selectedVisit.id }, "-created_date", 20),
-    ]);
+    const c = await base44.entities.Consultation.filter({ visit_id: selectedVisit.id }, "-created_date", 10);
     setConsultations(c);
-    setDiagnoses(d);
+    setDiagnoses(diagnosesFromConsultations(c));
     // Update queue status
     await base44.entities.Visit.update(selectedVisit.id, { queue_status: "in_consultation" });
-    // Mark previous drafts as completed when new one created
-    for (const draft of c.filter(con => con.is_draft && con.id !== consultation.id)) {
-      await base44.entities.Consultation.update(draft.id, { is_draft: false, status: "completed" });
-    }
-    // Trigger signature capture
-    setSigningDoc({ document_type: "consultation", document_id: consultation.id });
+    toast({ title: "Consultation saved", description: "The clinical note is persisted in the patient encounter." });
   };
 
   const loadPatientHandovers = async (patientId) => {
@@ -485,7 +476,7 @@ export default function Clinical() {
           ) : (
            <div className="bg-white rounded-lg border border-border">
              <div className="border-b border-border flex overflow-x-auto scrollbar-none">
-               {["vitals", "consultation", "prescriptions", "handovers", "signatures", "death"].map(tab => (
+               {["vitals", "consultation", "prescriptions"].map(tab => (
                  <button key={tab} onClick={() => setActiveTab(tab)} className={`px-3 py-2.5 text-xs font-semibold whitespace-nowrap transition-colors capitalize flex-shrink-0 ${activeTab === tab ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"}`}>{tab}</button>
                ))}
                <button onClick={() => setShowDischargeSummary(true)} className="px-3 py-2.5 text-xs font-semibold whitespace-nowrap text-muted-foreground hover:text-primary ml-auto flex-shrink-0 flex items-center gap-1">

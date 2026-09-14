@@ -74,10 +74,13 @@ export default function PatientIntake() {
         email: formData.email,
         address: formData.address,
         blood_group: formData.blood_group,
+        chronic_conditions: formData.chronic_conditions,
         height: Number(formData.height) || null,
         weight: Number(formData.weight) || null,
         emergency_contact_name: formData.emergency_contact_name,
         emergency_contact_number: formData.emergency_contact_number,
+        insurance_scheme: formData.insurance_scheme,
+        insurance_member_number: formData.insurance_number,
         status: "active",
       };
 
