@@ -1,43 +1,43 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store/auth'
 import Layout from './components/Layout'
 import ErrorBoundary from './components/ErrorBoundary'
 
-import LoginPage from './pages/LoginPage'
-import DashboardPage from './pages/DashboardPage'
+const LoginPage = lazy(() => import('./pages/LoginPage'))
+const DashboardPage = lazy(() => import('./pages/DashboardPage'))
+const PatientListPage = lazy(() => import('./pages/reception/PatientListPage'))
+const RegisterPatientPage = lazy(() => import('./pages/reception/RegisterPatientPage'))
+const PatientDetailPage = lazy(() => import('./pages/reception/PatientDetailPage'))
+const EncounterListPage = lazy(() => import('./pages/opd/EncounterListPage'))
+const NewEncounterPage = lazy(() => import('./pages/opd/NewEncounterPage'))
+const EncounterDetailPage = lazy(() => import('./pages/opd/EncounterDetailPage'))
+const TriagePage = lazy(() => import('./pages/opd/TriagePage'))
+const InvoiceListPage = lazy(() => import('./pages/billing/InvoiceListPage'))
+const CreateInvoicePage = lazy(() => import('./pages/billing/CreateInvoicePage'))
+const InvoiceDetailPage = lazy(() => import('./pages/billing/InvoiceDetailPage'))
+const LabOrderListPage = lazy(() => import('./pages/lab/LabOrderListPage'))
+const NewLabOrderPage = lazy(() => import('./pages/lab/NewLabOrderPage'))
+const LabOrderDetailPage = lazy(() => import('./pages/lab/LabOrderDetailPage'))
+const DrugListPage = lazy(() => import('./pages/pharmacy/DrugListPage'))
+const PrescriptionQueuePage = lazy(() => import('./pages/pharmacy/PrescriptionQueuePage'))
+const DispensePage = lazy(() => import('./pages/pharmacy/DispensePage'))
+const WardViewPage = lazy(() => import('./pages/ipd/WardViewPage'))
+const AdmitPatientPage = lazy(() => import('./pages/ipd/AdmitPatientPage'))
+const AdmissionDetailPage = lazy(() => import('./pages/ipd/AdmissionDetailPage'))
+const NursingStationPage = lazy(() => import('./pages/nursing/NursingStationPage'))
+const RecordVitalsPage = lazy(() => import('./pages/nursing/RecordVitalsPage'))
+const MARPage = lazy(() => import('./pages/nursing/MARPage'))
+const UserListPage = lazy(() => import('./pages/admin/UserListPage'))
+const ReportsPage = lazy(() => import('./pages/admin/ReportsPage'))
 
-import PatientListPage from './pages/reception/PatientListPage'
-import RegisterPatientPage from './pages/reception/RegisterPatientPage'
-import PatientDetailPage from './pages/reception/PatientDetailPage'
-
-import EncounterListPage from './pages/opd/EncounterListPage'
-import NewEncounterPage from './pages/opd/NewEncounterPage'
-import EncounterDetailPage from './pages/opd/EncounterDetailPage'
-import TriagePage from './pages/opd/TriagePage'
-
-import InvoiceListPage from './pages/billing/InvoiceListPage'
-import CreateInvoicePage from './pages/billing/CreateInvoicePage'
-import InvoiceDetailPage from './pages/billing/InvoiceDetailPage'
-
-import LabOrderListPage from './pages/lab/LabOrderListPage'
-import NewLabOrderPage from './pages/lab/NewLabOrderPage'
-import LabOrderDetailPage from './pages/lab/LabOrderDetailPage'
-
-import DrugListPage from './pages/pharmacy/DrugListPage'
-import PrescriptionQueuePage from './pages/pharmacy/PrescriptionQueuePage'
-import DispensePage from './pages/pharmacy/DispensePage'
-
-import WardViewPage from './pages/ipd/WardViewPage'
-import AdmitPatientPage from './pages/ipd/AdmitPatientPage'
-import AdmissionDetailPage from './pages/ipd/AdmissionDetailPage'
-
-import NursingStationPage from './pages/nursing/NursingStationPage'
-import RecordVitalsPage from './pages/nursing/RecordVitalsPage'
-import MARPage from './pages/nursing/MARPage'
-
-import UserListPage from './pages/admin/UserListPage'
-import ReportsPage from './pages/admin/ReportsPage'
+function RouteFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50" role="status" aria-label="Loading page">
+      <div className="w-6 h-6 border-2 border-blue-700 border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((s) => s.user)
@@ -62,7 +62,8 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <Routes>
+      <Suspense fallback={<RouteFallback />}>
+        <Routes>
         <Route path="/login" element={<LoginPage />} />
 
         <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
@@ -112,7 +113,8 @@ function App() {
         <Route path="/admin/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+        </Routes>
+      </Suspense>
     </ErrorBoundary>
   )
 }
