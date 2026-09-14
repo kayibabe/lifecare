@@ -1,4 +1,4 @@
-﻿package mw.mpc.mpc_mobile
+ï»¿package mw.lifecare.lifecare_mobile
 
 import io.flutter.embedding.android.FlutterActivity
 

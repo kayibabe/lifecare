@@ -1,1 +1,1 @@
-export { default } from "./MtoweraClaimForm";
+export { default } from "./LifeCareClaimForm";

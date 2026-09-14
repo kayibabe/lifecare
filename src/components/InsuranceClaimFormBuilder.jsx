@@ -9,7 +9,7 @@ import ResmaidClaimForm from "./ClaimForms/ResmaidclaimForm";
 import MedhealthClaimForm from "./ClaimForms/MedhealthclaimForm";
 import NabmasClaimForm from "./ClaimForms/NabmasclaimForm";
 import HorizonClaimForm from "./ClaimForms/HorizonclaimForm";
-import GeneralClaimForm from "./ClaimForms/MtoweraClaimForm";
+import GeneralClaimForm from "./ClaimForms/LifeCareClaimForm";
 import UnimedClaimForm from "./ClaimForms/UnimedclaimForm";
 import PreciousClaimForm from "./ClaimForms/PreciousclaimForm";
 
@@ -38,7 +38,7 @@ const FORM_COMPONENTS = {
   medhealth: MedhealthClaimForm,
   nabmas: NabmasClaimForm,
   horizon: HorizonClaimForm,
-  mtowera: GeneralClaimForm,
+  lifecare: GeneralClaimForm,
   unimed: UnimedClaimForm,
   precious: PreciousClaimForm,
 };
