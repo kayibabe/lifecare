@@ -38,7 +38,7 @@ for path in ROOT.rglob('*.docx'):
     if should_skip(path):
         continue
     with ZipFile(path, 'r') as source:
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp:
+        with tempfile.NamedTemporaryFile(delete=False, dir=path.parent, suffix='.docx') as tmp:
             temp_path = Path(tmp.name)
         with ZipFile(temp_path, 'w', ZIP_DEFLATED) as target:
             for item in source.infolist():
