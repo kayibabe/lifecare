@@ -1,18 +1,18 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { labApi, type LabResultCreate } from '../../api/lab'
+import { labApi, type LabOrderStatus, type LabResultCreate } from '../../api/lab'
 import { useAuthStore } from '../../store/auth'
 import { ArrowLeft } from 'lucide-react'
 
-const STATUS_NEXT: Record<string, string> = {
-  pending: 'sample_collected',
+const STATUS_NEXT: Partial<Record<LabOrderStatus, LabOrderStatus>> = {
+  ordered: 'sample_collected',
   sample_collected: 'processing',
   processing: 'resulted',
 }
 
 const STATUS_BADGE: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-700',
+  ordered: 'bg-yellow-100 text-yellow-700',
   sample_collected: 'bg-blue-100 text-blue-700',
   processing: 'bg-purple-100 text-purple-700',
   resulted: 'bg-green-100 text-green-700',
@@ -32,7 +32,7 @@ export default function LabOrderDetailPage() {
   })
 
   const statusMutation = useMutation({
-    mutationFn: (status: string) => labApi.updateOrderStatus(id!, { status }),
+    mutationFn: (status: LabOrderStatus) => labApi.updateStatus(id!, status),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['lab-order', id] }),
   })
 
@@ -45,7 +45,7 @@ export default function LabOrderDetailPage() {
     },
   })
 
-  const isLabTech = user?.role === 'lab_tech' || user?.role === 'admin'
+  const isLabTech = user?.role === 'lab_technician' || user?.role === 'admin'
 
   if (isLoading) return <div className="py-12 text-center text-gray-400 text-sm">Loading…</div>
   if (!order) return <div className="py-12 text-center text-gray-500 text-sm">Order not found.</div>
@@ -82,16 +82,18 @@ export default function LabOrderDetailPage() {
       <div className="space-y-3">
         {order.items.map((item) => {
           const form = resultForms[item.id] ?? {}
+          const hasResult = item.result_value !== null
+          const isAbnormal = item.result_flag !== null && item.result_flag !== 'normal'
           return (
             <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="font-medium text-gray-800">{item.test_id}</p>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_BADGE[item.status] ?? ''}`}>
-                    {item.status.replace('_', ' ')}
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${hasResult ? STATUS_BADGE.resulted : STATUS_BADGE.ordered}`}>
+                    {hasResult ? 'resulted' : 'ordered'}
                   </span>
                 </div>
-                {isLabTech && item.status !== 'resulted' && order.status === 'processing' && (
+                {isLabTech && !hasResult && order.status === 'processing' && (
                   <button
                     onClick={() => setResultForms((prev) => ({ ...prev, [item.id]: {} }))}
                     className="text-xs text-blue-600 hover:underline"
@@ -101,14 +103,14 @@ export default function LabOrderDetailPage() {
                 )}
               </div>
 
-              {item.result && (
-                <div className={`mt-2 p-3 rounded-lg text-sm ${item.result.is_abnormal ? 'bg-red-50 border border-red-200' : 'bg-gray-50'}`}>
+              {hasResult && (
+                <div className={`mt-2 p-3 rounded-lg text-sm ${isAbnormal ? 'bg-red-50 border border-red-200' : 'bg-gray-50'}`}>
                   <p className="font-medium">
-                    {item.result.result_value} {item.result.result_unit}
-                    {item.result.is_abnormal && <span className="ml-2 text-red-600 text-xs font-bold">ABNORMAL</span>}
+                    {item.result_value} {item.result_unit}
+                    {isAbnormal && <span className="ml-2 text-red-600 text-xs font-bold">{item.result_flag?.replace('_', ' ').toUpperCase()}</span>}
                   </p>
-                  {item.result.reference_range && <p className="text-xs text-gray-500">Ref: {item.result.reference_range}</p>}
-                  {item.result.notes && <p className="text-xs text-gray-600 mt-1">{item.result.notes}</p>}
+                  {item.reference_range && <p className="text-xs text-gray-500">Ref: {item.reference_range}</p>}
+                  {item.notes && <p className="text-xs text-gray-600 mt-1">{item.notes}</p>}
                 </div>
               )}
 
@@ -140,8 +142,8 @@ export default function LabOrderDetailPage() {
                   <label className="flex items-center gap-2 text-sm">
                     <input
                       type="checkbox"
-                      checked={form.is_abnormal ?? false}
-                      onChange={(e) => setResultForms((p) => ({ ...p, [item.id]: { ...p[item.id], is_abnormal: e.target.checked } }))}
+                      checked={form.result_flag !== undefined && form.result_flag !== 'normal'}
+                      onChange={(e) => setResultForms((p) => ({ ...p, [item.id]: { ...p[item.id], result_flag: e.target.checked ? 'high' : 'normal' } }))}
                       className="rounded text-red-600"
                     />
                     Flag as abnormal

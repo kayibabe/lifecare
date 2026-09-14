@@ -67,7 +67,9 @@ export default function DrugListPage() {
                       {totalStock} {drug.unit}
                     </span>
                     {expiringSoon && (
-                      <AlertTriangle size={12} className="inline ml-1 text-yellow-500" title="Batch expiring soon" />
+                      <span title="Batch expiring soon" aria-label="Batch expiring soon">
+                        <AlertTriangle size={12} className="inline ml-1 text-yellow-500" aria-hidden="true" />
+                      </span>
                     )}
                   </td>
                   <td className="px-4 py-3">

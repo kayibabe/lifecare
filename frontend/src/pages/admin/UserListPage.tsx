@@ -8,7 +8,7 @@ const ROLE_BADGE: Record<string, string> = {
   doctor: 'bg-blue-100 text-blue-700',
   nurse: 'bg-purple-100 text-purple-700',
   receptionist: 'bg-green-100 text-green-700',
-  lab_tech: 'bg-yellow-100 text-yellow-700',
+  lab_technician: 'bg-yellow-100 text-yellow-700',
   pharmacist: 'bg-orange-100 text-orange-700',
   billing_clerk: 'bg-indigo-100 text-indigo-700',
 }

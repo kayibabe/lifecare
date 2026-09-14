@@ -7,7 +7,7 @@ const navItems = [
   { label: 'Reception', path: '/reception', roles: ['receptionist', 'admin'] },
   { label: 'OPD', path: '/opd', roles: ['doctor', 'nurse', 'admin'] },
   { label: 'IPD', path: '/ipd', roles: ['doctor', 'nurse', 'admin'] },
-  { label: 'Laboratory', path: '/lab', roles: ['lab_tech', 'doctor', 'admin'] },
+  { label: 'Laboratory', path: '/lab', roles: ['lab_technician', 'doctor', 'admin'] },
   { label: 'Pharmacy', path: '/pharmacy', roles: ['pharmacist', 'admin'] },
   { label: 'Nursing', path: '/nursing', roles: ['nurse', 'admin'] },
   { label: 'Billing', path: '/billing', roles: ['billing_clerk', 'admin'] },
@@ -27,7 +27,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   const visibleNav = navItems.filter((item) => user && item.roles.includes(user.role))
 
-  const NavLinks = ({ onClick }: { onClick?: () => void }) => (
+  const renderNavLinks = (onClick?: () => void) => (
     <>
       {visibleNav.map((item) => (
         <Link
@@ -70,14 +70,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       {mobileOpen && (
         <div className="md:hidden bg-white border-b border-gray-200 px-4 py-3 space-y-1">
-          <NavLinks onClick={() => setMobileOpen(false)} />
+          {renderNavLinks(() => setMobileOpen(false))}
         </div>
       )}
 
       <div className="flex flex-1">
         <aside className="w-48 bg-white border-r border-gray-200 py-4 hidden md:block">
           <nav className="space-y-1 px-2">
-            <NavLinks />
+            {renderNavLinks()}
           </nav>
         </aside>
 

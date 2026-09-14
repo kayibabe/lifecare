@@ -3,14 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { labApi, type LabOrderCreate } from '../../api/lab'
 import { patientsApi } from '../../api/patients'
-import { useAuthStore } from '../../store/auth'
+import { encountersApi } from '../../api/encounters'
 
 export default function NewLabOrderPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
-  const user = useAuthStore((s) => s.user)
   const [search, setSearch] = useState('')
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null)
+  const [selectedEncounterId, setSelectedEncounterId] = useState<string | null>(null)
   const [selectedTests, setSelectedTests] = useState<Set<string>>(new Set())
 
   const { data: patients } = useQuery({
@@ -22,6 +22,12 @@ export default function NewLabOrderPage() {
   const { data: tests } = useQuery({
     queryKey: ['lab-tests'],
     queryFn: () => labApi.listTests().then((r) => r.data),
+  })
+
+  const { data: encounters } = useQuery({
+    queryKey: ['encounters', selectedPatientId, 'open'],
+    queryFn: () => encountersApi.list({ patient_id: selectedPatientId!, status: 'open' }).then((r) => r.data),
+    enabled: !!selectedPatientId,
   })
 
   const selectedPatient = patients?.find((p) => p.id === selectedPatientId)
@@ -37,17 +43,18 @@ export default function NewLabOrderPage() {
   const toggleTest = (id: string) => {
     setSelectedTests((prev) => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedPatientId || selectedTests.size === 0) return
+    if (!selectedPatientId || !selectedEncounterId || selectedTests.size === 0) return
     mutation.mutate({
       patient_id: selectedPatientId,
-      ordered_by: user!.id,
+      encounter_id: selectedEncounterId,
       items: Array.from(selectedTests).map((id) => ({ test_id: id, priority: 'routine' })),
     })
   }
@@ -80,7 +87,7 @@ export default function NewLabOrderPage() {
                     <li key={p.id}>
                       <button
                         type="button"
-                        onClick={() => { setSelectedPatientId(p.id); setSearch('') }}
+                        onClick={() => { setSelectedPatientId(p.id); setSelectedEncounterId(null) }}
                         className="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm"
                       >
                         <span className="font-medium">{p.last_name}, {p.first_name}</span>
@@ -97,9 +104,30 @@ export default function NewLabOrderPage() {
                 {selectedPatient?.last_name}, {selectedPatient?.first_name}
                 <span className="font-mono ml-2 text-xs text-blue-600">{selectedPatient?.mrn}</span>
               </span>
-              <button type="button" onClick={() => setSelectedPatientId(null)} className="text-xs text-blue-500 hover:text-blue-700">
+              <button type="button" onClick={() => { setSelectedPatientId(null); setSelectedEncounterId(null) }} className="text-xs text-blue-500 hover:text-blue-700">
                 Change
               </button>
+            </div>
+          )}
+          {selectedPatientId && (
+            <div>
+              <label htmlFor="encounter" className="block text-xs font-medium text-gray-600 mb-1">Open encounter</label>
+              <select
+                id="encounter"
+                value={selectedEncounterId ?? ''}
+                onChange={(event) => setSelectedEncounterId(event.target.value || null)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              >
+                <option value="">Select an encounter</option>
+                {encounters?.map((encounter) => (
+                  <option key={encounter.id} value={encounter.id}>
+                    {encounter.encounter_type.toUpperCase()} — {new Date(encounter.encounter_date).toLocaleString()}
+                  </option>
+                ))}
+              </select>
+              {encounters?.length === 0 && (
+                <p className="text-xs text-amber-600 mt-1">This patient has no open encounter.</p>
+              )}
             </div>
           )}
         </div>
@@ -141,7 +169,7 @@ export default function NewLabOrderPage() {
         <div className="flex gap-3">
           <button
             type="submit"
-            disabled={!selectedPatientId || selectedTests.size === 0 || mutation.isPending}
+            disabled={!selectedPatientId || !selectedEncounterId || selectedTests.size === 0 || mutation.isPending}
             className="flex-1 bg-blue-700 hover:bg-blue-800 text-white py-2 rounded-lg text-sm font-medium disabled:opacity-50"
           >
             {mutation.isPending ? 'Creating…' : `Order ${selectedTests.size} Test${selectedTests.size !== 1 ? 's' : ''}`}

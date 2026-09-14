@@ -5,7 +5,7 @@ const moduleCards = [
   { label: 'Reception', description: 'Patient registration & queue', path: '/reception', color: 'bg-blue-600', roles: ['receptionist', 'admin'] },
   { label: 'OPD', description: 'Outpatient consultations', path: '/opd', color: 'bg-green-600', roles: ['doctor', 'nurse', 'admin'] },
   { label: 'IPD', description: 'Inpatient admissions & ward', path: '/ipd', color: 'bg-purple-600', roles: ['doctor', 'nurse', 'admin'] },
-  { label: 'Laboratory', description: 'Test orders & results', path: '/lab', color: 'bg-yellow-600', roles: ['lab_tech', 'doctor', 'admin'] },
+  { label: 'Laboratory', description: 'Test orders & results', path: '/lab', color: 'bg-yellow-600', roles: ['lab_technician', 'doctor', 'admin'] },
   { label: 'Pharmacy', description: 'Dispensing & stock', path: '/pharmacy', color: 'bg-red-600', roles: ['pharmacist', 'admin'] },
   { label: 'Nursing', description: 'Vitals & medication records', path: '/nursing', color: 'bg-pink-600', roles: ['nurse', 'admin'] },
   { label: 'Billing', description: 'Invoices & payments', path: '/billing', color: 'bg-indigo-600', roles: ['billing_clerk', 'admin'] },

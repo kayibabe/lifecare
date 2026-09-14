@@ -26,7 +26,7 @@ export default function WardViewPage() {
       <div className="space-y-6">
         {wards?.map((ward) => {
           const total = ward.beds.length
-          const occupied = ward.beds.filter((b: { status: string }) => b.status === 'occupied').length
+          const occupied = ward.beds.filter((bed) => bed.status === 'occupied').length
           const pct = total > 0 ? Math.round((occupied / total) * 100) : 0
           return (
             <div key={ward.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
@@ -46,7 +46,7 @@ export default function WardViewPage() {
                 </div>
               </div>
               <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2">
-                {ward.beds.map((bed: { id: string; bed_number: string; status: string; current_admission_id?: string }) => (
+                {ward.beds.map((bed) => (
                   <div
                     key={bed.id}
                     title={`Bed ${bed.bed_number} — ${bed.status}`}

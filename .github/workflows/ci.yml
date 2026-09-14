@@ -61,6 +61,14 @@ jobs:
         run: npm audit --audit-level=low --registry=https://registry.npmjs.org
         working-directory: frontend
 
+      - name: Lint secondary frontend
+        run: npm run lint
+        working-directory: frontend
+
+      - name: Build secondary frontend
+        run: npm run build
+        working-directory: frontend
+
       - name: Run eslint
         run: npm run lint
 
