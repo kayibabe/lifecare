@@ -1,0 +1,28 @@
+app = 'lifecare01-api'
+primary_region = 'jnb'
+
+[deploy]
+  release_command = "python scripts/db_migrate.py"
+
+[build]
+
+[http_service]
+  internal_port = 8000
+  force_https = false
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ['app']
+
+  # Audit M8: platform health check (Fly ignores Docker HEALTHCHECK)
+  [[http_service.checks]]
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '30s'
+    method = 'GET'
+    path = '/health'
+
+[[vm]]
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 1

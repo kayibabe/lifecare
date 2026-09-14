@@ -1,0 +1,13 @@
+node_modules
+dist
+.git
+.claude
+frontend/node_modules
+mobile
+backend
+*.md
+*.docx
+*.pdf
+*.log
+.env
+.env.*

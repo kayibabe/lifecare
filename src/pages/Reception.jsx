@@ -1,0 +1,408 @@
+import { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
+import { formatApiError } from "@/api/customClient";
+import { Search, UserPlus, Clock, MapPin, Users, RefreshCw, DoorOpen, Pencil, X, Save } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
+import { queueLabel } from "@/lib/labels";
+import PageHeader from "@/components/ui/PageHeader";
+import SectionTitle from "@/components/ui/SectionTitle";
+import InsuranceVerifier from "@/components/InsuranceVerifier";
+import PatientJourneyTimeline from "@/components/PatientJourneyTimeline";
+import DepartmentDashboard from "@/components/DepartmentDashboard";
+
+export default function Reception() {
+  const [patients, setPatients] = useState([]);
+  const [visits, setVisits] = useState([]);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [roomVacancyNotifs, setRoomVacancyNotifs] = useState([]);
+  const [activeJourneys, setActiveJourneys] = useState([]);
+  const [editingPatient, setEditingPatient] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [form, setForm] = useState({
+    first_name: "", last_name: "", date_of_birth: "", gender: "male", phone: "",
+    national_id: "", blood_group: "", district: "", village: "", landmark: "",
+    emergency_contact_name: "", emergency_contact_phone: "",
+    insurance_scheme: "", insurance_member_number: "", payment_type: "cash",
+    visit_type: "outpatient", priority: "normal",
+  });
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [p, v, roomNotifs, journeys] = await Promise.all([
+          base44.entities.Patient.list("-created_date", 200),
+          base44.entities.Visit.list("-created_date", 50),
+          base44.entities.Notification.filter({ target_role: "reception", is_read: false }, "-created_date", 20),
+          base44.entities.PatientJourney.filter({ status: "active" }, "-created_date", 30),
+        ]);
+        setPatients(p);
+        setVisits(v);
+        setRoomVacancyNotifs(roomNotifs.filter(n => n.type === "info" && n.title?.includes("Room Available")));
+        setActiveJourneys(journeys);
+      } catch (e) { console.error(e); }
+      finally { setLoading(false); }
+    }
+    load();
+  }, []);
+
+  const filteredPatients = patients.filter(p =>
+    `${p.first_name} ${p.last_name}`.toLowerCase().includes(search.toLowerCase()) ||
+    p.mrn?.toLowerCase().includes(search.toLowerCase()) ||
+    p.phone?.includes(search)
+  );
+
+  const openEditPatient = (p) => {
+    setEditForm({
+      first_name: p.first_name || "", last_name: p.last_name || "",
+      date_of_birth: p.date_of_birth || "", gender: p.gender || "male",
+      phone: p.phone || "", email: p.email || "", address: p.address || "",
+      district: p.district || "", village: p.village || "",
+      emergency_contact_name: p.emergency_contact_name || "",
+      emergency_contact_phone: p.emergency_contact_phone || "",
+      blood_group: p.blood_group || "",
+      insurance_provider: p.insurance_provider || "",
+      insurance_number: p.insurance_number || "",
+      chronic_conditions: p.chronic_conditions || "",
+      known_allergies: p.known_allergies || "",
+    });
+    setEditingPatient(p);
+  };
+
+  const handleSaveEdit = async () => {
+    setEditSubmitting(true);
+    try {
+      await base44.entities.Patient.update(editingPatient.id, editForm);
+      setPatients(patients.map(p => p.id === editingPatient.id ? { ...p, ...editForm } : p));
+      setEditingPatient(null);
+      toast({ title: "Patient updated", description: "Demographics saved successfully." });
+    } catch (e) {
+      toast({ title: "Update failed", description: formatApiError(e), variant: "destructive" });
+    } finally { setEditSubmitting(false); }
+  };
+
+  const syncPatient = async (patientId) => {
+    try {
+      const { data } = await base44.functions.invoke('syncPatientRecords', { patient_id: patientId });
+      toast({
+        title: "Patient records synced",
+        description: `${data.updates_applied?.visits || 0} visits, ${data.updates_applied?.invoices || 0} invoices updated.`,
+      });
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Sync failed", description: "Could not sync patient records.", variant: "destructive" });
+    }
+  };
+
+  const schemes = ["MASM", "Liberty Health", "MRA", "PSMAS", "Madison", "Resolution Health", "Britam", "Old Mutual", "CHAM"];
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setFormError("");
+    setSubmitting(true);
+    const mrn = `ZCP-${String(patients.length + 1).padStart(6, "0")}`;
+    try {
+      const patient = await base44.entities.Patient.create({
+        ...form, mrn,
+        insurance_scheme: form.payment_type === "scheme" || form.payment_type === "both" ? form.insurance_scheme : "",
+      });
+      const visit = await base44.entities.Visit.create({
+        patient_id: patient.id,
+        visit_date: new Date().toISOString(),
+        visit_type: form.visit_type,
+        payment_type: form.payment_type,
+        scheme_name: form.insurance_scheme,
+        priority: form.priority,
+        queue_status: "waiting",
+        checked_in_by: "reception",
+      });
+      // Create PatientJourney and transition to CONSULTATION
+      const journey = await base44.entities.PatientJourney.create({
+        visit_id: visit.id,
+        patient_id: patient.id,
+        current_stage: "RECEPTION",
+        status: "active",
+        stage_history: JSON.stringify([{ from: "NONE", to: "RECEPTION", timestamp: new Date().toISOString(), user_id: "reception", notes: "Patient registered" }]),
+      });
+      await base44.functions.invoke('handleWorkflowStageChange', {
+        journey_id: journey.id,
+        next_stage: "CONSULTATION",
+        notes: "Patient checked in at reception",
+      });
+      const [p, v] = await Promise.all([
+        base44.entities.Patient.list("-created_date", 200),
+        base44.entities.Visit.list("-created_date", 50),
+      ]);
+      setPatients(p);
+      setVisits(v);
+      setShowForm(false);
+    } catch (e) {
+      console.error(e);
+      setFormError(formatApiError(e, "Failed to register patient. Please check the details and try again."));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) return <div className="page-container flex justify-center py-20"><div className="w-8 h-8 border-3 border-muted border-t-primary rounded-full animate-spin" /></div>;
+
+  return (
+    <div className="page-container space-y-6">
+      <PageHeader title="Reception" subtitle="Patient registration, check-in, and queue management" icon={Users}>
+        <button onClick={() => setShowForm(!showForm)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm">
+          <UserPlus className="w-4 h-4" /> Register Patient
+        </button>
+      </PageHeader>
+
+      {showForm && (
+        <div className="bg-white rounded-lg border border-border p-6 mb-6">
+          <h3 className="font-heading text-lg font-semibold mb-5">New Patient Registration</h3>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">First Name *</label>
+                <input required className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" value={form.first_name} onChange={e => setForm({...form, first_name: e.target.value})} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Last Name *</label>
+                <input required className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" value={form.last_name} onChange={e => setForm({...form, last_name: e.target.value})} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Date of Birth</label>
+                <input type="date" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" value={form.date_of_birth} onChange={e => setForm({...form, date_of_birth: e.target.value})} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Gender *</label>
+                <select required className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" value={form.gender} onChange={e => setForm({...form, gender: e.target.value})}>
+                  <option value="male">Male</option><option value="female">Female</option><option value="other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Phone *</label>
+                <input required type="tel" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">National ID</label>
+                <input className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" value={form.national_id} onChange={e => setForm({...form, national_id: e.target.value})} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">District</label>
+                <input className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" value={form.district} onChange={e => setForm({...form, district: e.target.value})} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Village/Area</label>
+                <input className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" value={form.village} onChange={e => setForm({...form, village: e.target.value})} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Landmark</label>
+                <input className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" value={form.landmark} onChange={e => setForm({...form, landmark: e.target.value})} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-border">
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Emergency Contact Name</label>
+                <input className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" value={form.emergency_contact_name} onChange={e => setForm({...form, emergency_contact_name: e.target.value})} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Emergency Contact Phone</label>
+                <input type="tel" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" value={form.emergency_contact_phone} onChange={e => setForm({...form, emergency_contact_phone: e.target.value})} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t border-border">
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Visit Type *</label>
+                <select required className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" value={form.visit_type} onChange={e => setForm({...form, visit_type: e.target.value})}>
+                  <option value="outpatient">Outpatient (OPD)</option>
+                  <option value="inpatient">Inpatient (IPD)</option>
+                  <option value="emergency">Emergency</option>
+                  <option value="anc">ANC Visit</option>
+                  <option value="postnatal">Postnatal</option>
+                  <option value="procedure">Procedure</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Payment Type *</label>
+                <select required className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" value={form.payment_type} onChange={e => setForm({...form, payment_type: e.target.value})}>
+                  <option value="cash">Cash / Self-pay</option>
+                  <option value="scheme">Medical Aid Scheme</option>
+                  <option value="both">Both (Scheme + Co-pay)</option>
+                </select>
+              </div>
+              {(form.payment_type === "scheme" || form.payment_type === "both") && (
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">Scheme</label>
+                  <select className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" value={form.insurance_scheme} onChange={e => setForm({...form, insurance_scheme: e.target.value})}>
+                    <option value="">Select scheme</option>
+                    {schemes.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {formError && <p className="text-sm text-destructive">{formError}</p>}
+            <div className="flex gap-3 pt-2">
+              <button type="submit" disabled={submitting} className="px-6 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50">
+                {submitting ? "Registering…" : "Register & Check In"}
+              </button>
+              <button type="button" onClick={() => setShowForm(false)} className="px-6 py-2.5 border border-border rounded-lg text-sm font-medium hover:bg-muted transition-colors">Cancel</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      <div className="mb-6">
+        <DepartmentDashboard department="reception" />
+      </div>
+
+      <div className="bg-white rounded-lg border border-border">
+        <div className="p-4 border-b border-border flex items-center gap-3">
+          <Search className="w-4 h-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search patients by name, MRN, or phone..."
+            className="flex-1 bg-transparent text-sm focus:outline-none"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-lg border border-border">
+          <div className="p-4 border-b border-border">
+            <SectionTitle icon={Users} as="h3">Patients ({filteredPatients.length})</SectionTitle>
+          </div>
+          <div className="divide-y divide-border max-h-[500px] overflow-y-auto">
+            {filteredPatients.map(p => (
+              <div key={p.id} className="p-3 hover:bg-muted/40 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-sm">{p.first_name} {p.last_name}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{p.mrn || "No MRN"} • {p.phone}</p>
+                    {p.district && <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" /> {p.district}{p.village ? `, ${p.village}` : ""}</p>}
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${p.insurance_scheme ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                    {p.insurance_scheme || "Self-pay"}
+                  </span>
+                  <button onClick={() => openEditPatient(p)} className="ml-2 p-1 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors" title="Edit patient details">
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button onClick={() => syncPatient(p.id)} className="p-1 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors" title="Sync patient records across system">
+                    <RefreshCw className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <InsuranceVerifier 
+                  patientId={p.id} 
+                  patientName={`${p.first_name} ${p.last_name}`}
+                  schemeName={p.insurance_scheme}
+                  memberNumber={p.insurance_member_number}
+                />
+              </div>
+            ))}
+            {filteredPatients.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">No patients found.</p>}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg border border-border">
+          <div className="p-4 border-b border-border flex items-center justify-between">
+            <SectionTitle icon={Clock} as="h3">Today's Queue ({visits.length})</SectionTitle>
+            {roomVacancyNotifs.length > 0 && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-chart-3/10 text-chart-3 rounded-full text-xs font-medium">
+                <DoorOpen className="w-3 h-3" /> {roomVacancyNotifs.length} room{roomVacancyNotifs.length > 1 ? "s" : ""} free
+              </span>
+            )}
+          </div>
+
+          {/* Room Vacancy Banner */}
+          {roomVacancyNotifs.length > 0 && (
+            <div className="p-3 bg-chart-3/5 border-b border-chart-3/20">
+              <p className="text-xs font-medium text-chart-3 flex items-center gap-1.5">
+                <DoorOpen className="w-3.5 h-3.5" /> Consultation rooms available — ready for next patient
+              </p>
+            </div>
+          )}
+
+          <div className="divide-y divide-border max-h-[500px] overflow-y-auto">
+            {visits.map(v => {
+              const journey = activeJourneys.find(j => j.visit_id === v.id);
+              return (
+                <div key={v.id} className="p-3 hover:bg-muted/40 transition-colors">
+                  <div className="flex items-center justify-between mb-1">
+                    <div>
+                      <p className="text-sm font-medium capitalize">{v.visit_type}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(v.created_date).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} • {v.payment_type}</p>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      v.queue_status === "completed" ? "bg-chart-2/10 text-chart-2" :
+                      v.queue_status === "in_consultation" ? "bg-chart-1/10 text-chart-1" :
+                      v.queue_status === "waiting" ? "bg-chart-4/10 text-chart-4" :
+                      "bg-muted text-muted-foreground"
+                    }`}>{queueLabel(v.queue_status)}</span>
+                  </div>
+                  {journey && <PatientJourneyTimeline journeyId={journey.id} compact />}
+                </div>
+              );
+            })}
+            {visits.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">Queue is empty.</p>}
+          </div>
+        </div>
+      </div>
+
+      {/* Edit Patient Modal */}
+      {editingPatient && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setEditingPatient(null)} />
+          <div className="relative bg-card rounded-xl p-6 shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-heading text-lg font-semibold">Edit Patient — {editingPatient.mrn}</h3>
+              <button onClick={() => setEditingPatient(null)} className="p-1.5 rounded-lg hover:bg-muted"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                {[["First Name", "first_name", "text"], ["Last Name", "last_name", "text"], ["Date of Birth", "date_of_birth", "date"], ["Phone", "phone", "tel"], ["Email", "email", "email"], ["Address", "address", "text"], ["District", "district", "text"], ["Village", "village", "text"], ["Emergency Contact", "emergency_contact_name", "text"], ["Emergency Phone", "emergency_contact_phone", "tel"], ["Insurance Provider", "insurance_provider", "text"], ["Insurance Number", "insurance_number", "text"]].map(([label, key, type]) => (
+                  <div key={key}>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">{label}</label>
+                    <input type={type} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" value={editForm[key]} onChange={e => setEditForm({ ...editForm, [key]: e.target.value })} />
+                  </div>
+                ))}
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">Gender</label>
+                  <select className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={editForm.gender} onChange={e => setEditForm({ ...editForm, gender: e.target.value })}>
+                    <option value="male">Male</option><option value="female">Female</option><option value="other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">Blood Group</label>
+                  <select className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={editForm.blood_group} onChange={e => setEditForm({ ...editForm, blood_group: e.target.value })}>
+                    <option value="">Unknown</option>
+                    {["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Chronic Conditions</label>
+                <textarea rows={2} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm resize-none" value={editForm.chronic_conditions} onChange={e => setEditForm({ ...editForm, chronic_conditions: e.target.value })} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Known Allergies</label>
+                <textarea rows={2} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm resize-none" value={editForm.known_allergies} onChange={e => setEditForm({ ...editForm, known_allergies: e.target.value })} />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-5 pt-4 border-t border-border">
+              <button onClick={handleSaveEdit} disabled={editSubmitting} className="px-5 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2">
+                <Save className="w-3.5 h-3.5" /> {editSubmitting ? "Saving..." : "Save Changes"}
+              </button>
+              <button onClick={() => setEditingPatient(null)} className="px-5 py-2.5 border border-border rounded-lg text-sm font-medium hover:bg-muted">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
