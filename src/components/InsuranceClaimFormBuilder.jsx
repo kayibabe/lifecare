@@ -23,7 +23,7 @@ const SCHEMES = [
   { id: "medhealth", name: "Medhealth", icon: "💊" },
   { id: "nabmas", name: "National Bank of Malawi (NABMAS)", icon: "🏛️" },
   { id: "horizon", name: "Horizon Health", icon: "🌅" },
-  { id: "mtowera", name: "LifeCare", icon: "🏢" },
+  { id: "lifecare", name: "LifeCare", icon: "🏢" },
   { id: "unimed", name: "University of Malawi (UNIMED)", icon: "🎓" },
   { id: "precious", name: "Precious Medical International", icon: "💎" },
 ];
