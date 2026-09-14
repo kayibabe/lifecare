@@ -16,7 +16,7 @@ class _NursingScreenState extends State<NursingScreen> {
   final _bpSysCtl = TextEditingController();
   final _bpDiaCtl = TextEditingController();
   final _pulseCtl = TextEditingController();
-  final _tempCtl = TextEditingController();
+  final _telifecaretl = TextEditingController();
   final _spo2Ctl = TextEditingController();
   String? _patientId;
   bool _submitting = false;
@@ -32,7 +32,7 @@ class _NursingScreenState extends State<NursingScreen> {
     _bpSysCtl.dispose();
     _bpDiaCtl.dispose();
     _pulseCtl.dispose();
-    _tempCtl.dispose();
+    _telifecaretl.dispose();
     _spo2Ctl.dispose();
     super.dispose();
   }
@@ -59,7 +59,7 @@ class _NursingScreenState extends State<NursingScreen> {
         if (_bpSysCtl.text.isNotEmpty) 'bp_systolic': int.tryParse(_bpSysCtl.text),
         if (_bpDiaCtl.text.isNotEmpty) 'bp_diastolic': int.tryParse(_bpDiaCtl.text),
         if (_pulseCtl.text.isNotEmpty) 'pulse': int.tryParse(_pulseCtl.text),
-        if (_tempCtl.text.isNotEmpty) 'temperature': double.tryParse(_tempCtl.text),
+        if (_telifecaretl.text.isNotEmpty) 'temperature': double.tryParse(_telifecaretl.text),
         if (_spo2Ctl.text.isNotEmpty) 'spo2': int.tryParse(_spo2Ctl.text),
       });
       setState(() { _showForm = false; _submitting = false; });
@@ -137,7 +137,7 @@ class _NursingScreenState extends State<NursingScreen> {
                         )),
                         const SizedBox(width: 8),
                         Expanded(child: TextField(
-                          controller: _tempCtl,
+                          controller: _telifecaretl,
                           keyboardType: TextInputType.number,
                           decoration: const InputDecoration(labelText: 'Temp (°C)', border: OutlineInputBorder()),
                         )),
