@@ -31,7 +31,7 @@ jobs:
         run: ruff check .
 
       - name: Run tests
-        run: pytest --tb=short
+        run: python -m pytest --tb=short
         env:
           DATABASE_URL: "sqlite+aiosqlite:///:memory:"
           SECRET_KEY: "test-secret-key-for-ci-only-1234567890abcdef"
