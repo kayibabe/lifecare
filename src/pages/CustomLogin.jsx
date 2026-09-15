@@ -46,11 +46,13 @@ export default function CustomLogin() {
 
           {/* Header */}
           <div className="px-8 pt-8 pb-6 text-center border-b border-border">
-            <img
-              src="/logo.png"
-              alt="LifeCare"
-              className="w-40 mx-auto mb-3 object-contain"
-            />
+            <div className="w-24 aspect-[1240/730] mx-auto mb-3 overflow-hidden">
+              <img
+                src="/logo.png"
+                alt="LifeCare"
+                className="w-full h-full object-cover object-top"
+              />
+            </div>
             <h1 className="text-base font-semibold text-foreground tracking-tight">
               LifeCare
             </h1>
