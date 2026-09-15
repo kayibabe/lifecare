@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from app.core.database import get_db
 from app.core.auth import require_patient
 from app.models.patient import Patient
-from app.models.appointment import Appointment, AppointmentStatus
+from app.models.appointment import Appointment
 from app.models.billing import BillingInvoice
 from app.models.encounter import Encounter
-from app.models.lab import LabOrder, LabOrderItem, LabTest, ResultFlag
+from app.models.lab import LabOrder, LabOrderItem, LabTest
 from app.models.patient_message import PatientMessage
 from app.schemas.appointment import AppointmentListResponse, AppointmentResponse
 from app.schemas.billing import InvoiceListResponse
@@ -16,12 +16,12 @@ from app.schemas.encounter import EncounterListResponse
 from app.schemas.patient_auth import PatientMessageResponse, PatientAppointmentCreate
 import uuid
 
-router = APIRouter(prefix="/patient", tags=["patient-portal"])
-
 # Reuses the same overlap-conflict check appointments.py uses for staff
 # bookings — patients booking their own appointment should be subject to
 # the identical double-booking rule.
 from app.routers.appointments import _check_double_booking
+
+router = APIRouter(prefix="/patient", tags=["patient-portal"])
 
 
 @router.get("/appointments", response_model=list[AppointmentListResponse])

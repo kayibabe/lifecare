@@ -7,7 +7,7 @@ from app.core.auth import require_role
 from app.models.user import User, UserRole
 from app.models.scheduling import (
     DoctorSchedule, DoctorHandover, ShiftHandoverLog,
-    DoctorScheduleStatus, HandoverStatus,
+    HandoverStatus,
 )
 from app.schemas.scheduling import (
     DoctorScheduleCreate, DoctorScheduleUpdate, DoctorScheduleResponse,
