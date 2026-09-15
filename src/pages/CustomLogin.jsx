@@ -49,7 +49,7 @@ export default function CustomLogin() {
             <img
               src="/logo.png"
               alt="LifeCare"
-              className="w-14 h-14 mx-auto mb-3 rounded-full object-cover"
+              className="w-40 mx-auto mb-3 object-contain"
             />
             <h1 className="text-base font-semibold text-foreground tracking-tight">
               LifeCare
