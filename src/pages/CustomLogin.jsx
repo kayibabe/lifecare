@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { apiClient } from '@/api/apiClient';
 import { useAuth } from '@/lib/AuthContext';
-import { Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 
 
 export default function CustomLogin() {
@@ -134,6 +134,13 @@ export default function CustomLogin() {
                 {loading ? "Signing in…" : "Sign in"}
               </button>
             </form>
+
+            <Link
+              to="/"
+              className="mt-5 flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="w-3 h-3" /> Back to main page
+            </Link>
           </div>
         </div>
 
