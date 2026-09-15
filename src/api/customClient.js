@@ -39,6 +39,9 @@ export function formatApiError(err, fallback = 'Something went wrong. Please try
       .join('; ');
   }
   if (typeof detail === 'string') return detail;
+  // Network-level failure: fetch() throws a TypeError with no HTTP status.
+  // Return the caller's fallback rather than the raw browser "Failed to fetch".
+  if (!err?.status) return fallback;
   return err?.message || fallback;
 }
 

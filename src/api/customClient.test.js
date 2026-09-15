@@ -106,8 +106,14 @@ describe('formatApiError', () => {
   it('passes through string detail', () => {
     expect(formatApiError({ data: { detail: 'Insufficient stock' } })).toBe('Insufficient stock');
   });
-  it('falls back to the error message', () => {
-    expect(formatApiError(new Error('boom'))).toBe('boom');
+  it('uses fallback for network errors (no status)', () => {
+    const networkErr = new TypeError('Failed to fetch');
+    expect(formatApiError(networkErr, 'Try again')).toBe('Try again');
+    expect(formatApiError(networkErr)).toBe('Something went wrong. Please try again.');
+  });
+  it('uses message for HTTP errors that have a status', () => {
+    const httpErr = Object.assign(new Error('Not Found'), { status: 404, data: {} });
+    expect(formatApiError(httpErr)).toBe('Not Found');
   });
 });
 

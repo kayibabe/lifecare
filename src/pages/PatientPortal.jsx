@@ -118,7 +118,7 @@ export default function PatientPortal() {
       const a = await apiClient.patientPortal.listAppointments();
       setAppointments(a);
     } catch (err) {
-      setBookingError(formatApiError(err, "Could not book that slot. Please try a different time."));
+      setBookingError(formatApiError(err, "Unable to book appointment. Please check your connection and try again."));
     } finally {
       setBooking(false);
     }
