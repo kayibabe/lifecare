@@ -120,19 +120,25 @@ export default function Reception() {
         queue_status: "waiting",
         checked_in_by: "reception",
       });
-      // Create PatientJourney and transition to CONSULTATION
-      const journey = await apiClient.entities.PatientJourney.create({
-        visit_id: visit.id,
-        patient_id: patient.id,
-        current_stage: "RECEPTION",
-        status: "active",
-        stage_history: JSON.stringify([{ from: "NONE", to: "RECEPTION", timestamp: new Date().toISOString(), user_id: "reception", notes: "Patient registered" }]),
-      });
-      await apiClient.functions.invoke('handleWorkflowStageChange', {
-        journey_id: journey.id,
-        next_stage: "CONSULTATION",
-        notes: "Patient checked in at reception",
-      });
+      // Journey-stage tracking is not implemented on the FastAPI backend yet
+      // (PatientJourney is a stub entity) — best-effort only, must not block
+      // registration since the patient and visit are already saved above.
+      try {
+        const journey = await apiClient.entities.PatientJourney.create({
+          visit_id: visit.id,
+          patient_id: patient.id,
+          current_stage: "RECEPTION",
+          status: "active",
+          stage_history: JSON.stringify([{ from: "NONE", to: "RECEPTION", timestamp: new Date().toISOString(), user_id: "reception", notes: "Patient registered" }]),
+        });
+        await apiClient.functions.invoke('handleWorkflowStageChange', {
+          journey_id: journey.id,
+          next_stage: "CONSULTATION",
+          notes: "Patient checked in at reception",
+        });
+      } catch (journeyError) {
+        console.warn("Journey-stage tracking unavailable:", journeyError);
+      }
       const [p, v] = await Promise.all([
         apiClient.entities.Patient.list("-created_date", 200),
         apiClient.entities.Visit.list("-created_date", 50),
