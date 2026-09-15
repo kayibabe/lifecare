@@ -79,6 +79,7 @@ import TotpManagement from '@/pages/TotpManagement';
 import ClinicalAuditLog from '@/pages/ClinicalAuditLog';
 import EmergencyAlertSystem from '@/components/EmergencyAlertSystem';
 import Layout from '@/components/Layout';
+import RoleRoute from '@/components/RoleRoute';
 import Login from '@/pages/Login';
 import CustomLogin from '@/pages/CustomLogin';
 import Register from '@/pages/Register';
@@ -130,6 +131,7 @@ const AuthenticatedApp = () => {
 
       {/* Staff-protected */}
       <Route element={<Layout />}>
+       <Route element={<RoleRoute />}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/reception" element={<Reception />} />
         <Route path="/appointments" element={<Appointments />} />
@@ -172,6 +174,7 @@ const AuthenticatedApp = () => {
         <Route path="/audit-logs" element={<ClinicalAuditLog />} />
         <Route path="/patient-history" element={<PatientHistory />} />
         <Route path="/surge" element={<Surge />} />
+       </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

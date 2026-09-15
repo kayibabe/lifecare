@@ -17,7 +17,10 @@ import {
   UserCheck, CreditCard, Calendar, Lock, Warehouse, LineChart, Home
 } from "lucide-react";
 
-const ALL_NAV_GROUPS = [
+// Also the source of truth for route-level access control - see
+// src/lib/routeAccess.js, which flattens this into a path->roles map
+// enforced by RoleRoute regardless of whether a link is shown here.
+export const ALL_NAV_GROUPS = [
   {
     label: "Main",
     color: "#2B7CBF",
