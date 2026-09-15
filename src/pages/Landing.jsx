@@ -64,15 +64,15 @@ export default function Landing() {
       >
         <div className="max-w-7xl mx-auto px-6 md:px-10 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 overflow-hidden rounded-md flex-shrink-0">
-              <img src="/logo.png" alt="General Private Clinic" className="w-full object-contain" />
+            <div className="w-12 h-12 overflow-hidden rounded-md flex-shrink-0">
+              <img src="/logo.png" alt="LifeCare" className="w-full h-full object-cover object-top" />
             </div>
             <div className="leading-tight">
               <span
-                className="block font-heading font-bold text-sm tracking-wide transition-colors"
+                className="block font-heading font-bold text-base tracking-wide transition-colors"
                 style={{ color: scrolled ? "hsl(var(--foreground))" : "#fff" }}
               >
-                General Private Clinic
+                LifeCare
               </span>
               <span
                 className="block text-[10px] tracking-widest uppercase transition-colors"
@@ -174,7 +174,7 @@ export default function Landing() {
 
             <p className="text-lg leading-relaxed mb-10 max-w-[50ch]"
               style={{ color: "rgba(255,255,255,0.72)" }}>
-              General Private Clinic brings together every part of your care — consultation,
+              LifeCare brings together every part of your care — consultation,
               lab, pharmacy, and billing — on a single secure digital platform. Better care,
               less paper.
             </p>
@@ -552,19 +552,19 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-6 md:px-10 py-14 grid md:grid-cols-[1.5fr_1fr_1fr] gap-12">
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 overflow-hidden rounded-lg">
-                <img src="/logo.png" alt="General Private Clinic" className="w-full object-contain" />
+              <div className="w-14 h-14 overflow-hidden rounded-lg flex-shrink-0">
+                <img src="/logo.png" alt="LifeCare" className="w-full h-full object-cover object-top" />
               </div>
               <div>
-                <span className="block font-heading font-bold text-white text-sm">General Private Clinic</span>
+                <span className="block font-heading font-bold text-white text-base">LifeCare</span>
                 <span className="block text-[10px] tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.45)" }}>
                   Health Management Information System
                 </span>
               </div>
             </div>
             <p className="text-sm leading-relaxed mt-4" style={{ color: "rgba(255,255,255,0.5)" }}>
-              Care. Connect. Manage. — A modern clinic management platform bringing
-              every department together under one secure, integrated system.
+              LifeCare — A modern clinic management platform bringing every department
+              together under one secure, integrated system. Care. Connect. Manage.
             </p>
           </div>
 
@@ -620,7 +620,7 @@ export default function Landing() {
           style={{ borderColor: "rgba(255,255,255,0.06)" }}
         >
           <p className="text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>
-            © {new Date().getFullYear()} General Private Clinic. LifeCare HMIS. All rights reserved.
+            © {new Date().getFullYear()} LifeCare Health Management Information System. All rights reserved.
           </p>
           <div className="flex items-center gap-1.5 text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>
             <ShieldCheck className="w-3.5 h-3.5" style={{ color: "#5ee8c5" }} />

@@ -5,9 +5,12 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
     <div className="h-screen overflow-hidden flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-5">
-          <div className="w-16 h-16 rounded-2xl mb-3 mx-auto flex items-center justify-center bg-primary text-primary-foreground text-3xl">ðŸ¥</div>
-          <div className="flex items-center justify-center gap-2">
-            <span className="text-lg font-semibold text-primary tracking-wide uppercase">LifeCare</span>
+          <div className="w-24 h-24 mx-auto mb-3 overflow-hidden">
+            <img src="/logo.png" alt="LifeCare" className="w-full h-full object-cover object-top" />
+          </div>
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="text-lg font-bold text-foreground tracking-tight">LifeCare</span>
+            <span className="text-[11px] text-muted-foreground tracking-widest uppercase">Health Management Information System</span>
           </div>
           <div className="mt-5">
             <h1 className="text-3xl font-bold tracking-tight text-foreground">{title}</h1>
