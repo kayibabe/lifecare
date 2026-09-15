@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Stethoscope, User, ArrowRight, ShieldCheck, ClipboardList, CalendarDays,
-  FlaskConical, Pill, Receipt, MessageSquare, Activity, Lock, CheckCircle2,
-  HeartPulse, Phone, MapPin, Clock, ChevronRight, Star, Award, Building2,
+  FlaskConical, Pill, Receipt, MessageSquare, Lock, CheckCircle2,
+  HeartPulse, Phone, MapPin, Clock, ChevronRight, Award, Building2,
   Microscope, Syringe, Bed, UserCheck, BarChart3,
 } from "lucide-react";
 
