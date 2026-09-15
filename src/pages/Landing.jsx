@@ -7,13 +7,6 @@ import {
   Microscope, Syringe, Bed, UserCheck, BarChart3,
 } from "lucide-react";
 
-const STATS = [
-  { value: "12+", label: "Departments" },
-  { value: "5,000+", label: "Patients Served" },
-  { value: "10+", label: "Years of Service" },
-  { value: "50+", label: "Medical Staff" },
-];
-
 const SERVICES = [
   { icon: ClipboardList, title: "Electronic Health Records", text: "Unified patient records shared across all departments and visits in real time." },
   { icon: CalendarDays, title: "Appointment Scheduling", text: "Streamlined booking for patients, with smart capacity management for clinical staff." },
@@ -269,17 +262,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── STATS BAND ──────────────────────────────────────────────────── */}
-      <section style={{ background: "hsl(var(--primary))" }}>
-        <div className="max-w-7xl mx-auto px-6 md:px-10 py-10 grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-0 md:divide-x md:divide-white/20">
-          {STATS.map((s) => (
-            <div key={s.label} className="flex flex-col items-center text-center px-4">
-              <span className="font-heading font-bold text-white text-4xl md:text-5xl leading-none mb-1">{s.value}</span>
-              <span className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.7)" }}>{s.label}</span>
-            </div>
-          ))}
-        </div>
-      </section>
 
       {/* ── PORTAL ACCESS ────────────────────────────────────────────────── */}
       <section id="access" className="scroll-mt-16 py-24 px-6 md:px-10 bg-background">
