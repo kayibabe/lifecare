@@ -126,13 +126,20 @@ export default function WasteManagement() {
         patient_id: "",
         visit_id: "",
       });
-      await apiClient.entities.WasteLog.update(signingLog.id, {
-        signature_url: uploadData.file_url,
-        signed_by: "current_user",
-        signed_by_name: "Staff Member",
-        signed_at: new Date().toISOString(),
-        status: "disposed",
-      });
+      // Waste-log tracking is a stub on the backend — best-effort only,
+      // must not block closing the modal since the signature itself has
+      // already been uploaded and saved above.
+      try {
+        await apiClient.entities.WasteLog.update(signingLog.id, {
+          signature_url: uploadData.file_url,
+          signed_by: "current_user",
+          signed_by_name: "Staff Member",
+          signed_at: new Date().toISOString(),
+          status: "disposed",
+        });
+      } catch (wasteLogError) {
+        console.warn("Waste-log tracking unavailable:", wasteLogError);
+      }
       setSigningLog(null);
       loadData();
     } catch (e) {

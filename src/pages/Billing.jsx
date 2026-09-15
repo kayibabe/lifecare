@@ -107,35 +107,41 @@ export default function Billing() {
         });
       }
 
-      // Create split allocations
-      if (splitBilling) {
-        for (const split of splits) {
-          const pct = Number(split.percentage);
-          if (pct <= 0) continue;
-          const splitAmount = Math.round(total * pct) / 100;
+      // InvoiceSplit tracking is not implemented on the FastAPI backend yet
+      // (stub entity) — best-effort only, must not block invoice creation
+      // since the Invoice and its InvoiceItems are already saved above.
+      try {
+        if (splitBilling) {
+          for (const split of splits) {
+            const pct = Number(split.percentage);
+            if (pct <= 0) continue;
+            const splitAmount = Math.round(total * pct) / 100;
+            await apiClient.entities.InvoiceSplit.create({
+              invoice_id: inv.id,
+              patient_id: invoiceForm.patient_id,
+              payer_type: split.payer_type,
+              scheme_name: split.payer_type === "insurance" ? split.scheme_name : "",
+              percentage: pct,
+              total_amount: splitAmount,
+              paid_amount: 0,
+              status: "pending",
+            });
+          }
+        } else {
+          // Single payer — create one split for tracking
           await apiClient.entities.InvoiceSplit.create({
             invoice_id: inv.id,
             patient_id: invoiceForm.patient_id,
-            payer_type: split.payer_type,
-            scheme_name: split.payer_type === "insurance" ? split.scheme_name : "",
-            percentage: pct,
-            total_amount: splitAmount,
+            payer_type: invoiceForm.payment_type === "scheme" ? "insurance" : "patient",
+            scheme_name: invoiceForm.payment_type === "scheme" ? (invoiceForm.scheme_name || "") : "",
+            percentage: 100,
+            total_amount: total,
             paid_amount: 0,
             status: "pending",
           });
         }
-      } else {
-        // Single payer — create one split for tracking
-        await apiClient.entities.InvoiceSplit.create({
-          invoice_id: inv.id,
-          patient_id: invoiceForm.patient_id,
-          payer_type: invoiceForm.payment_type === "scheme" ? "insurance" : "patient",
-          scheme_name: invoiceForm.payment_type === "scheme" ? (invoiceForm.scheme_name || "") : "",
-          percentage: 100,
-          total_amount: total,
-          paid_amount: 0,
-          status: "pending",
-        });
+      } catch (splitError) {
+        console.warn("Invoice split tracking unavailable:", splitError);
       }
 
       const [invList, splitList] = await Promise.all([
@@ -159,62 +165,71 @@ export default function Billing() {
     if (!paymentForm.amount) return;
     const amt = Number(paymentForm.amount);
 
-    await apiClient.entities.Payment.create({
-      invoice_id: invoiceId,
-      patient_id: invoices.find(i => i.id === invoiceId)?.patient_id,
-      amount: amt,
-      payment_method: paymentForm.payment_method,
-      reference: paymentForm.reference,
-      payment_date: new Date().toISOString(),
-    });
+    try {
+      await apiClient.entities.Payment.create({
+        invoice_id: invoiceId,
+        patient_id: invoices.find(i => i.id === invoiceId)?.patient_id,
+        amount: amt,
+        payment_method: paymentForm.payment_method,
+        reference: paymentForm.reference,
+        payment_date: new Date().toISOString(),
+      });
 
-    // Update the matching split
-    const splitId = paymentForm.split_id;
-    if (splitId) {
-      const split = invoiceSplits.find(s => s.id === splitId);
-      if (split) {
-        const newPaid = (split.paid_amount || 0) + amt;
-        const newStatus = newPaid >= split.total_amount ? "paid" : "partial";
-        await apiClient.entities.InvoiceSplit.update(splitId, {
-          paid_amount: newPaid,
-          status: newStatus,
-        });
-      }
-    }
-
-    // Recalculate overall invoice status
-    const inv = invoices.find(i => i.id === invoiceId);
-    const allSplits = getInvoiceSplits(invoiceId);
-    const totalPaid = allSplits.reduce((s, sp) => s + (sp.paid_amount || 0), 0) + (splitId ? 0 : amt);
-    const total = inv.net_amount || inv.total_amount;
-    let newStatus = "pending";
-    if (totalPaid >= total) newStatus = "paid";
-    else if (totalPaid > 0) newStatus = "partial";
-
-    await apiClient.entities.Invoice.update(invoiceId, { status: newStatus, paid_amount: totalPaid });
-
-    const [invList, payList, splitList] = await Promise.all([
-      apiClient.entities.Invoice.list("-created_date", 100),
-      apiClient.entities.Payment.list("-created_date", 100),
-      apiClient.entities.InvoiceSplit.list("-created_date", 200),
-    ]);
-    setInvoices(invList);
-    setPayments(payList);
-    setInvoiceSplits(splitList);
-    setShowPayment(null);
-    setPaymentForm({ amount: "", payment_method: "cash", reference: "", split_id: "" });
-
-    if (totalPaid >= total) {
-      try {
-        const journeys = await apiClient.entities.PatientJourney.filter({ visit_id: inv.visit_id, status: "active" }, "-created_date", 1);
-        if (journeys.length > 0) {
-          await apiClient.functions.invoke('handleWorkflowStageChange', {
-            journey_id: journeys[0].id,
-            next_stage: "COMPLETED",
-            notes: "Full payment received — visit finalized",
-          });
+      // Split-payment tracking is a stub on the backend — best-effort only,
+      // must not block recording the payment or updating the invoice.
+      const splitId = paymentForm.split_id;
+      if (splitId) {
+        const split = invoiceSplits.find(s => s.id === splitId);
+        if (split) {
+          const newPaid = (split.paid_amount || 0) + amt;
+          const newStatus = newPaid >= split.total_amount ? "paid" : "partial";
+          try {
+            await apiClient.entities.InvoiceSplit.update(splitId, {
+              paid_amount: newPaid,
+              status: newStatus,
+            });
+          } catch (splitError) {
+            console.warn("Invoice split tracking unavailable:", splitError);
+          }
         }
-      } catch (_) { /* silent */ }
+      }
+
+      // Recalculate overall invoice status
+      const inv = invoices.find(i => i.id === invoiceId);
+      const allSplits = getInvoiceSplits(invoiceId);
+      const totalPaid = allSplits.reduce((s, sp) => s + (sp.paid_amount || 0), 0) + (splitId ? 0 : amt);
+      const total = inv.net_amount || inv.total_amount;
+      let newStatus = "pending";
+      if (totalPaid >= total) newStatus = "paid";
+      else if (totalPaid > 0) newStatus = "partial";
+
+      await apiClient.entities.Invoice.update(invoiceId, { status: newStatus, paid_amount: totalPaid });
+
+      const [invList, payList, splitList] = await Promise.all([
+        apiClient.entities.Invoice.list("-created_date", 100),
+        apiClient.entities.Payment.list("-created_date", 100),
+        apiClient.entities.InvoiceSplit.list("-created_date", 200),
+      ]);
+      setInvoices(invList);
+      setPayments(payList);
+      setInvoiceSplits(splitList);
+      setShowPayment(null);
+      setPaymentForm({ amount: "", payment_method: "cash", reference: "", split_id: "" });
+
+      if (totalPaid >= total) {
+        try {
+          const journeys = await apiClient.entities.PatientJourney.filter({ visit_id: inv.visit_id, status: "active" }, "-created_date", 1);
+          if (journeys.length > 0) {
+            await apiClient.functions.invoke('handleWorkflowStageChange', {
+              journey_id: journeys[0].id,
+              next_stage: "COMPLETED",
+              notes: "Full payment received — visit finalized",
+            });
+          }
+        } catch (_) { /* silent */ }
+      }
+    } catch (err) {
+      toast({ title: "Failed to record payment", description: err.response?.data?.detail || err.message, variant: "destructive" });
     }
   };
 

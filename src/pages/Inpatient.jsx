@@ -115,15 +115,26 @@ export default function Inpatient() {
   };
 
   const dischargePatient = async (admissionId, bedId) => {
-    await apiClient.entities.Admission.update(admissionId, { status: "discharged" });
-    await apiClient.entities.Discharge.create({ admission_id: admissionId, patient_id: admissions.find(a => a.id === admissionId)?.patient_id, discharge_type: "normal", discharge_date: new Date().toISOString() });
-    if (bedId) await apiClient.entities.Bed.update(bedId, { status: "available" });
-    const [a, b] = await Promise.all([
-      apiClient.entities.Admission.filter({ status: "admitted" }, "-created_date", 50),
-      apiClient.entities.Bed.list("", 200),
-    ]);
-    setAdmissions(a);
-    setBeds(b);
+    try {
+      await apiClient.entities.Admission.update(admissionId, { status: "discharged" });
+      // Discharge-record tracking is a stub on the backend — best-effort
+      // only, must not block freeing the bed since the admission is
+      // already marked discharged above.
+      try {
+        await apiClient.entities.Discharge.create({ admission_id: admissionId, patient_id: admissions.find(a => a.id === admissionId)?.patient_id, discharge_type: "normal", discharge_date: new Date().toISOString() });
+      } catch (dischargeError) {
+        console.warn("Discharge record tracking unavailable:", dischargeError);
+      }
+      if (bedId) await apiClient.entities.Bed.update(bedId, { status: "available" });
+      const [a, b] = await Promise.all([
+        apiClient.entities.Admission.filter({ status: "admitted" }, "-created_date", 50),
+        apiClient.entities.Bed.list("", 200),
+      ]);
+      setAdmissions(a);
+      setBeds(b);
+    } catch (err) {
+      toast({ title: "Failed to discharge patient", description: err.response?.data?.detail || err.message, variant: "destructive" });
+    }
   };
 
   const generateSummary = async (admissionId) => {

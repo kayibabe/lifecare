@@ -25,7 +25,7 @@ export default function Clinical() {
   const [vitals, setVitals] = useState(null);
   const [consultations, setConsultations] = useState([]);
   const [prescriptions, setPrescriptions] = useState([]);
-  const [vitalForm, setVitalForm] = useState({ bp_systolic: "", bp_diastolic: "", heart_rate: "", respiratory_rate: "", temperature: "", spo2: "", weight: "", height: "", glucose: "", pain_score: "" });
+  const [vitalForm, setVitalForm] = useState({ bp_systolic: "", bp_diastolic: "", heart_rate: "", respiratory_rate: "", temperature: "", spo2: "", weight: "", height: "", glucose: "", pain_score: "", triage_category: "non_urgent" });
   const [consultForm, setConsultForm] = useState({ chief_complaint: "", history_present_illness: "", physical_examination: "", assessment: "", plan: "", clinical_notes: "" });
   const [diagnosisForm, setDiagnosisForm] = useState({ diagnosis_name: "", icd10_code: "", type: "primary" });
   const [prescForm, setPrescForm] = useState({ items: [{ drug_name: "", dosage: "", frequency: "", duration: "", route: "", quantity: "", instructions: "" }] });
@@ -109,7 +109,7 @@ export default function Clinical() {
     try {
       // First batch: visit-specific data (3 calls)
       const [vList, cList, pList] = await Promise.all([
-        apiClient.entities.VitalSigns.filter({ visit_id: visit.id }, "-created_date", 10),
+        apiClient.entities.Triage.filter({ visit_id: visit.id }, "-created_date", 10),
         apiClient.entities.Consultation.filter({ visit_id: visit.id }, "-created_date", 10),
         apiClient.entities.Prescription.filter({ visit_id: visit.id }, "-created_date", 10),
       ]);
@@ -150,21 +150,26 @@ export default function Clinical() {
 
   const saveVitals = async () => {
     if (!selectedVisit) return;
+    // Blank fields must stay null (not 0) — the backend range-validates
+    // most of these (e.g. bp_systolic must be 40-300), so a blank field
+    // coerced to 0 would be rejected as out of range.
+    const n = (v) => (v === "" || v === null || v === undefined ? null : Number(v));
     const data = {
       visit_id: selectedVisit.id, patient_id: selectedVisit.patient_id,
-      bp_systolic: Number(vitalForm.bp_systolic) || 0, bp_diastolic: Number(vitalForm.bp_diastolic) || 0,
-      heart_rate: Number(vitalForm.heart_rate) || 0, respiratory_rate: Number(vitalForm.respiratory_rate) || 0,
-      temperature: Number(vitalForm.temperature) || 0, spo2: Number(vitalForm.spo2) || 0,
-      weight: Number(vitalForm.weight) || 0, height: Number(vitalForm.height) || 0,
-      glucose: Number(vitalForm.glucose) || 0, pain_score: Number(vitalForm.pain_score) || 0,
+      triage_category: vitalForm.triage_category || "non_urgent",
+      bp_systolic: n(vitalForm.bp_systolic), bp_diastolic: n(vitalForm.bp_diastolic),
+      heart_rate: n(vitalForm.heart_rate), respiratory_rate: n(vitalForm.respiratory_rate),
+      temperature: n(vitalForm.temperature), spo2: n(vitalForm.spo2),
+      weight: n(vitalForm.weight), height: n(vitalForm.height),
+      glucose: n(vitalForm.glucose), pain_score: n(vitalForm.pain_score),
       recorded_date: new Date().toISOString(),
     };
     if (vitals) {
-      await apiClient.entities.VitalSigns.update(vitals.id, data);
+      await apiClient.entities.Triage.update(vitals.id, data);
     } else {
-      await apiClient.entities.VitalSigns.create(data);
+      await apiClient.entities.Triage.create(data);
     }
-    const v = await apiClient.entities.VitalSigns.filter({ visit_id: selectedVisit.id }, "-created_date", 10);
+    const v = await apiClient.entities.Triage.filter({ visit_id: selectedVisit.id }, "-created_date", 10);
     setVitals(v[0] || null);
   };
 
@@ -672,6 +677,14 @@ export default function Clinical() {
                       <RealTimeVitals compact />
                     </div>
                     <h4 className="font-heading font-semibold mb-4 flex items-center gap-2"><Heart className="w-4 h-4 text-destructive" /> Vital Signs</h4>
+                    <div className="mb-3">
+                      <label className="block text-xs text-muted-foreground mb-1">Triage Category</label>
+                      <select className="w-full max-w-xs rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" value={vitalForm.triage_category} onChange={e => setVitalForm({...vitalForm, triage_category: e.target.value})}>
+                        <option value="non_urgent">Non-urgent</option>
+                        <option value="urgent">Urgent</option>
+                        <option value="immediate">Immediate</option>
+                      </select>
+                    </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       {[
                         { label: "BP Systolic", key: "bp_systolic", unit: "mmHg" },

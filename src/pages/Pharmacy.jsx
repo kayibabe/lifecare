@@ -91,37 +91,48 @@ export default function Pharmacy() {
     const qty = Number(dispenseQty);
     if (!qty || qty <= 0 || qty > drug.quantity_in_stock) return;
 
-    await apiClient.entities.Drug.update(drug.id, { quantity_in_stock: drug.quantity_in_stock - qty });
+    try {
+      await apiClient.entities.Drug.update(drug.id, { quantity_in_stock: drug.quantity_in_stock - qty });
 
-    await apiClient.entities.PharmacyDispensing.create({
-      prescription_item_id: prescriptionItem?.id || "",
-      prescription_id: prescriptionItem?.prescription_id || "",
-      patient_id: prescriptionItem?.patient_id || "",
-      drug_name: drug.name,
-      quantity_dispensed: qty,
-      batch_number: drug.batch_number || "",
-      dispensing_date: new Date().toISOString(),
-      dispensed_by: "pharmacy",
-      counseling_notes: dispenseModal.counselingNotes || "",
-    });
+      // Dispensing-log tracking is a stub on the backend — best-effort only,
+      // must not block updating the prescription/refreshing the list since
+      // the stock has already been decremented above.
+      try {
+        await apiClient.entities.PharmacyDispensing.create({
+          prescription_item_id: prescriptionItem?.id || "",
+          prescription_id: prescriptionItem?.prescription_id || "",
+          patient_id: prescriptionItem?.patient_id || "",
+          drug_name: drug.name,
+          quantity_dispensed: qty,
+          batch_number: drug.batch_number || "",
+          dispensing_date: new Date().toISOString(),
+          dispensed_by: "pharmacy",
+          counseling_notes: dispenseModal.counselingNotes || "",
+        });
+      } catch (dispensingError) {
+        console.warn("Dispensing-log tracking unavailable:", dispensingError);
+      }
 
-    // Update prescription item status
-    if (prescriptionItem?.id) {
-      const remaining = (prescriptionItem.quantity || 0) - qty;
-      await apiClient.entities.PrescriptionItem.update(prescriptionItem.id, {
-        status: remaining <= 0 ? "dispensed" : "partial",
-        quantity: remaining < 0 ? 0 : remaining,
-      });
+      // Update prescription item status
+      if (prescriptionItem?.id) {
+        const remaining = (prescriptionItem.quantity || 0) - qty;
+        await apiClient.entities.PrescriptionItem.update(prescriptionItem.id, {
+          status: remaining <= 0 ? "dispensed" : "partial",
+          quantity: remaining < 0 ? 0 : remaining,
+        });
+      }
+
+      const [d, disp] = await Promise.all([
+        apiClient.entities.Drug.list("-created_date", 200),
+        apiClient.entities.PharmacyDispensing.list("-created_date", 50),
+      ]);
+      setDrugs(d);
+      setDispensings(disp);
+      setDispenseModal(null);
+      setDispenseQty("");
+    } catch (err) {
+      toast({ title: "Failed to dispense drug", description: err.response?.data?.detail || err.message, variant: "destructive" });
     }
-
-    const [d, disp] = await Promise.all([
-      apiClient.entities.Drug.list("-created_date", 200),
-      apiClient.entities.PharmacyDispensing.list("-created_date", 50),
-    ]);
-    setDrugs(d);
-    setDispensings(disp);
-    setDispenseModal(null);
-    setDispenseQty("");
   };
 
   const disposeAsWaste = (drug) => {
@@ -133,23 +144,29 @@ export default function Pharmacy() {
     setWasteConfirm(null);
     if (!drug) return;
     try {
-      const cats = await apiClient.entities.WasteCategory.filter({ code: "PHM" }, "", 1);
-      const catId = cats.length > 0 ? cats[0].id : null;
-      await apiClient.entities.WasteLog.create({
-        waste_category_id: catId || "",
-        category_code: "PHM",
-        origin_department: "pharmacy",
-        quantity_kg: (drug.quantity_in_stock || 0) * 0.05,
-        container_count: 1,
-        disposal_method: "incineration",
-        notes: `Expired/recalled drug: ${drug.name} (batch ${drug.batch_number || "N/A"}, expiry ${drug.expiry_date || "N/A"}). ${drug.quantity_in_stock} units disposed.`,
-        generated_by: "pharmacy_staff",
-        generated_at: new Date().toISOString(),
-        status: "generated",
-        linked_document_type: "expired_drug",
-        linked_document_id: drug.id,
-        sla_deadline: new Date(Date.now() + 168 * 3600000).toISOString(),
-      });
+      // Waste-log tracking is a stub on the backend — best-effort only,
+      // must not block actually discontinuing the drug below.
+      try {
+        const cats = await apiClient.entities.WasteCategory.filter({ code: "PHM" }, "", 1);
+        const catId = cats.length > 0 ? cats[0].id : null;
+        await apiClient.entities.WasteLog.create({
+          waste_category_id: catId || "",
+          category_code: "PHM",
+          origin_department: "pharmacy",
+          quantity_kg: (drug.quantity_in_stock || 0) * 0.05,
+          container_count: 1,
+          disposal_method: "incineration",
+          notes: `Expired/recalled drug: ${drug.name} (batch ${drug.batch_number || "N/A"}, expiry ${drug.expiry_date || "N/A"}). ${drug.quantity_in_stock} units disposed.`,
+          generated_by: "pharmacy_staff",
+          generated_at: new Date().toISOString(),
+          status: "generated",
+          linked_document_type: "expired_drug",
+          linked_document_id: drug.id,
+          sla_deadline: new Date(Date.now() + 168 * 3600000).toISOString(),
+        });
+      } catch (wasteLogError) {
+        console.warn("Waste-log tracking unavailable:", wasteLogError);
+      }
       await apiClient.entities.Drug.update(drug.id, { status: "discontinued", quantity_in_stock: 0 });
       const d = await apiClient.entities.Drug.list("-created_date", 200);
       setDrugs(d);

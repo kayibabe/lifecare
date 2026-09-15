@@ -56,18 +56,23 @@ export default function DischargeChecklistFlow() {
     setSaving(true);
     try {
       const completedItems = Object.values(checklist).filter(Boolean).length;
-      
-      // Create discharge record
-      await apiClient.entities.Discharge.create({
-        admission_id: selectedAdmission.id,
-        patient_id: selectedAdmission.patient_id,
-        discharge_date: new Date().toISOString(),
-        discharge_type: "regular",
-        checklist_completed: completedItems === DISCHARGE_ITEMS.length,
-        checklist_items: JSON.stringify(checklist),
-        discharge_notes: notes,
-        status: "completed",
-      });
+
+      // Discharge-record tracking is a stub on the backend — best-effort
+      // only, must not block actually updating the admission below.
+      try {
+        await apiClient.entities.Discharge.create({
+          admission_id: selectedAdmission.id,
+          patient_id: selectedAdmission.patient_id,
+          discharge_date: new Date().toISOString(),
+          discharge_type: "regular",
+          checklist_completed: completedItems === DISCHARGE_ITEMS.length,
+          checklist_items: JSON.stringify(checklist),
+          discharge_notes: notes,
+          status: "completed",
+        });
+      } catch (dischargeError) {
+        console.warn("Discharge record tracking unavailable:", dischargeError);
+      }
 
       // Update admission status
       await apiClient.entities.Admission.update(selectedAdmission.id, {

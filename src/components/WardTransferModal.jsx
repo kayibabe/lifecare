@@ -52,25 +52,30 @@ export default function WardTransferModal({ patient, admission, onComplete, onCa
       const selectedWard = wards.find(w => w.id === form.to_ward_id);
       const user = await apiClient.auth.me();
 
-      // Create transfer record
-      await apiClient.entities.WardTransfer.create({
-        patient_id: patient.id,
-        admission_id: admission.id,
-        from_ward_id: admission.ward_id,
-        from_ward_name: admission.ward_name,
-        from_bed_id: admission.bed_id,
-        from_bed_number: admission.bed_number,
-        to_ward_id: form.to_ward_id,
-        to_ward_name: selectedWard.name,
-        to_bed_id: form.to_bed_id,
-        to_bed_number: selectedBed.bed_number,
-        transfer_date: new Date().toISOString(),
-        reason: form.reason,
-        clinical_notes: form.clinical_notes,
-        approved_by_id: user.id,
-        approved_by_name: user.full_name,
-        status: "completed",
-      });
+      // Transfer-record tracking is a stub on the backend — best-effort
+      // only, must not block actually moving the admission/beds below.
+      try {
+        await apiClient.entities.WardTransfer.create({
+          patient_id: patient.id,
+          admission_id: admission.id,
+          from_ward_id: admission.ward_id,
+          from_ward_name: admission.ward_name,
+          from_bed_id: admission.bed_id,
+          from_bed_number: admission.bed_number,
+          to_ward_id: form.to_ward_id,
+          to_ward_name: selectedWard.name,
+          to_bed_id: form.to_bed_id,
+          to_bed_number: selectedBed.bed_number,
+          transfer_date: new Date().toISOString(),
+          reason: form.reason,
+          clinical_notes: form.clinical_notes,
+          approved_by_id: user.id,
+          approved_by_name: user.full_name,
+          status: "completed",
+        });
+      } catch (transferError) {
+        console.warn("Ward-transfer record tracking unavailable:", transferError);
+      }
 
       // Update admission with new bed info
       await apiClient.entities.Admission.update(admission.id, {

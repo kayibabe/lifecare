@@ -544,6 +544,49 @@ function makePatientAllergyHandler(http) {
   };
 }
 
+// Vitals for OPD/general encounters go through the encounter-level triage
+// endpoint (upserts a TriageAssessment), not the IPD-only /nursing/vitals
+// endpoint (which requires an admission_id that OPD visits don't have).
+function makeTriageHandler(http) {
+  const fromAPI = (t) => t && ({
+    ...t,
+    visit_id: t.encounter_id,
+    heart_rate: t.pulse,
+    created_date: t.assessed_at,
+  });
+  const toAPI = (d) => ({
+    triage_category: d.triage_category || 'non_urgent',
+    bp_systolic: d.bp_systolic || null,
+    bp_diastolic: d.bp_diastolic || null,
+    pulse: d.heart_rate || null,
+    temperature: d.temperature || null,
+    spo2: d.spo2 || null,
+    weight: d.weight || null,
+    height: d.height || null,
+    respiratory_rate: d.respiratory_rate || null,
+    pain_score: d.pain_score ?? null,
+    notes: d.notes || null,
+  });
+  async function upsert(body) {
+    if (!body.visit_id) throw new Error('A visit is required to save vitals');
+    const data = await http.post(`/encounters/${body.visit_id}/triage`, toAPI(body));
+    return fromAPI(data);
+  }
+  return {
+    async list() { throw new Error('Triage.list requires a visit_id filter'); },
+    async filter(filters) {
+      if (!filters?.visit_id) throw new Error('Triage.filter requires visit_id');
+      const enc = await http.get(`/encounters/${filters.visit_id}`);
+      return enc.triage ? [fromAPI(enc.triage)] : [];
+    },
+    async get() { throw new UnsupportedFeatureError('Triage', 'get without visit context'); },
+    create: upsert,
+    async update(_id, body) { return upsert(body); },
+    async delete() { throw new UnsupportedFeatureError('Triage', 'delete'); },
+    subscribe: noopSubscribe,
+  };
+}
+
 function liveHandler(def, http) {
   const xform = def.fromAPI || ((x) => x);
   const toAPI = def.toAPI || ((x) => x);
@@ -812,6 +855,7 @@ export function createCustomClient(baseURL) {
           if (entityName === 'InsuranceClaim') return makeInsuranceClaimHandler(http);
           if (entityName === 'Consultation') return makeConsultationHandler(http);
           if (entityName === 'PatientAllergy') return makePatientAllergyHandler(http);
+          if (entityName === 'Triage') return makeTriageHandler(http);
           if (STUB_ENTITIES.has(entityName)) return unsupportedHandler(entityName);
           const def = ENTITY_DEFS[entityName];
           if (!def) {
