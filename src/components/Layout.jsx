@@ -292,7 +292,7 @@ export default function Layout() {
 
               {/* Nav items */}
               {!isGroupCollapsed && (
-                <div className="space-y-0.5 mt-1 pl-3">
+                <div className="space-y-0.5 mt-1 pl-6">
                   {visibleItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = location.pathname === item.path;
