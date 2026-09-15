@@ -45,7 +45,7 @@ export default function Login() {
         setStep("totp");
         setLoading(false);
       } else {
-        window.location.href = "/";
+        window.location.href = "/dashboard";
       }
     } catch (err) {
       setError(err.message || "Invalid email or password");
@@ -64,7 +64,7 @@ export default function Login() {
       });
 
       if (response.data.verified) {
-        window.location.href = "/";
+        window.location.href = "/dashboard";
       } else {
         setError("Invalid code. Try again or use a backup code.");
       }

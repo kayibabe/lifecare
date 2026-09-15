@@ -42,7 +42,7 @@ export default function CashierDashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-foreground">Cashier Dashboard</h2>
-        <a href="/" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted transition-colors">
+        <a href="/dashboard" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted transition-colors">
           📊 Go to Dashboard
         </a>
       </div>

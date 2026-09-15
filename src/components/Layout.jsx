@@ -8,7 +8,7 @@ import SurgeAlertBanner from "@/components/SurgeAlertBanner";
 
 import {
   LayoutDashboard, Users, CalendarDays, Stethoscope, Microscope,
-  Scan, Pill, BedDouble, Baby, Receipt, Shield, UserCircle,
+  Scan, Pill, BedDouble, Baby, Receipt, Shield,
   ChevronLeft, ChevronRight, LogOut, Menu, Activity,
   Bell, Search, ClipboardPen, Monitor, FileBarChart, Trash2, PenTool,
   ArrowRightLeft, ShieldCheck, ClipboardCheck, Scissors, Map, CalendarClock, CalendarRange,
@@ -23,7 +23,7 @@ const ALL_NAV_GROUPS = [
     color: "#2B7CBF",
     icon: Home,
     items: [
-      { label: "Dashboard", path: "/", icon: LayoutDashboard, roles: ["admin", "user", "receptionist", "cashier", "doctor", "clinician", "nurse", "midwife", "pharmacist", "lab_technician", "radiographer", "surgical_lead", "store_manager"] },
+      { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard, roles: ["admin", "user", "receptionist", "cashier", "doctor", "clinician", "nurse", "midwife", "pharmacist", "lab_technician", "radiographer", "surgical_lead", "store_manager"] },
     ],
   },
   {
@@ -126,7 +126,6 @@ const ALL_NAV_GROUPS = [
     items: [
       { label: "My Signatures", path: "/my-signatures", icon: PenTool, roles: ["admin", "user"] },
       { label: "Signature Audit", path: "/signature-audit", icon: ShieldCheck, roles: ["admin"] },
-      { label: "Patient Portal", path: "/portal", icon: UserCircle, roles: ["admin", "user"] },
     ],
   },
   {
@@ -148,7 +147,7 @@ const UNSUPPORTED_ROUTES = new Set([
   "/surgical-dispensing", "/surgical-supply-tracker", "/doctor-schedule",
   "/staff-shifts", "/doctor-handover", "/journey-map", "/patient-outcomes",
   "/patient-feedback", "/moh-reports", "/physician-performance", "/waste",
-  "/my-signatures", "/signature-audit", "/portal", "/inventory-audit",
+  "/my-signatures", "/signature-audit", "/inventory-audit",
   "/surge",
 ]);
 
@@ -170,7 +169,7 @@ export default function Layout() {
   const activeGroup = NAV_GROUPS.find(
     (g) => g.label !== "Main" && g.items.some(
       (item) => item.path === location.pathname ||
-        (item.path !== "/" && location.pathname.startsWith(item.path + "/"))
+        (item.path !== "/dashboard" && location.pathname.startsWith(item.path + "/"))
     )
   ) ?? NAV_GROUPS[0];
 
@@ -186,7 +185,7 @@ export default function Layout() {
     for (const group of NAV_GROUPS) {
       if (group.label === "Main") continue;
       const hasActive = group.items.some(
-        item => item.path === location.pathname || (item.path !== "/" && location.pathname.startsWith(item.path + "/"))
+        item => item.path === location.pathname || (item.path !== "/dashboard" && location.pathname.startsWith(item.path + "/"))
       );
       if (hasActive) {
         setCollapsedGroups({ [group.label]: false });
@@ -208,8 +207,9 @@ export default function Layout() {
   }, []);
 
   const handleLogout = async () => {
+    // apiClient.auth.logout() itself redirects to "/" — no further
+    // navigation needed here.
     await apiClient.auth.logout();
-    window.location.href = "/login";
   };
 
   const sidebarContent =
@@ -300,7 +300,7 @@ export default function Layout() {
                         onClick={(e) => {
                           e.stopPropagation();
                           setMobileOpen(false);
-                          if (item.path === "/") setCollapsedGroups({});
+                          if (item.path === "/dashboard") setCollapsedGroups({});
                         }}
                         className={`group relative flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 ${
                           isActive

@@ -10,9 +10,18 @@
 
 const TOKEN_KEY = 'lifecare_access_token';
 const REFRESH_KEY = 'lifecare_refresh_token';
+// Deliberately separate storage keys from the staff tokens above, so a
+// staff tab and a patient tab in the same browser can never read or clear
+// each other's session.
+const PATIENT_TOKEN_KEY = 'lifecare_patient_access_token';
+const PATIENT_REFRESH_KEY = 'lifecare_patient_refresh_token';
 
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY);
+}
+
+export function getPatientToken() {
+  return localStorage.getItem(PATIENT_TOKEN_KEY);
 }
 
 /**
@@ -43,6 +52,27 @@ function clearTokens() {
   localStorage.removeItem(REFRESH_KEY);
 }
 
+function setPatientTokens(access, refresh) {
+  if (access) localStorage.setItem(PATIENT_TOKEN_KEY, access);
+  if (refresh) localStorage.setItem(PATIENT_REFRESH_KEY, refresh);
+}
+
+function clearPatientTokens() {
+  localStorage.removeItem(PATIENT_TOKEN_KEY);
+  localStorage.removeItem(PATIENT_REFRESH_KEY);
+}
+
+// Selects which token pair and refresh endpoint a given http client talks
+// to. Staff and patient identities never share a code path beyond this.
+const STAFF_AUTH_CONFIG = {
+  getToken, refreshKey: REFRESH_KEY, refreshPath: '/auth/refresh',
+  setTokens, clearTokens,
+};
+const PATIENT_AUTH_CONFIG = {
+  getToken: getPatientToken, refreshKey: PATIENT_REFRESH_KEY, refreshPath: '/patient/refresh',
+  setTokens: setPatientTokens, clearTokens: clearPatientTokens,
+};
+
 // ─── FETCH WRAPPER ────────────────────────────────────────────────────────────
 
 function buildURL(baseURL, path, params) {
@@ -55,9 +85,9 @@ function buildURL(baseURL, path, params) {
   return url.toString();
 }
 
-async function doFetch(baseURL, path, options = {}) {
+async function doFetch(baseURL, path, options = {}, authConfig = STAFF_AUTH_CONFIG) {
   const { method = 'GET', body, params, headers = {}, _retried = false } = options;
-  const token = getToken();
+  const token = authConfig.getToken();
   const isFormData = body instanceof FormData;
 
   const reqHeaders = {
@@ -78,21 +108,21 @@ async function doFetch(baseURL, path, options = {}) {
 
     // Auto-refresh on 401
     if (res.status === 401 && !_retried) {
-      const refresh = localStorage.getItem(REFRESH_KEY);
+      const refresh = localStorage.getItem(authConfig.refreshKey);
       if (refresh) {
         try {
-          const rr = await fetch(buildURL(baseURL, '/auth/refresh', null), {
+          const rr = await fetch(buildURL(baseURL, authConfig.refreshPath, null), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ refresh_token: refresh }),
           });
           if (rr.ok) {
             const td = await rr.json();
-            setTokens(td.access_token, td.refresh_token);
-            return doFetch(baseURL, path, { ...options, _retried: true });
+            authConfig.setTokens(td.access_token, td.refresh_token);
+            return doFetch(baseURL, path, { ...options, _retried: true }, authConfig);
           }
         } catch { /**/ }
-        clearTokens();
+        authConfig.clearTokens();
       }
     }
 
@@ -107,13 +137,13 @@ async function doFetch(baseURL, path, options = {}) {
   return res.text();
 }
 
-function makeHttp(baseURL) {
+function makeHttp(baseURL, authConfig = STAFF_AUTH_CONFIG) {
   return {
-    get: (path, { params } = {}) => doFetch(baseURL, path, { params }),
-    post: (path, body, { headers } = {}) => doFetch(baseURL, path, { method: 'POST', body, headers }),
-    put: (path, body) => doFetch(baseURL, path, { method: 'PUT', body }),
-    patch: (path, body) => doFetch(baseURL, path, { method: 'PATCH', body }),
-    del: (path) => doFetch(baseURL, path, { method: 'DELETE' }),
+    get: (path, { params } = {}) => doFetch(baseURL, path, { params }, authConfig),
+    post: (path, body, { headers } = {}) => doFetch(baseURL, path, { method: 'POST', body, headers }, authConfig),
+    put: (path, body) => doFetch(baseURL, path, { method: 'PUT', body }, authConfig),
+    patch: (path, body) => doFetch(baseURL, path, { method: 'PATCH', body }, authConfig),
+    del: (path) => doFetch(baseURL, path, { method: 'DELETE' }, authConfig),
   };
 }
 
@@ -895,12 +925,13 @@ function makeAuth(http) {
       window.location.href = `/custom-login?next=${next}`;
     },
 
-    logout(redirectUrl) {
+    logout() {
       clearTokens();
-      // Redirect to custom login, preserving the return URL if one was provided
-      window.location.href = redirectUrl
-        ? `/custom-login?next=${encodeURIComponent(redirectUrl)}`
-        : '/custom-login';
+      // Always back to the public landing page, never straight to a login
+      // form — requirement #6: logging out from either portal lands on
+      // the main page, which is also where someone can pick the other
+      // portal if they signed into the wrong one.
+      window.location.href = '/';
     },
 
     redirectToLogin(returnUrl) {
@@ -912,11 +943,55 @@ function makeAuth(http) {
   };
 }
 
+// ─── PATIENT AUTH ─────────────────────────────────────────────────────────────
+// Deliberately not sharing code with makeAuth() above beyond the low-level
+// doFetch transport, so there is no path for a staff session to accidentally
+// pick up a patient token or vice versa.
+
+function makePatientAuth(http) {
+  return {
+    async login(mrn, phone) {
+      const data = await http.post('/patient/login', { mrn, phone });
+      setPatientTokens(data.access_token, data.refresh_token);
+      return data;
+    },
+
+    async me() {
+      if (!getPatientToken()) {
+        const err = new Error('Not authenticated');
+        err.status = 401;
+        throw err;
+      }
+      return http.get('/patient/me');
+    },
+
+    logout() {
+      clearPatientTokens();
+      window.location.href = '/';
+    },
+  };
+}
+
+function makePatientPortal(http) {
+  return {
+    listAppointments: () => http.get('/patient/appointments'),
+    bookAppointment: (body) => http.post('/patient/appointments', body),
+    listInvoices: () => http.get('/patient/invoices'),
+    listEncounters: () => http.get('/patient/encounters'),
+    listLabResults: () => http.get('/patient/lab-results'),
+    listMessages: () => http.get('/patient/messages'),
+    markMessageRead: (id) => http.patch(`/patient/messages/${id}/read`, {}),
+  };
+}
+
 // ─── PUBLIC API ───────────────────────────────────────────────────────────────
 
 export function createCustomClient(baseURL) {
   const http = makeHttp(baseURL);
   const auth = makeAuth(http);
+  const patientHttp = makeHttp(baseURL, PATIENT_AUTH_CONFIG);
+  const patientAuth = makePatientAuth(patientHttp);
+  const patientPortal = makePatientPortal(patientHttp);
 
   return {
     entities: new Proxy(
@@ -939,6 +1014,8 @@ export function createCustomClient(baseURL) {
     ),
 
     auth,
+    patientAuth,
+    patientPortal,
 
     functions: {
       invoke: (name, params) => invokeFunction(name, params, http),

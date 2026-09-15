@@ -13,7 +13,7 @@ export default function CustomLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const next = searchParams.get('next') || '/';
+  const next = searchParams.get('next') || '/dashboard';
 
   useEffect(() => {
     if (isAuthenticated) navigate(next, { replace: true });

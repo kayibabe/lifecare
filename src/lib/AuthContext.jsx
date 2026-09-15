@@ -21,7 +21,16 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingPublicSettings(false);
       setAuthError(null);
 
-      if (window.location.pathname.startsWith('/custom-login')) {
+      const path = window.location.pathname;
+      // "/" (Landing) and "/patient-login" are public; "/patient-portal"
+      // authenticates against a separate patient token, not this staff
+      // check. None of these should trigger a staff-login redirect.
+      const skipsStaffAuthCheck =
+        path === '/' ||
+        path.startsWith('/custom-login') ||
+        path.startsWith('/patient-login') ||
+        path.startsWith('/patient-portal');
+      if (skipsStaffAuthCheck) {
         setIsLoadingAuth(false);
         setAuthChecked(true);
         return;

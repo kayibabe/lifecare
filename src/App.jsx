@@ -84,6 +84,8 @@ import CustomLogin from '@/pages/CustomLogin';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
+import Landing from '@/pages/Landing';
+import PatientLogin from '@/pages/PatientLogin';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -111,15 +113,24 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <Routes>
+      {/* Always public */}
+      <Route path="/" element={<Landing />} />
       <Route path="/custom-login" element={<CustomLogin />} />
+      <Route path="/patient-login" element={<PatientLogin />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/totp-setup" element={<TotpSetup />} />
       <Route path="/totp-management" element={<TotpManagement />} />
+
+      {/* Patient-protected — authenticates itself against the separate
+          patient token; never mounts the staff Layout/sidebar. */}
+      <Route path="/patient-portal" element={<PatientPortal />} />
+
+      {/* Staff-protected */}
       <Route element={<Layout />}>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/reception" element={<Reception />} />
         <Route path="/appointments" element={<Appointments />} />
         <Route path="/clinical" element={<Clinical />} />
@@ -130,7 +141,6 @@ const AuthenticatedApp = () => {
         <Route path="/maternal" element={<Maternal />} />
         <Route path="/billing" element={<Billing />} />
         <Route path="/admin" element={<Admin />} />
-        <Route path="/portal" element={<PatientPortal />} />
         <Route path="/queue" element={<QueueDisplay />} />
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/nursing" element={<Nursing />} />

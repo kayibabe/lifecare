@@ -251,7 +251,7 @@ export default function TotpSetup() {
               </p>
             </div>
             <button
-              onClick={() => window.location.href = '/'}
+              onClick={() => window.location.href = '/dashboard'}
               className="w-full px-4 py-2.5 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90"
             >
               Return to Dashboard
