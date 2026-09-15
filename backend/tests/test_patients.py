@@ -24,7 +24,8 @@ async def test_create_patient(client: AsyncClient, auth_token, receptionist_user
     data = response.json()
     assert data["first_name"] == "John"
     assert "mrn" in data
-    assert data["mrn"].startswith("LifeCare")
+    assert data["mrn"].startswith("LC-")
+    assert len(data["mrn"]) == 8  # LC- + 5 alphanumeric chars
 
 
 @pytest.mark.asyncio

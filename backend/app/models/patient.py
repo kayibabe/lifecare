@@ -3,13 +3,10 @@ from __future__ import annotations
 import uuid
 import enum
 from datetime import datetime, date, timezone
-from sqlalchemy import String, Boolean, DateTime, Date, Enum as SAEnum, Text, Sequence, ForeignKey
+from sqlalchemy import String, Boolean, DateTime, Date, Enum as SAEnum, Text, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.core.database import Base
-
-# PostgreSQL sequence for atomic, gap-free MRN generation
-mrn_seq = Sequence("mrn_seq", metadata=Base.metadata, start=1)
 
 
 class Gender(str, enum.Enum):

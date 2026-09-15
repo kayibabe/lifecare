@@ -64,13 +64,6 @@ def _source_rows(source: sqlite3.Connection, table_name: str) -> list[dict]:
     return [dict(row) for row in source.execute(f'SELECT * FROM "{table_name}"')]
 
 
-def _sync_mrn_sequence(connection) -> None:
-    maximum = connection.execute(text("""
-        SELECT MAX(CAST(SUBSTRING(mrn FROM '[0-9]+$') AS INTEGER))
-        FROM patients WHERE mrn ~ '[0-9]+$'
-    """)).scalar_one_or_none()
-    if maximum:
-        connection.execute(text("SELECT setval('mrn_seq', :value, true)"), {"value": maximum})
 
 
 def import_database(source_path: Path, *, apply: bool) -> dict[str, dict[str, int]]:
@@ -159,7 +152,6 @@ def import_database(source_path: Path, *, apply: bool) -> dict[str, dict[str, in
                     target.execute(insert(table).values(**record))
                     report[table.name]["inserted"] += 1
 
-            _sync_mrn_sequence(target)
     finally:
         source.close()
         engine.dispose()

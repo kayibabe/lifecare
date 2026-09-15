@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_, text
+from sqlalchemy import select, or_
 from datetime import datetime, timezone, date
 from app.core.database import get_db
 from app.core.auth import require_role
@@ -14,22 +14,25 @@ from app.schemas.patient import (
 )
 from app.schemas.patient_auth import PatientMessageCreate, PatientMessageResponse
 import uuid
+import random
+import string
 
 router = APIRouter(prefix="/patients", tags=["patients"])
 
-
-def _generate_mrn(seq_val: int) -> str:
-    return f"LifeCare{str(seq_val).zfill(6)}"
+_MRN_CHARS = string.ascii_uppercase + string.digits  # A-Z + 0-9 → 36 chars, 36^5 ≈ 60.5M combinations
 
 
-async def _next_mrn_seq(db: AsyncSession) -> int:
-    """Postgres uses the mrn_seq sequence (atomic, gap-free). SQLite (dev/tests)
-    has no sequences — fall back to row count + 1 (patients are append-only)."""
-    if db.get_bind().dialect.name == "postgresql":
-        return (await db.execute(text("SELECT nextval('mrn_seq')"))).scalar_one()
-    from sqlalchemy import func
-    count = (await db.execute(select(func.count()).select_from(Patient))).scalar_one()
-    return count + 1
+async def _generate_mrn(db: AsyncSession) -> str:
+    """Generate a unique LC-XXXXX patient ID (5 random uppercase alphanumeric chars).
+    Retries on the rare collision; the search space is ~60.5 million so this almost
+    never loops more than once even at large patient volumes."""
+    for _ in range(20):
+        suffix = "".join(random.choices(_MRN_CHARS, k=5))
+        candidate = f"LC-{suffix}"
+        exists = (await db.execute(select(Patient.id).where(Patient.mrn == candidate))).first()
+        if not exists:
+            return candidate
+    raise RuntimeError("Unable to generate a unique MRN after 20 attempts — this should never happen")
 
 
 @router.get("", response_model=list[PatientListResponse])
@@ -111,7 +114,7 @@ async def create_patient(
                         },
                     )
 
-    mrn = _generate_mrn(await _next_mrn_seq(db))
+    mrn = await _generate_mrn(db)
 
     patient = Patient(
         id=str(uuid.uuid4()),
