@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { AlertTriangle, CheckCircle, Clock, DollarSign, Loader2 } from "lucide-react";
 import { XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 
@@ -19,7 +19,7 @@ export default function ClaimsDashboard() {
 
   const loadData = async () => {
     try {
-      const data = await base44.entities.InsuranceClaim.list("-created_date", 200);
+      const data = await apiClient.entities.InsuranceClaim.list("-created_date", 200);
       setClaims(data);
       computeStats(data);
       computeTrendData(data);
@@ -98,7 +98,7 @@ export default function ClaimsDashboard() {
   const handleBulkValidate = async () => {
     setValidating(true);
     try {
-      const { data } = await base44.functions.invoke("bulkValidateClaims", {
+      const { data } = await apiClient.functions.invoke("bulkValidateClaims", {
         claim_ids: claims.map(c => c.id),
         auto_fix: true
       });

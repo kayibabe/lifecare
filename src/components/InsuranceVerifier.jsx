@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { ShieldCheck, ShieldX, ShieldAlert, Loader2 } from "lucide-react";
 
 export default function InsuranceVerifier({ patientId, patientName, schemeName, memberNumber, onVerification }) {
@@ -9,7 +9,7 @@ export default function InsuranceVerifier({ patientId, patientName, schemeName, 
   const verify = async () => {
     setVerifying(true);
     try {
-      const { data } = await base44.functions.invoke('verifyInsurance', { patient_id: patientId });
+      const { data } = await apiClient.functions.invoke('verifyInsurance', { patient_id: patientId });
       setResult(data);
       onVerification?.(data);
     } catch (e) {

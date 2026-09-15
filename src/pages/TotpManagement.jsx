@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { apiClient } from '@/api/apiClient';
 import { ArrowLeft, Loader2, Check, X, AlertCircle, RotateCcw } from 'lucide-react';
 
 export default function TotpManagement() {
@@ -17,8 +17,8 @@ export default function TotpManagement() {
   useEffect(() => {
     const loadUserSecurity = async () => {
       try {
-        const user = await base44.auth.me();
-        const records = await base44.entities.UserSecurity.filter(
+        const user = await apiClient.auth.me();
+        const records = await apiClient.entities.UserSecurity.filter(
           { user_id: user.id },
           '-created_date',
           1
@@ -43,7 +43,7 @@ export default function TotpManagement() {
 
     try {
       // Verify TOTP code to allow disabling
-      const response = await base44.functions.invoke('verifyTotp', {
+      const response = await apiClient.functions.invoke('verifyTotp', {
         token: confirmTotpCode,
         secret: userSecurity.totp_secret,
       });
@@ -55,7 +55,7 @@ export default function TotpManagement() {
       }
 
       // Disable 2FA
-      await base44.entities.UserSecurity.update(userSecurity.id, {
+      await apiClient.entities.UserSecurity.update(userSecurity.id, {
         is_totp_enabled: false,
         totp_secret: null,
         backup_codes: null,
@@ -67,8 +67,8 @@ export default function TotpManagement() {
       setConfirmTotpCode('');
 
       // Reload user security
-      const user = await base44.auth.me();
-      const records = await base44.entities.UserSecurity.filter(
+      const user = await apiClient.auth.me();
+      const records = await apiClient.entities.UserSecurity.filter(
         { user_id: user.id },
         '-created_date',
         1

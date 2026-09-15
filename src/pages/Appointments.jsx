@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Calendar as CalendarIcon, Plus, Check, X, Square, CheckSquare, Pencil } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import PageHeader from "@/components/ui/PageHeader";
@@ -22,8 +22,8 @@ export default function Appointments() {
     async function load() {
       try {
         const [a, p] = await Promise.all([
-          base44.entities.Appointment.list("-appointment_date", 100),
-          base44.entities.Patient.list("-created_date", 200),
+          apiClient.entities.Appointment.list("-appointment_date", 100),
+          apiClient.entities.Patient.list("-created_date", 200),
         ]);
         setAppointments(a);
         setPatients(p);
@@ -44,11 +44,11 @@ export default function Appointments() {
     setSubmitting(true);
     try {
       if (editingAppt) {
-        await base44.entities.Appointment.update(editingAppt.id, form);
+        await apiClient.entities.Appointment.update(editingAppt.id, form);
       } else {
-        await base44.entities.Appointment.create(form);
+        await apiClient.entities.Appointment.create(form);
       }
-      const a = await base44.entities.Appointment.list("-appointment_date", 100);
+      const a = await apiClient.entities.Appointment.list("-appointment_date", 100);
       setAppointments(a);
       setShowForm(false);
       setEditingAppt(null);
@@ -61,7 +61,7 @@ export default function Appointments() {
   };
 
   const updateStatus = async (id, status) => {
-    await base44.entities.Appointment.update(id, { status });
+    await apiClient.entities.Appointment.update(id, { status });
     setAppointments(appointments.map(a => a.id === id ? { ...a, status } : a));
   };
 
@@ -82,7 +82,7 @@ export default function Appointments() {
     if (selectedIds.length === 0) return;
     setBulkBusy(true);
     for (const id of selectedIds) {
-      await base44.entities.Appointment.update(id, { status });
+      await apiClient.entities.Appointment.update(id, { status });
     }
     setAppointments(appointments.map(a => selectedIds.includes(a.id) ? { ...a, status } : a));
     setSelectedIds([]);

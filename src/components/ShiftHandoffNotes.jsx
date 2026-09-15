@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { ArrowRightLeft, Plus, X, Save, Loader2, Clock, AlertTriangle, CheckCircle } from "lucide-react";
 
 export default function ShiftHandoffNotes() {
@@ -31,12 +31,12 @@ export default function ShiftHandoffNotes() {
   const loadData = async () => {
     try {
       const [handoverData, userData] = await Promise.all([
-        base44.entities.DoctorHandover.filter(
+        apiClient.entities.DoctorHandover.filter(
           { created_date: { $gte: new Date(Date.now() - 7 * 86400000).toISOString() } },
           "-created_date",
           50
         ),
-        base44.entities.User.list("", 100),
+        apiClient.entities.User.list("", 100),
       ]);
       setHandovers(handoverData);
       setUsers(userData);
@@ -60,13 +60,13 @@ export default function ShiftHandoffNotes() {
       const toDoc = form.to_doctor_id ? users.find(u => u.id === form.to_doctor_id) : null;
 
       if (editingId) {
-        await base44.entities.DoctorHandover.update(editingId, {
+        await apiClient.entities.DoctorHandover.update(editingId, {
           ...form,
           to_doctor_id: form.to_doctor_id || null,
           handover_date: new Date().toISOString(),
         });
       } else {
-        await base44.entities.DoctorHandover.create({
+        await apiClient.entities.DoctorHandover.create({
           ...form,
           to_doctor_id: form.to_doctor_id || null,
           handover_date: new Date().toISOString(),

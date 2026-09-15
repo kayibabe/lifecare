@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "@/components/ui/use-toast";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { FileBarChart, Download, Loader2, Users, FlaskConical, BedDouble, Baby, TrendingUp, Calendar, Activity } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import PageHeader from "@/components/ui/PageHeader";
@@ -23,7 +23,7 @@ export default function MoHReports() {
 
   const loadExports = async () => {
     try {
-      const e = await base44.entities.DHIS2Export.list("-created_date", 20);
+      const e = await apiClient.entities.DHIS2Export.list("-created_date", 20);
       setExports(e);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
@@ -32,7 +32,7 @@ export default function MoHReports() {
   const generateReport = async () => {
     setExporting(true);
     try {
-      const { data } = await base44.functions.invoke("generateDHIS2Report", {
+      const { data } = await apiClient.functions.invoke("generateDHIS2Report", {
         period: currentMonth,
         report_type: "aggregate_monthly",
       });

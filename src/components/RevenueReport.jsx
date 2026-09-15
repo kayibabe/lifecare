@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { TrendingUp, Receipt, Building2, Loader2, RefreshCw, FileText } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 
@@ -21,7 +21,7 @@ export default function RevenueReport() {
   const fetchReport = async (p) => {
     setLoading(true);
     try {
-      const { data: result } = await base44.functions.invoke("generateRevenueReport", { period: p });
+      const { data: result } = await apiClient.functions.invoke("generateRevenueReport", { period: p });
       setData(result);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }

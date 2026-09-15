@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Package, CheckCircle, Clock, AlertCircle } from "lucide-react";
 
 export default function BookingRequisitionStatus({ bookingId, onRequestClick }) {
@@ -13,14 +13,14 @@ export default function BookingRequisitionStatus({ bookingId, onRequestClick }) 
 
   const loadData = async () => {
     try {
-      const reqs = await base44.entities.SurgicalRequisition.filter(
+      const reqs = await apiClient.entities.SurgicalRequisition.filter(
         { booking_id: bookingId },
         "-created_date",
         1
       );
       if (reqs.length > 0) {
         setRequisition(reqs[0]);
-        const disp = await base44.entities.SurgicalDispensing.filter(
+        const disp = await apiClient.entities.SurgicalDispensing.filter(
           { requisition_id: reqs[0].id },
           "",
           100

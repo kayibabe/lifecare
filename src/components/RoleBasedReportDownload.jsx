@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { FileDown, Loader2 } from "lucide-react";
 
 export default function RoleBasedReportDownload({ userRole }) {
@@ -46,7 +46,7 @@ export default function RoleBasedReportDownload({ userRole }) {
     setLoading(true);
     setResult(null);
     try {
-      const { data } = await base44.functions.invoke("batchExportReports", {
+      const { data } = await apiClient.functions.invoke("batchExportReports", {
         reports: [reportId],
       });
 

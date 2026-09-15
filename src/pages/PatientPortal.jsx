@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { UserCircle, Calendar, FlaskConical, Receipt, Baby, Clock, Pill, Syringe, FileText, Edit3, Plus, Save, X } from "lucide-react";
 
 const TABS = [
@@ -47,7 +47,7 @@ export default function PatientPortal() {
     setSearched(true);
     setActiveTab("overview");
     try {
-      const patients = await base44.entities.Patient.filter({ phone }, "-created_date", 1);
+      const patients = await apiClient.entities.Patient.filter({ phone }, "-created_date", 1);
       if (patients.length === 0) {
         setPatient(null);
         setLoading(false);
@@ -57,14 +57,14 @@ export default function PatientPortal() {
       setPatient(p);
       setEditForm({ phone: p.phone || "", emergency_contact_name: p.emergency_contact_name || "", emergency_contact_phone: p.emergency_contact_phone || "", district: p.district || "", village: p.village || "" });
       const [a, v, inv, lab, presc, imm, m, diag] = await Promise.all([
-        base44.entities.Appointment.filter({ patient_id: p.id }, "-appointment_date", 30),
-        base44.entities.Visit.filter({ patient_id: p.id }, "-visit_date", 30),
-        base44.entities.Invoice.filter({ patient_id: p.id }, "-created_date", 30),
-        base44.entities.LabResult.filter({ patient_id: p.id }, "-created_date", 30),
-        base44.entities.Prescription.filter({ patient_id: p.id }, "-created_date", 20),
-        base44.entities.Immunization.filter({ patient_id: p.id }, "-created_date", 20),
-        base44.entities.MaternalVisit.filter({ patient_id: p.id }, "-created_date", 10),
-        base44.entities.Diagnosis.filter({ patient_id: p.id }, "-created_date", 30),
+        apiClient.entities.Appointment.filter({ patient_id: p.id }, "-appointment_date", 30),
+        apiClient.entities.Visit.filter({ patient_id: p.id }, "-visit_date", 30),
+        apiClient.entities.Invoice.filter({ patient_id: p.id }, "-created_date", 30),
+        apiClient.entities.LabResult.filter({ patient_id: p.id }, "-created_date", 30),
+        apiClient.entities.Prescription.filter({ patient_id: p.id }, "-created_date", 20),
+        apiClient.entities.Immunization.filter({ patient_id: p.id }, "-created_date", 20),
+        apiClient.entities.MaternalVisit.filter({ patient_id: p.id }, "-created_date", 10),
+        apiClient.entities.Diagnosis.filter({ patient_id: p.id }, "-created_date", 30),
       ]);
       setAppointments(a);
       setVisits(v);
@@ -78,7 +78,7 @@ export default function PatientPortal() {
       // Fetch prescription items
       const allItems = [];
       for (const pr of presc) {
-        const items = await base44.entities.PrescriptionItem.filter({ prescription_id: pr.id }, "", 50);
+        const items = await apiClient.entities.PrescriptionItem.filter({ prescription_id: pr.id }, "", 50);
         allItems.push(...items);
       }
       setPrescriptionItems(allItems);
@@ -90,7 +90,7 @@ export default function PatientPortal() {
     e.preventDefault();
     setBookingResult(null);
     try {
-      await base44.entities.Appointment.create({
+      await apiClient.entities.Appointment.create({
         patient_id: patient.id,
         appointment_date: bookingForm.appointment_date,
         appointment_time: bookingForm.appointment_time,
@@ -102,7 +102,7 @@ export default function PatientPortal() {
       });
       setBookingResult({ success: true, message: "Appointment booked successfully!" });
       setBookingForm({ appointment_date: "", appointment_time: "", type: "follow_up", department: "", notes: "" });
-      const a = await base44.entities.Appointment.filter({ patient_id: patient.id }, "-appointment_date", 30);
+      const a = await apiClient.entities.Appointment.filter({ patient_id: patient.id }, "-appointment_date", 30);
       setAppointments(a);
       setTimeout(() => setBookingResult(null), 4000);
     } catch (e) {
@@ -113,7 +113,7 @@ export default function PatientPortal() {
   const handleSaveProfile = async () => {
     setSavingProfile(true);
     try {
-      await base44.entities.Patient.update(patient.id, editForm);
+      await apiClient.entities.Patient.update(patient.id, editForm);
       setPatient({ ...patient, ...editForm });
       setEditing(false);
     } catch (e) { console.error(e); }

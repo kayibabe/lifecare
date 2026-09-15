@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import {
   PenTool, Check, Clock, FileText, Pill, FlaskConical, Scan, ClipboardPen,
   AlertTriangle, ShieldCheck, Search
@@ -35,11 +35,11 @@ export default function MySignatures() {
     async function load() {
       try {
         const [sigs, consults, rx] = await Promise.all([
-          base44.entities.DigitalSignature.filter({ signed_by: "" }, "-signed_at", 200),
-          base44.entities.Consultation.list("-created_date", 200),
-          base44.entities.Prescription.list("-created_date", 200),
+          apiClient.entities.DigitalSignature.filter({ signed_by: "" }, "-signed_at", 200),
+          apiClient.entities.Consultation.list("-created_date", 200),
+          apiClient.entities.Prescription.list("-created_date", 200),
         ]);
-        const mySigs = await base44.entities.DigitalSignature.filter({}, "-signed_at", 200);
+        const mySigs = await apiClient.entities.DigitalSignature.filter({}, "-signed_at", 200);
         setSignatures(mySigs);
         setConsultations(consults);
         setPrescriptions(rx);
@@ -88,14 +88,14 @@ export default function MySignatures() {
     if (!signingDoc) return;
     setSavingSig(true);
     try {
-      const { data: uploadData } = await base44.integrations.Core.UploadFile({ file });
-      await base44.functions.invoke("saveSignature", {
+      const { data: uploadData } = await apiClient.integrations.Core.UploadFile({ file });
+      await apiClient.functions.invoke("saveSignature", {
         file_url: uploadData.file_url,
         document_type: signingDoc.type,
         document_id: signingDoc.id,
         patient_id: signingDoc.patient_id || '',
       });
-      const sigs = await base44.entities.DigitalSignature.filter({}, "-signed_at", 200);
+      const sigs = await apiClient.entities.DigitalSignature.filter({}, "-signed_at", 200);
       setSignatures(sigs);
       setSigningDoc(null);
     } catch (e) { console.error(e); }

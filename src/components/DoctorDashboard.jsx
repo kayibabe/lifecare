@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { FlaskConical, AlertTriangle, Stethoscope, CheckCircle2 } from "lucide-react";
 
 export default function DoctorDashboard() {
@@ -10,15 +10,15 @@ export default function DoctorDashboard() {
   useEffect(() => {
     async function load() {
       try {
-        const user = await base44.auth.me();
+        const user = await apiClient.auth.me();
         const [consultations, labs, prescriptions] = await Promise.all([
-          base44.entities.Consultation.filter(
+          apiClient.entities.Consultation.filter(
             { doctor_id: user.id, status: { $in: ["in_progress", "completed"] } },
             "-created_date",
             50
           ),
-          base44.entities.LabOrder.filter({ status: { $in: ["ordered", "in_progress"] } }, "-created_date", 50),
-          base44.entities.Prescription.filter({ status: { $in: ["draft", "pending"] } }, "-created_date", 30),
+          apiClient.entities.LabOrder.filter({ status: { $in: ["ordered", "in_progress"] } }, "-created_date", 50),
+          apiClient.entities.Prescription.filter({ status: { $in: ["draft", "pending"] } }, "-created_date", 30),
         ]);
         
         const today = new Date().toISOString().slice(0, 10);

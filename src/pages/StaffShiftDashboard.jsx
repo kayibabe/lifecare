@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import {
   Users, Clock, CheckCircle, Calendar, RefreshCw
 } from "lucide-react";
@@ -35,8 +35,8 @@ export default function StaffShiftDashboard() {
   const loadData = async () => {
     try {
       const [scheduleData, userData] = await Promise.all([
-        base44.entities.DoctorSchedule.list("-schedule_date", 500),
-        base44.entities.User.list("", 100),
+        apiClient.entities.DoctorSchedule.list("-schedule_date", 500),
+        apiClient.entities.User.list("", 100),
       ]);
       setSchedules(scheduleData);
       setUsers(userData);

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { CheckCircle, Circle } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 
 const WHO_SIGN_IN_ITEMS = [
   { id: "s1", label: "Patient has confirmed: identity, site, procedure, consent", category: "patient" },
@@ -79,7 +79,7 @@ export default function SurgicalChecklist({ bookingId, patientId, patientName, o
         notes: itemNotes[i.id] || "",
       }));
 
-      await base44.entities.SurgicalChecklist.create({
+      await apiClient.entities.SurgicalChecklist.create({
         surgical_booking_id: bookingId,
         patient_id: patientId,
         checklist_type: `who_${activePhase.replace("_", "_")}`,

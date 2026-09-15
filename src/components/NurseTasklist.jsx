@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import {
   ClipboardList, Plus, CheckCircle, Circle, Clock,
   Trash2, Search, X, User, Heart, Syringe,
@@ -48,9 +48,9 @@ export default function NurseTasklist() {
     setLoading(true);
     try {
       const [t, p, journeys] = await Promise.all([
-        base44.entities.NurseTask.list("-created_date", 200),
-        base44.entities.Patient.list("-created_date", 200),
-        base44.entities.PatientJourney.filter(
+        apiClient.entities.NurseTask.list("-created_date", 200),
+        apiClient.entities.Patient.list("-created_date", 200),
+        apiClient.entities.PatientJourney.filter(
           { current_stage: "NURSING_ADMINISTRATION", status: "active" }, "-created_date", 50
         ),
       ]);
@@ -74,7 +74,7 @@ export default function NurseTasklist() {
     if (payload.due_date) payload.due_date = new Date(payload.due_date).toISOString();
     if (!payload.due_date) delete payload.due_date;
     if (!payload.patient_id) { delete payload.patient_id; delete payload.visit_id; }
-    await base44.entities.NurseTask.create(payload);
+    await apiClient.entities.NurseTask.create(payload);
     setForm({ title: "", patient_id: "", visit_id: "", category: "vitals", priority: "routine", due_date: "", notes: "" });
     setShowForm(false);
     loadData();
@@ -85,12 +85,12 @@ export default function NurseTasklist() {
     const updates = { status: newStatus };
     if (newStatus === "completed") updates.completed_date = new Date().toISOString();
     else updates.completed_date = null;
-    await base44.entities.NurseTask.update(task.id, updates);
+    await apiClient.entities.NurseTask.update(task.id, updates);
     setTasks(tasks.map(t => t.id === task.id ? { ...t, ...updates } : t));
   };
 
   const handleDelete = async (taskId) => {
-    await base44.entities.NurseTask.delete(taskId);
+    await apiClient.entities.NurseTask.delete(taskId);
     setTasks(tasks.filter(t => t.id !== taskId));
   };
 

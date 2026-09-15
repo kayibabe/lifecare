@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Stethoscope, Heart, FileText, Pill, Plus, Save, AlertTriangle, ShieldAlert, FlaskConical, ArrowRight, CheckCircle, GitBranch, PenTool, ArrowRightLeft, Clock, FileBadge, FileWarning, Zap, Scissors, Beaker, Pencil, X } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/use-toast";
@@ -79,8 +79,8 @@ export default function Clinical() {
     async function load() {
       try {
         const [v, p] = await Promise.all([
-          base44.entities.Visit.list("-created_date", 100),
-          base44.entities.Patient.list("-created_date", 200),
+          apiClient.entities.Visit.list("-created_date", 100),
+          apiClient.entities.Patient.list("-created_date", 200),
         ]);
         setVisits(v);
         setPatients(p);
@@ -97,7 +97,7 @@ export default function Clinical() {
   };
 
   const handleSaveVisitEdit = async () => {
-    await base44.entities.Visit.update(editingVisit.id, { chief_complaint: visitEditForm.chief_complaint });
+    await apiClient.entities.Visit.update(editingVisit.id, { chief_complaint: visitEditForm.chief_complaint });
     setVisits(visits.map(v => v.id === editingVisit.id ? { ...v, chief_complaint: visitEditForm.chief_complaint } : v));
     if (selectedVisit?.id === editingVisit.id) setSelectedVisit(sv => ({ ...sv, chief_complaint: visitEditForm.chief_complaint }));
     setEditingVisit(null);
@@ -109,9 +109,9 @@ export default function Clinical() {
     try {
       // First batch: visit-specific data (3 calls)
       const [vList, cList, pList] = await Promise.all([
-        base44.entities.VitalSigns.filter({ visit_id: visit.id }, "-created_date", 10),
-        base44.entities.Consultation.filter({ visit_id: visit.id }, "-created_date", 10),
-        base44.entities.Prescription.filter({ visit_id: visit.id }, "-created_date", 10),
+        apiClient.entities.VitalSigns.filter({ visit_id: visit.id }, "-created_date", 10),
+        apiClient.entities.Consultation.filter({ visit_id: visit.id }, "-created_date", 10),
+        apiClient.entities.Prescription.filter({ visit_id: visit.id }, "-created_date", 10),
       ]);
       setVitals(vList[0] || null);
       setConsultations(cList);
@@ -120,20 +120,20 @@ export default function Clinical() {
 
       // Second batch: patient-wide data (2 calls)
       const [dList, lList] = await Promise.all([
-        base44.entities.Diagnosis.filter({ visit_id: visit.id }, "-created_date", 20),
-        base44.entities.LabOrder.filter({ patient_id: visit.patient_id }, "-created_date", 30),
+        apiClient.entities.Diagnosis.filter({ visit_id: visit.id }, "-created_date", 20),
+        apiClient.entities.LabOrder.filter({ patient_id: visit.patient_id }, "-created_date", 30),
       ]);
       setLabOrders(lList);
 
       // Third batch: journey and handovers (2 calls)
       const [jList] = await Promise.all([
-        base44.entities.PatientJourney.filter({ visit_id: visit.id, status: "active" }, "-created_date", 1),
+        apiClient.entities.PatientJourney.filter({ visit_id: visit.id, status: "active" }, "-created_date", 1),
         loadPatientHandovers(visit.patient_id),
       ]);
       setJourney(jList[0] || null);
 
       // Load death certificates separately
-      const dcs = await base44.entities.DeathCertificate.filter({ patient_id: visit.patient_id }, "-created_date", 10);
+      const dcs = await apiClient.entities.DeathCertificate.filter({ patient_id: visit.patient_id }, "-created_date", 10);
       setDeathCerts(dcs);
 
       // Run CDS checks
@@ -160,11 +160,11 @@ export default function Clinical() {
       recorded_date: new Date().toISOString(),
     };
     if (vitals) {
-      await base44.entities.VitalSigns.update(vitals.id, data);
+      await apiClient.entities.VitalSigns.update(vitals.id, data);
     } else {
-      await base44.entities.VitalSigns.create(data);
+      await apiClient.entities.VitalSigns.create(data);
     }
-    const v = await base44.entities.VitalSigns.filter({ visit_id: selectedVisit.id }, "-created_date", 10);
+    const v = await apiClient.entities.VitalSigns.filter({ visit_id: selectedVisit.id }, "-created_date", 10);
     setVitals(v[0] || null);
   };
 
@@ -182,7 +182,7 @@ export default function Clinical() {
       code: diagnosisForm.icd10_code.trim() || null,
       type: diagnosisForm.type,
     }] : [];
-    await base44.entities.Consultation.create({
+    await apiClient.entities.Consultation.create({
       visit_id: selectedVisit.id, patient_id: selectedVisit.patient_id,
       ...consultForm, diagnoses: diagnosesPayload,
     });
@@ -190,17 +190,17 @@ export default function Clinical() {
       setDiagnosisForm({ diagnosis_name: "", icd10_code: "", type: "primary" });
     }
     setConsultForm({ chief_complaint: "", history_present_illness: "", physical_examination: "", assessment: "", plan: "", clinical_notes: "" });
-    const c = await base44.entities.Consultation.filter({ visit_id: selectedVisit.id }, "-created_date", 10);
+    const c = await apiClient.entities.Consultation.filter({ visit_id: selectedVisit.id }, "-created_date", 10);
     setConsultations(c);
     setDiagnoses(diagnosesFromConsultations(c));
     // Update queue status
-    await base44.entities.Visit.update(selectedVisit.id, { queue_status: "in_consultation" });
+    await apiClient.entities.Visit.update(selectedVisit.id, { queue_status: "in_consultation" });
     toast({ title: "Consultation saved", description: "The clinical note is persisted in the patient encounter." });
   };
 
   const loadPatientHandovers = async (patientId) => {
     try {
-      const allHandovers = await base44.entities.DoctorHandover.list("-created_date", 100);
+      const allHandovers = await apiClient.entities.DoctorHandover.list("-created_date", 100);
       const relevant = allHandovers.filter(h => {
         if (!h.linked_patient_ids) return false;
         try {
@@ -224,15 +224,15 @@ export default function Clinical() {
     if (!journey) return;
     setTransitioning(true);
     try {
-      await base44.functions.invoke('handleWorkflowStageChange', {
+      await apiClient.functions.invoke('handleWorkflowStageChange', {
         journey_id: journey.id,
         next_stage: nextStage,
         notes: notes,
       });
-      const updated = await base44.entities.PatientJourney.get(journey.id);
+      const updated = await apiClient.entities.PatientJourney.get(journey.id);
       setJourney(updated);
       // Refresh visit queue status
-      const v = await base44.entities.Visit.get(selectedVisit.id);
+      const v = await apiClient.entities.Visit.get(selectedVisit.id);
       setSelectedVisit(v);
     } catch (e) {
       console.error(e);
@@ -295,17 +295,17 @@ export default function Clinical() {
   // Actual prescription save — called after all safety checks pass
   const doSavePrescriptionItems = async () => {
     if (!selectedVisit) return;
-    const presc = await base44.entities.Prescription.create({
+    const presc = await apiClient.entities.Prescription.create({
       visit_id: selectedVisit.id, patient_id: selectedVisit.patient_id,
       status: "pending", prescription_date: new Date().toISOString(),
     });
     for (const item of prescForm.items) {
       if (item.drug_name && item.quantity) {
-        await base44.entities.PrescriptionItem.create({ prescription_id: presc.id, ...item, quantity: Number(item.quantity) });
+        await apiClient.entities.PrescriptionItem.create({ prescription_id: presc.id, ...item, quantity: Number(item.quantity) });
       }
     }
     setPrescForm({ items: [{ drug_name: "", dosage: "", frequency: "", duration: "", route: "", quantity: "", instructions: "" }] });
-    const p = await base44.entities.Prescription.filter({ visit_id: selectedVisit.id }, "-created_date", 10);
+    const p = await apiClient.entities.Prescription.filter({ visit_id: selectedVisit.id }, "-created_date", 10);
     setPrescriptions(p);
     setSigningDoc({ document_type: "prescription", document_id: presc.id });
   };
@@ -317,7 +317,7 @@ export default function Clinical() {
 
     // ── Drug Safety Check ──
     try {
-      const allergies = await base44.entities.PatientAllergy.filter({ patient_id: selectedVisit.patient_id }, "", 50);
+      const allergies = await apiClient.entities.PatientAllergy.filter({ patient_id: selectedVisit.patient_id }, "", 50);
       const allergyNames = allergies.map(a => a.allergen?.toLowerCase() || "");
       const allergyConflicts = prescForm.items.filter(item => {
         const drugName = item.drug_name?.toLowerCase() || "";
@@ -330,7 +330,7 @@ export default function Clinical() {
         return;
       }
 
-      const { data: safety } = await base44.functions.invoke("checkDrugSafety", {
+      const { data: safety } = await apiClient.functions.invoke("checkDrugSafety", {
         patient_id: selectedVisit.patient_id,
         drugs: prescForm.items.map(i => ({ drug_name: i.drug_name, generic_name: i.drug_name, category: "" })),
       });
@@ -362,8 +362,8 @@ export default function Clinical() {
 
     // ── Malaria CDS gate ──
     const [diags, labs] = await Promise.all([
-      base44.entities.Diagnosis.filter({ visit_id: selectedVisit.id }, "-created_date", 20),
-      base44.entities.LabOrder.filter({ patient_id: selectedVisit.patient_id }, "-created_date", 30),
+      apiClient.entities.Diagnosis.filter({ visit_id: selectedVisit.id }, "-created_date", 20),
+      apiClient.entities.LabOrder.filter({ patient_id: selectedVisit.patient_id }, "-created_date", 30),
     ]);
     const hasMalariaDiagnosis = diags.some(d => d.diagnosis_name?.toLowerCase().includes("malaria"));
     if (hasMalariaDiagnosis) {
@@ -392,9 +392,9 @@ export default function Clinical() {
     setSavingSignature(true);
     try {
       // Upload the signature image first
-      const { data: uploadData } = await base44.integrations.Core.UploadFile({ file });
+      const { data: uploadData } = await apiClient.integrations.Core.UploadFile({ file });
       // Create the signature record
-      await base44.functions.invoke("saveSignature", {
+      await apiClient.functions.invoke("saveSignature", {
         file_url: uploadData.file_url,
         document_type: signingDoc.document_type,
         document_id: signingDoc.document_id,
@@ -602,13 +602,13 @@ export default function Clinical() {
 
                             const doGenerate = async () => {
                               try {
-                                const { data } = await base44.functions.invoke("autoGenerateLabOrders", {
+                                const { data } = await apiClient.functions.invoke("autoGenerateLabOrders", {
                                   visit_id: selectedVisit.id,
                                   patient_id: selectedVisit.patient_id,
                                   diagnoses: diagnosisNames,
                                 });
                                 toast({ title: `${data.orders_created} lab order(s) generated`, description: data.orders?.map(o => `${o.diagnosis}: ${o.tests?.join(", ")}`).join(" · ") });
-                                const lList = await base44.entities.LabOrder.filter({ patient_id: selectedVisit.patient_id }, "-created_date", 30);
+                                const lList = await apiClient.entities.LabOrder.filter({ patient_id: selectedVisit.patient_id }, "-created_date", 30);
                                 setLabOrders(lList);
                               } catch (e) {
                                 toast({ title: "Lab order generation failed", description: e.response?.data?.error || e.message, variant: "destructive" });
@@ -973,8 +973,8 @@ export default function Clinical() {
                           <form onSubmit={async (e) => {
                             e.preventDefault();
                             if (!deathForm.date_of_death || !deathForm.cause_of_death_immediate) return;
-                            const user = await base44.auth.me();
-                            await base44.entities.DeathCertificate.create({
+                            const user = await apiClient.auth.me();
+                            await apiClient.entities.DeathCertificate.create({
                               ...deathForm,
                               patient_id: selectedVisit.patient_id,
                               visit_id: selectedVisit.id,
@@ -982,7 +982,7 @@ export default function Clinical() {
                               certifying_doctor_name: user.full_name,
                               certification_date: new Date().toISOString(),
                             });
-                            const dcs = await base44.entities.DeathCertificate.filter({ patient_id: selectedVisit.patient_id }, "-created_date", 10);
+                            const dcs = await apiClient.entities.DeathCertificate.filter({ patient_id: selectedVisit.patient_id }, "-created_date", 10);
                             setDeathCerts(dcs);
                             setShowDeathForm(false);
                             setDeathForm({ date_of_death: "", time_of_death: "", cause_of_death_immediate: "", cause_of_death_underlying: "", cause_of_death_contributing: "", icd10_code: "", manner_of_death: "natural", place_of_death: "ward", maternal_death: false, neonatal_death: false, autopsy_requested: false, notes: "" });

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { formatRole } from "@/lib/utils";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Shield, AlertTriangle, XCircle, TrendingUp, ClipboardCheck, PenTool, Loader2 } from "lucide-react";
 
 const STATUS_COLORS = {
@@ -16,7 +16,7 @@ export default function StaffComplianceDashboard({ compact = false }) {
   useEffect(() => {
     async function load() {
       try {
-        const { data: result } = await base44.functions.invoke("analyzeStaffCompliance", {});
+        const { data: result } = await apiClient.functions.invoke("analyzeStaffCompliance", {});
         setData(result);
       } catch (e) { console.error(e); }
       finally { setLoading(false); }

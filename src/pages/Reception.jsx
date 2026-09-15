@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { formatApiError } from "@/api/customClient";
 import { Search, UserPlus, Clock, MapPin, Users, RefreshCw, DoorOpen, Pencil, X, Save } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
@@ -35,10 +35,10 @@ export default function Reception() {
     async function load() {
       try {
         const [p, v, roomNotifs, journeys] = await Promise.all([
-          base44.entities.Patient.list("-created_date", 200),
-          base44.entities.Visit.list("-created_date", 50),
-          base44.entities.Notification.filter({ target_role: "reception", is_read: false }, "-created_date", 20),
-          base44.entities.PatientJourney.filter({ status: "active" }, "-created_date", 30),
+          apiClient.entities.Patient.list("-created_date", 200),
+          apiClient.entities.Visit.list("-created_date", 50),
+          apiClient.entities.Notification.filter({ target_role: "reception", is_read: false }, "-created_date", 20),
+          apiClient.entities.PatientJourney.filter({ status: "active" }, "-created_date", 30),
         ]);
         setPatients(p);
         setVisits(v);
@@ -76,7 +76,7 @@ export default function Reception() {
   const handleSaveEdit = async () => {
     setEditSubmitting(true);
     try {
-      await base44.entities.Patient.update(editingPatient.id, editForm);
+      await apiClient.entities.Patient.update(editingPatient.id, editForm);
       setPatients(patients.map(p => p.id === editingPatient.id ? { ...p, ...editForm } : p));
       setEditingPatient(null);
       toast({ title: "Patient updated", description: "Demographics saved successfully." });
@@ -87,7 +87,7 @@ export default function Reception() {
 
   const syncPatient = async (patientId) => {
     try {
-      const { data } = await base44.functions.invoke('syncPatientRecords', { patient_id: patientId });
+      const { data } = await apiClient.functions.invoke('syncPatientRecords', { patient_id: patientId });
       toast({
         title: "Patient records synced",
         description: `${data.updates_applied?.visits || 0} visits, ${data.updates_applied?.invoices || 0} invoices updated.`,
@@ -106,11 +106,11 @@ export default function Reception() {
     setSubmitting(true);
     const mrn = `ZCP-${String(patients.length + 1).padStart(6, "0")}`;
     try {
-      const patient = await base44.entities.Patient.create({
+      const patient = await apiClient.entities.Patient.create({
         ...form, mrn,
         insurance_scheme: form.payment_type === "scheme" || form.payment_type === "both" ? form.insurance_scheme : "",
       });
-      const visit = await base44.entities.Visit.create({
+      const visit = await apiClient.entities.Visit.create({
         patient_id: patient.id,
         visit_date: new Date().toISOString(),
         visit_type: form.visit_type,
@@ -121,21 +121,21 @@ export default function Reception() {
         checked_in_by: "reception",
       });
       // Create PatientJourney and transition to CONSULTATION
-      const journey = await base44.entities.PatientJourney.create({
+      const journey = await apiClient.entities.PatientJourney.create({
         visit_id: visit.id,
         patient_id: patient.id,
         current_stage: "RECEPTION",
         status: "active",
         stage_history: JSON.stringify([{ from: "NONE", to: "RECEPTION", timestamp: new Date().toISOString(), user_id: "reception", notes: "Patient registered" }]),
       });
-      await base44.functions.invoke('handleWorkflowStageChange', {
+      await apiClient.functions.invoke('handleWorkflowStageChange', {
         journey_id: journey.id,
         next_stage: "CONSULTATION",
         notes: "Patient checked in at reception",
       });
       const [p, v] = await Promise.all([
-        base44.entities.Patient.list("-created_date", 200),
-        base44.entities.Visit.list("-created_date", 50),
+        apiClient.entities.Patient.list("-created_date", 200),
+        apiClient.entities.Visit.list("-created_date", 50),
       ]);
       setPatients(p);
       setVisits(v);

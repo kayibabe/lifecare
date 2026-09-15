@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { formatRole } from "@/lib/utils";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import {
   Stethoscope, TrendingUp, Users, ClipboardCheck, Pill, FlaskConical, Scan,
   BedDouble, PenTool, Shield, Award, Calendar, Clock, BarChart3
@@ -18,7 +18,7 @@ export default function PhysicianPerformance() {
   useEffect(() => {
     async function load() {
       try {
-        const { data: result } = await base44.functions.invoke("analyzePhysicianPerformance", {});
+        const { data: result } = await apiClient.functions.invoke("analyzePhysicianPerformance", {});
         setData(result || emptyData);
       } catch (e) {
         console.error(e);

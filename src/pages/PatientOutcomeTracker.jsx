@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { TrendingUp, Activity, CheckCircle, AlertTriangle, RefreshCw, Search } from "lucide-react";
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import PageHeader from "@/components/ui/PageHeader";
@@ -19,9 +19,9 @@ export default function PatientOutcomeTracker() {
   const loadData = async () => {
     try {
       const [patientData, consultationData, dischargeData] = await Promise.all([
-        base44.entities.Patient.list("-created_date", 200),
-        base44.entities.Consultation.list("-created_date", 500),
-        base44.entities.Discharge?.list?.("-created_date", 200) || [],
+        apiClient.entities.Patient.list("-created_date", 200),
+        apiClient.entities.Consultation.list("-created_date", 500),
+        apiClient.entities.Discharge?.list?.("-created_date", 200) || [],
       ]);
       setPatients(patientData);
       setConsultations(consultationData);

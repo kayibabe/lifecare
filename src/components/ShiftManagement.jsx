@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { ClipboardList, Plus, Check, Clock, ArrowRightLeft, TrendingUp, Loader2, DollarSign, Shield } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
@@ -30,8 +30,8 @@ export default function ShiftManagement() {
     async function load() {
       try {
         const [h, u] = await Promise.all([
-          base44.entities.ShiftHandoverLog.list("-created_date", 50),
-          base44.entities.User.list("", 50),
+          apiClient.entities.ShiftHandoverLog.list("-created_date", 50),
+          apiClient.entities.User.list("", 50),
         ]);
         setHandovers(h);
         setUsers(u);
@@ -44,7 +44,7 @@ export default function ShiftManagement() {
   const loadAnalytics = async () => {
     setAnalyticsLoading(true);
     try {
-      const { data } = await base44.functions.invoke("analyzeShiftPerformance", {});
+      const { data } = await apiClient.functions.invoke("analyzeShiftPerformance", {});
       setAnalytics(data);
     } catch (e) { console.error(e); }
     finally { setAnalyticsLoading(false); }
@@ -53,11 +53,11 @@ export default function ShiftManagement() {
   const submitHandover = async (e) => {
     e.preventDefault();
     try {
-      await base44.entities.ShiftHandoverLog.create({
+      await apiClient.entities.ShiftHandoverLog.create({
         ...form,
         handover_date: new Date().toISOString(),
       });
-      const h = await base44.entities.ShiftHandoverLog.list("-created_date", 50);
+      const h = await apiClient.entities.ShiftHandoverLog.list("-created_date", 50);
       setHandovers(h);
       setShowForm(false);
       setForm({
@@ -69,7 +69,7 @@ export default function ShiftManagement() {
   };
 
   const acknowledgeHandover = async (id) => {
-    await base44.entities.ShiftHandoverLog.update(id, {
+    await apiClient.entities.ShiftHandoverLog.update(id, {
       acknowledged: true,
       acknowledged_by: "user",
       acknowledged_date: new Date().toISOString(),

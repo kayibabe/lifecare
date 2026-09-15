@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { getToken } from "@/api/customClient";
 import { AlertTriangle, X, Clock } from "lucide-react";
 
@@ -17,21 +17,21 @@ export default function EmergencyAlertSystem() {
     if (!getToken()) return; // skip polling when not logged in
     try {
       // Get critical visits
-      const visits = await base44.entities.Visit.filter(
-        { priority: "emergency", queue_status: { $in: ["waiting", "triaged", "in_consultation"] } },
+      const visits = await apiClient.entities.Visit.filter(
+        { encounter_type: "emergency", queue_status: { $in: ["waiting", "triaged", "in_consultation"] } },
         "-created_date",
         50
       );
 
       // Get critical lab results
-      const labResults = await base44.entities.LabResult.filter(
+      const labResults = await apiClient.entities.LabResult.filter(
         { is_critical: true, status: "critical" },
         "-created_date",
         50
       );
 
       // Get low inventory
-      const drugs = await base44.entities.Drug.filter(
+      const drugs = await apiClient.entities.Drug.filter(
         { quantity_in_stock: { $lte: 5 } },
         "",
         50
@@ -42,7 +42,7 @@ export default function EmergencyAlertSystem() {
           id: v.id,
           type: "emergency",
           title: "Emergency Patient Waiting",
-          message: `Patient ${v.patient_id?.slice(0, 8)} priority: ${v.priority}`,
+          message: `Patient ${v.patient_id?.slice(0, 8)} — ${v.encounter_type} encounter`,
           severity: "critical",
           time: v.created_date,
           action: "triage",

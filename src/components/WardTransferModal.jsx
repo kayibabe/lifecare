@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { ArrowRightLeft } from "lucide-react";
 
 export default function WardTransferModal({ patient, admission, onComplete, onCancel }) {
@@ -16,7 +16,7 @@ export default function WardTransferModal({ patient, admission, onComplete, onCa
 
   const init = async () => {
     try {
-      const w = await base44.entities.Ward.list("", 50);
+      const w = await apiClient.entities.Ward.list("", 50);
       setWards(w);
     } catch (e) {
       console.error(e);
@@ -28,7 +28,7 @@ export default function WardTransferModal({ patient, admission, onComplete, onCa
   const handleWardChange = async (wardId) => {
     setForm({ ...form, to_ward_id: wardId, to_bed_id: "" });
     try {
-      const b = await base44.entities.Bed.filter(
+      const b = await apiClient.entities.Bed.filter(
         { ward_id: wardId, status: "available" },
         "",
         50
@@ -50,10 +50,10 @@ export default function WardTransferModal({ patient, admission, onComplete, onCa
     try {
       const selectedBed = beds.find(b => b.id === form.to_bed_id);
       const selectedWard = wards.find(w => w.id === form.to_ward_id);
-      const user = await base44.auth.me();
+      const user = await apiClient.auth.me();
 
       // Create transfer record
-      await base44.entities.WardTransfer.create({
+      await apiClient.entities.WardTransfer.create({
         patient_id: patient.id,
         admission_id: admission.id,
         from_ward_id: admission.ward_id,
@@ -73,7 +73,7 @@ export default function WardTransferModal({ patient, admission, onComplete, onCa
       });
 
       // Update admission with new bed info
-      await base44.entities.Admission.update(admission.id, {
+      await apiClient.entities.Admission.update(admission.id, {
         ward_id: form.to_ward_id,
         ward_name: selectedWard.name,
         bed_id: form.to_bed_id,
@@ -81,13 +81,13 @@ export default function WardTransferModal({ patient, admission, onComplete, onCa
       });
 
       // Release old bed
-      const oldBed = await base44.entities.Bed.get(admission.bed_id);
+      const oldBed = await apiClient.entities.Bed.get(admission.bed_id);
       if (oldBed) {
-        await base44.entities.Bed.update(oldBed.id, { status: "cleaning" });
+        await apiClient.entities.Bed.update(oldBed.id, { status: "cleaning" });
       }
 
       // Assign new bed as occupied
-      await base44.entities.Bed.update(form.to_bed_id, { status: "occupied", patient_id: patient.id });
+      await apiClient.entities.Bed.update(form.to_bed_id, { status: "occupied", patient_id: patient.id });
 
       onComplete?.();
     } catch (e) {

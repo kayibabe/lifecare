@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { BedDouble, RefreshCw } from "lucide-react";
 
@@ -19,8 +19,8 @@ export default function WardOccupancyChart({ compact = false }) {
   const loadData = async () => {
     try {
       const [wardData, bedData] = await Promise.all([
-        base44.entities.Ward.list("", 50),
-        base44.entities.Bed.list("", 500),
+        apiClient.entities.Ward.list("", 50),
+        apiClient.entities.Bed.list("", 500),
       ]);
       setWards(wardData);
       setBeds(bedData);

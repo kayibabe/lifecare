@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { apiClient } from '@/api/apiClient';
 import { useAuth } from '@/lib/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -24,7 +24,7 @@ export default function CustomLogin() {
     setLoading(true);
     setError('');
     try {
-      await base44.auth.login(form.employee_id, form.password);
+      await apiClient.auth.login(form.employee_id, form.password);
       await checkUserAuth();
       navigate(next, { replace: true });
     } catch (err) {

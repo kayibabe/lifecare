@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { BedDouble, User, CalendarDays, Stethoscope, ChevronDown, ChevronUp, Building, AlertCircle, CheckCircle, Wrench, Shield } from "lucide-react";
 
 const STATUS_CONFIG = {
@@ -56,10 +56,10 @@ export default function WardBedDashboard() {
     async function load() {
       try {
         const [w, b, a, p] = await Promise.all([
-          base44.entities.Ward.list("", 50),
-          base44.entities.Bed.list("", 200),
-          base44.entities.Admission.filter({ status: "admitted" }, "-created_date", 100),
-          base44.entities.Patient.list("-created_date", 200),
+          apiClient.entities.Ward.list("", 50),
+          apiClient.entities.Bed.list("", 200),
+          apiClient.entities.Admission.filter({ status: "admitted" }, "-created_date", 100),
+          apiClient.entities.Patient.list("-created_date", 200),
         ]);
         setWards(w);
         setBeds(b);

@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { apiClient } from '@/api/apiClient';
 
 const AuthContext = createContext();
 
@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }) => {
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
       setAuthError(null);
-      const currentUser = await base44.auth.me();
+      const currentUser = await apiClient.auth.me();
       setUser(currentUser);
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
@@ -70,17 +70,17 @@ export const AuthProvider = ({ children }) => {
     
     if (shouldRedirect) {
       // Use the SDK's logout method which handles token cleanup and redirect
-      base44.auth.logout(window.location.href);
+      apiClient.auth.logout(window.location.href);
     } else {
       // Just remove the token without redirect
-      base44.auth.logout();
+      apiClient.auth.logout();
     }
   };
 
   const navigateToLogin = () => {
     // Pass only the pathname (not full href) so navigate(next) in CustomLogin
     // stays a React Router client-side navigation rather than a page reload.
-    base44.auth.redirectToLogin(window.location.pathname + window.location.search);
+    apiClient.auth.redirectToLogin(window.location.pathname + window.location.search);
   };
 
   return (

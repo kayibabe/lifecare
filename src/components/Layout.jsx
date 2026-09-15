@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { formatRole } from "@/lib/utils";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import LivePulse from "@/components/LivePulse";
 import QuickActionMenu from "@/components/QuickActionMenu";
 import SurgeAlertBanner from "@/components/SurgeAlertBanner";
@@ -197,7 +197,7 @@ export default function Layout() {
 
   useEffect(() => {
     const fetchUser = () => {
-      base44.auth.me().then((u) => {
+      apiClient.auth.me().then((u) => {
         if (u?.role) setUserRole(u.role);
         setCurrentUser(u);
       }).catch(() => {});
@@ -208,7 +208,7 @@ export default function Layout() {
   }, []);
 
   const handleLogout = async () => {
-    await base44.auth.logout();
+    await apiClient.auth.logout();
     window.location.href = "/login";
   };
 

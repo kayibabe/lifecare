@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import { apiClient } from '@/api/apiClient';
 import { Loader2, Copy, Check, AlertCircle, Download, Eye, EyeOff } from 'lucide-react';
 
 export default function TotpSetup() {
@@ -18,12 +18,12 @@ export default function TotpSetup() {
     setLoading(true);
     setError(null);
     try {
-      const response = await base44.functions.invoke('generateTotpSecret', {});
+      const response = await apiClient.functions.invoke('generateTotpSecret', {});
       setSecret(response.data.secret);
       setQrCodeUrl(response.data.qrCodeUrl);
       
       // Generate backup codes
-      const backupResponse = await base44.functions.invoke('generateBackupCodes', {});
+      const backupResponse = await apiClient.functions.invoke('generateBackupCodes', {});
       setBackupCodes(backupResponse.data.backupCodes);
       
       setStep('confirm');
@@ -44,7 +44,7 @@ export default function TotpSetup() {
     setVerifying(true);
     setError(null);
     try {
-      const response = await base44.functions.invoke('verifyTotp', {
+      const response = await apiClient.functions.invoke('verifyTotp', {
         token: confirmCode,
         secret: secret, // Pass secret during setup when not yet saved to DB
       });
@@ -52,22 +52,22 @@ export default function TotpSetup() {
       if (response.data.verified) {
         // Save the secret and backup codes to UserSecurity
         try {
-          const currentUser = await base44.auth.me();
-          const existing = await base44.entities.UserSecurity.filter(
+          const currentUser = await apiClient.auth.me();
+          const existing = await apiClient.entities.UserSecurity.filter(
             { user_id: currentUser.id },
             '-created_date',
             1
           );
 
           if (existing.length > 0) {
-            await base44.entities.UserSecurity.update(existing[0].id, {
+            await apiClient.entities.UserSecurity.update(existing[0].id, {
               totp_secret: secret,
               is_totp_enabled: true,
               backup_codes: JSON.stringify(backupCodes),
               totp_enabled_date: new Date().toISOString(),
             });
           } else {
-            await base44.entities.UserSecurity.create({
+            await apiClient.entities.UserSecurity.create({
               user_id: currentUser.id,
               totp_secret: secret,
               is_totp_enabled: true,

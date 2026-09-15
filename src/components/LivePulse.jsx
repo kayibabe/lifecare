@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Activity, Users, Clock, BedDouble } from "lucide-react";
 
 export default function LivePulse({ compact = false, prominent = false }) {
@@ -11,12 +11,12 @@ export default function LivePulse({ compact = false, prominent = false }) {
     async function fetchLive() {
       try {
         const [visits, beds] = await Promise.all([
-          base44.entities.Visit.filter(
+          apiClient.entities.Visit.filter(
             { queue_status: { $in: ["waiting", "triaged", "in_consultation", "in_lab", "in_pharmacy"] } },
             "",
             100
           ),
-          base44.entities.Bed.filter({ status: "occupied" }, "", 100),
+          apiClient.entities.Bed.filter({ status: "occupied" }, "", 100),
         ]);
         setStats({
           activeVisits: visits.length,

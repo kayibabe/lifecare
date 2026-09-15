@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { DollarSign, TrendingUp } from "lucide-react";
 
@@ -15,7 +15,7 @@ export default function RevenueBreakdown() {
       try {
         const today = new Date().toISOString().split('T')[0];
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        const allInvoices = await base44.entities.Invoice.list("-created_date", 1000);
+        const allInvoices = await apiClient.entities.Invoice.list("-created_date", 500);
         const invoices = allInvoices.filter(i => {
           const d = i.created_date?.substring(0, 10);
           return d && d >= thirtyDaysAgo && d <= today &&

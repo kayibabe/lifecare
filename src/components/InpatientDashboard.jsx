@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import {
   BedDouble, Users, DoorOpen, AlertTriangle, Clock,
   Bell, ArrowRight, GitBranch, Activity,
@@ -27,22 +27,22 @@ export default function InpatientDashboard() {
       const [
         w, b, a, p, d, jList, notifications, vitalsToday
       ] = await Promise.all([
-        base44.entities.Ward.list("", 50),
-        base44.entities.Bed.list("", 200),
-        base44.entities.Admission.filter({ status: "admitted" }, "-created_date", 50),
-        base44.entities.Patient.list("-created_date", 200),
-        base44.entities.Discharge.filter({ created_date: { $gte: today } }, "-created_date", 20),
-        base44.entities.PatientJourney.filter(
+        apiClient.entities.Ward.list("", 50),
+        apiClient.entities.Bed.list("", 200),
+        apiClient.entities.Admission.filter({ status: "admitted" }, "-created_date", 50),
+        apiClient.entities.Patient.list("-created_date", 200),
+        apiClient.entities.Discharge.filter({ created_date: { $gte: today } }, "-created_date", 20),
+        apiClient.entities.PatientJourney.filter(
           { current_stage: { $in: ["NURSING_ADMINISTRATION"] }, status: "active" },
           "-created_date",
           30
         ),
-        base44.entities.Notification.filter(
+        apiClient.entities.Notification.filter(
           { type: { $in: ["alert", "workflow"] }, is_read: false },
           "-created_date",
           30
         ),
-        base44.entities.VitalSigns.filter(
+        apiClient.entities.VitalSigns.filter(
           { created_date: { $gte: today } },
           "-created_date",
           200
@@ -90,10 +90,10 @@ export default function InpatientDashboard() {
 
   // Real-time subscriptions
   useEffect(() => {
-    const unsubAdmission = base44.entities.Admission?.subscribe(() => loadData());
-    const unsubDischarge = base44.entities.Discharge?.subscribe(() => loadData());
-    const unsubVitals = base44.entities.VitalSigns?.subscribe(() => loadData());
-    const unsubNotifications = base44.entities.Notification?.subscribe(() => loadData());
+    const unsubAdmission = apiClient.entities.Admission?.subscribe(() => loadData());
+    const unsubDischarge = apiClient.entities.Discharge?.subscribe(() => loadData());
+    const unsubVitals = apiClient.entities.VitalSigns?.subscribe(() => loadData());
+    const unsubNotifications = apiClient.entities.Notification?.subscribe(() => loadData());
     return () => {
       if (unsubAdmission) unsubAdmission();
       if (unsubDischarge) unsubDischarge();

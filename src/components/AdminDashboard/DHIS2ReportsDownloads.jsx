@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Download, FileJson, Trash2, Loader2, Calendar, CheckCircle, AlertCircle, Clock } from "lucide-react";
 
 export default function DHIS2ReportsDownloads() {
@@ -16,7 +16,7 @@ export default function DHIS2ReportsDownloads() {
   const loadReports = async () => {
     setLoading(true);
     try {
-      const reps = await base44.entities.DHIS2Export.list("-export_date", 100);
+      const reps = await apiClient.entities.DHIS2Export.list("-export_date", 100);
       setReports(reps);
     } catch (e) {
       console.error(e);
@@ -92,7 +92,7 @@ export default function DHIS2ReportsDownloads() {
     
     setDeleting(reportId);
     try {
-      await base44.entities.DHIS2Export.delete(reportId);
+      await apiClient.entities.DHIS2Export.delete(reportId);
       setReports(reports.filter(r => r.id !== reportId));
       setSelectedReport(null);
     } catch (e) {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { ShieldAlert, DollarSign, CreditCard, Smartphone, AlertTriangle, XCircle, CheckCircle, Eye, EyeOff, Clock, RefreshCw } from "lucide-react";
 
 const SEVERITY_CONFIG = {
@@ -22,7 +22,7 @@ export default function LiveAuditMonitor({ compact = false }) {
     const results = {};
     for (const shift of shifts) {
       try {
-        const { data } = await base44.functions.invoke("liveAuditShift", { shift_id: shift.id });
+        const { data } = await apiClient.functions.invoke("liveAuditShift", { shift_id: shift.id });
         results[shift.id] = data;
       } catch (e) { console.error(e); }
     }
@@ -41,7 +41,7 @@ export default function LiveAuditMonitor({ compact = false }) {
 
   const loadAndAudit = async () => {
     try {
-      const shifts = await base44.entities.CashierShift.filter({ status: "open" }, "-created_date", 20);
+      const shifts = await apiClient.entities.CashierShift.filter({ status: "open" }, "-created_date", 20);
       setOpenShifts(shifts);
       if (shifts.length > 0) {
         await runAudit(shifts);

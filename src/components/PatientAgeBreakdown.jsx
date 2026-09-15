@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Users, Baby } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
@@ -40,7 +40,7 @@ export default function PatientAgeBreakdown({ compact = false }) {
   useEffect(() => {
     async function load() {
       try {
-        const patients = await base44.entities.Patient.list("", 1000);
+        const patients = await apiClient.entities.Patient.list("", 500);
         const ageGroups = {};
         const infantsList = [];
 

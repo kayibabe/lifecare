@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { formatApiError } from "@/api/customClient";
 import { Receipt, Plus, Save, CreditCard, DollarSign, FileText, Search, Download, CheckCircle, GitBranch, Shield, UserCircle, ChevronDown, ChevronUp, Users, Trash2, Pencil, X } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
@@ -43,13 +43,13 @@ export default function Billing() {
     async function load() {
       try {
         const [inv, p, pay, c, s, split, jList] = await Promise.all([
-          base44.entities.Invoice.list("-created_date", 100),
-          base44.entities.Patient.list("-created_date", 200),
-          base44.entities.Payment.list("-created_date", 100),
-          base44.entities.InsuranceClaim.list("-created_date", 50),
-          base44.entities.MedicalAidScheme.list("", 50),
-          base44.entities.InvoiceSplit.list("-created_date", 200),
-          base44.entities.PatientJourney.filter({ current_stage: "BILLING", status: "active" }, "-created_date", 30),
+          apiClient.entities.Invoice.list("-created_date", 100),
+          apiClient.entities.Patient.list("-created_date", 200),
+          apiClient.entities.Payment.list("-created_date", 100),
+          apiClient.entities.InsuranceClaim.list("-created_date", 50),
+          apiClient.entities.MedicalAidScheme.list("", 50),
+          apiClient.entities.InvoiceSplit.list("-created_date", 200),
+          apiClient.entities.PatientJourney.filter({ current_stage: "BILLING", status: "active" }, "-created_date", 30),
         ]);
         setInvoices(inv);
         setPatients(p);
@@ -93,7 +93,7 @@ export default function Billing() {
       validItems.forEach(i => { total += Number(i.unit_price) * Number(i.quantity); });
       const invNum = `INV-${Date.now().toString(36).toUpperCase()}`;
 
-      const inv = await base44.entities.Invoice.create({
+      const inv = await apiClient.entities.Invoice.create({
         patient_id: invoiceForm.patient_id,
         payment_type: splitBilling ? "both" : invoiceForm.payment_type,
         invoice_number: invNum, total_amount: total, net_amount: total,
@@ -101,7 +101,7 @@ export default function Billing() {
       });
 
       for (const item of validItems) {
-        await base44.entities.InvoiceItem.create({
+        await apiClient.entities.InvoiceItem.create({
           invoice_id: inv.id, ...item, quantity: Number(item.quantity),
           unit_price: Number(item.unit_price), total: Number(item.unit_price) * Number(item.quantity),
         });
@@ -113,7 +113,7 @@ export default function Billing() {
           const pct = Number(split.percentage);
           if (pct <= 0) continue;
           const splitAmount = Math.round(total * pct) / 100;
-          await base44.entities.InvoiceSplit.create({
+          await apiClient.entities.InvoiceSplit.create({
             invoice_id: inv.id,
             patient_id: invoiceForm.patient_id,
             payer_type: split.payer_type,
@@ -126,7 +126,7 @@ export default function Billing() {
         }
       } else {
         // Single payer — create one split for tracking
-        await base44.entities.InvoiceSplit.create({
+        await apiClient.entities.InvoiceSplit.create({
           invoice_id: inv.id,
           patient_id: invoiceForm.patient_id,
           payer_type: invoiceForm.payment_type === "scheme" ? "insurance" : "patient",
@@ -139,8 +139,8 @@ export default function Billing() {
       }
 
       const [invList, splitList] = await Promise.all([
-        base44.entities.Invoice.list("-created_date", 100),
-        base44.entities.InvoiceSplit.list("-created_date", 200),
+        apiClient.entities.Invoice.list("-created_date", 100),
+        apiClient.entities.InvoiceSplit.list("-created_date", 200),
       ]);
       setInvoices(invList);
       setInvoiceSplits(splitList);
@@ -159,7 +159,7 @@ export default function Billing() {
     if (!paymentForm.amount) return;
     const amt = Number(paymentForm.amount);
 
-    await base44.entities.Payment.create({
+    await apiClient.entities.Payment.create({
       invoice_id: invoiceId,
       patient_id: invoices.find(i => i.id === invoiceId)?.patient_id,
       amount: amt,
@@ -175,7 +175,7 @@ export default function Billing() {
       if (split) {
         const newPaid = (split.paid_amount || 0) + amt;
         const newStatus = newPaid >= split.total_amount ? "paid" : "partial";
-        await base44.entities.InvoiceSplit.update(splitId, {
+        await apiClient.entities.InvoiceSplit.update(splitId, {
           paid_amount: newPaid,
           status: newStatus,
         });
@@ -191,12 +191,12 @@ export default function Billing() {
     if (totalPaid >= total) newStatus = "paid";
     else if (totalPaid > 0) newStatus = "partial";
 
-    await base44.entities.Invoice.update(invoiceId, { status: newStatus, paid_amount: totalPaid });
+    await apiClient.entities.Invoice.update(invoiceId, { status: newStatus, paid_amount: totalPaid });
 
     const [invList, payList, splitList] = await Promise.all([
-      base44.entities.Invoice.list("-created_date", 100),
-      base44.entities.Payment.list("-created_date", 100),
-      base44.entities.InvoiceSplit.list("-created_date", 200),
+      apiClient.entities.Invoice.list("-created_date", 100),
+      apiClient.entities.Payment.list("-created_date", 100),
+      apiClient.entities.InvoiceSplit.list("-created_date", 200),
     ]);
     setInvoices(invList);
     setPayments(payList);
@@ -206,9 +206,9 @@ export default function Billing() {
 
     if (totalPaid >= total) {
       try {
-        const journeys = await base44.entities.PatientJourney.filter({ visit_id: inv.visit_id, status: "active" }, "-created_date", 1);
+        const journeys = await apiClient.entities.PatientJourney.filter({ visit_id: inv.visit_id, status: "active" }, "-created_date", 1);
         if (journeys.length > 0) {
-          await base44.functions.invoke('handleWorkflowStageChange', {
+          await apiClient.functions.invoke('handleWorkflowStageChange', {
             journey_id: journeys[0].id,
             next_stage: "COMPLETED",
             notes: "Full payment received — visit finalized",
@@ -221,8 +221,8 @@ export default function Billing() {
   const transitionWorkflow = async (journeyId, nextStage, notes = "") => {
     setTransitioning(true);
     try {
-      await base44.functions.invoke('handleWorkflowStageChange', { journey_id: journeyId, next_stage: nextStage, notes });
-      const jList = await base44.entities.PatientJourney.filter({ current_stage: "BILLING", status: "active" }, "-created_date", 30);
+      await apiClient.functions.invoke('handleWorkflowStageChange', { journey_id: journeyId, next_stage: nextStage, notes });
+      const jList = await apiClient.entities.PatientJourney.filter({ current_stage: "BILLING", status: "active" }, "-created_date", 30);
       setBillingJourneys(jList);
     } catch (e) {
       toast({ title: "Workflow transition failed", description: e.response?.data?.error || e.message, variant: "destructive" });
@@ -234,13 +234,13 @@ export default function Billing() {
     const splits = getInvoiceSplits(invoiceId);
     const insuranceSplit = splits.find(s => s.payer_type === "insurance");
     const claimAmount = insuranceSplit ? insuranceSplit.total_amount : inv.total_amount;
-    await base44.entities.InsuranceClaim.create({
+    await apiClient.entities.InsuranceClaim.create({
       invoice_id: invoiceId, patient_id: inv.patient_id,
       scheme_name: inv.scheme_name || insuranceSplit?.scheme_name || "Unknown",
       claim_amount: claimAmount,
       status: "submitted", submitted_date: new Date().toISOString(),
     });
-    const c = await base44.entities.InsuranceClaim.list("-created_date", 50);
+    const c = await apiClient.entities.InsuranceClaim.list("-created_date", 50);
     setClaims(c);
   };
 
@@ -251,12 +251,12 @@ export default function Billing() {
 
   const handleSaveInvoiceEdit = async () => {
     try {
-      await base44.entities.Invoice.update(editingInvoice.id, {
+      await apiClient.entities.Invoice.update(editingInvoice.id, {
         payment_mode: invoiceEditForm.payment_mode,
         discount: invoiceEditForm.discount !== "" ? Number(invoiceEditForm.discount) : undefined,
         notes: invoiceEditForm.notes || undefined,
       });
-      const invList = await base44.entities.Invoice.list("-created_date", 100);
+      const invList = await apiClient.entities.Invoice.list("-created_date", 100);
       setInvoices(invList);
       setEditingInvoice(null);
       toast({ title: "Invoice updated" });
@@ -267,7 +267,7 @@ export default function Billing() {
 
   const exportInvoicePdf = async (invoiceId) => {
     try {
-      const { data } = await base44.functions.invoke('exportInvoicePdf', { invoice_id: invoiceId });
+      const { data } = await apiClient.functions.invoke('exportInvoicePdf', { invoice_id: invoiceId });
       const byteChars = atob(data.pdf_base64);
       const byteNums = new Array(byteChars.length);
       for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
@@ -590,7 +590,7 @@ export default function Billing() {
                     const patientId = e.target.value;
                     if (patientId) {
                       try {
-                        await base44.functions.invoke('generateDischargeSummary', { patient_id: patientId });
+                        await apiClient.functions.invoke('generateDischargeSummary', { patient_id: patientId });
                         toast({ title: "Discharge summary generated" });
                         setShowDischargeSummary(false);
                       } catch (err) {

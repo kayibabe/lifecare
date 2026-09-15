@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Heart, Thermometer, Activity, Wind, Monitor, Wifi, WifiOff } from "lucide-react";
 
 const VITAL_RANGES = {
@@ -120,7 +120,7 @@ export default function RealTimeVitals({ compact = false, maxPatients = 8 }) {
   const fetchLatest = useCallback(async () => {
     try {
       // Get active visits
-      const activeVisits = await base44.entities.Visit.filter(
+      const activeVisits = await apiClient.entities.Visit.filter(
         { queue_status: { $in: ["triaged", "in_consultation", "in_lab", "in_pharmacy", "admitted"] } },
         "-created_date",
         20
@@ -133,7 +133,7 @@ export default function RealTimeVitals({ compact = false, maxPatients = 8 }) {
       const patientList = [];
       for (const pid of patientIds.slice(0, maxPatients)) {
         try {
-          const p = await base44.entities.Patient.get(pid);
+          const p = await apiClient.entities.Patient.get(pid);
           if (p) patientList.push(p);
         } catch (_) {}
       }
@@ -143,7 +143,7 @@ export default function RealTimeVitals({ compact = false, maxPatients = 8 }) {
       const newVitalData = {};
       for (const vid of visitIds.slice(0, maxPatients)) {
         try {
-          const vitals = await base44.entities.VitalSigns.filter(
+          const vitals = await apiClient.entities.VitalSigns.filter(
             { visit_id: vid },
             "-created_date",
             1
@@ -169,7 +169,7 @@ export default function RealTimeVitals({ compact = false, maxPatients = 8 }) {
 
     // Subscribe to real-time VitalSigns changes
     try {
-      unsubscribeRef.current = base44.entities.VitalSigns.subscribe((event) => {
+      unsubscribeRef.current = apiClient.entities.VitalSigns.subscribe((event) => {
         setConnected(true);
         setUpdateCount(c => c + 1);
         if (event.type === "create" || event.type === "update") {

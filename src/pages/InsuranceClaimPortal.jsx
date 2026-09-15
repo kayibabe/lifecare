@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { toast } from "@/components/ui/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import InsuranceClaimFormBuilder from "@/components/InsuranceClaimFormBuilder";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import {
   FileText, Plus, Search, Download, Clock, X, Save, Loader2, RefreshCw, Edit3
 } from "lucide-react";
@@ -63,10 +63,10 @@ export default function InsuranceClaimPortal() {
   const loadData = async () => {
     try {
       const [claimData, invoiceData, patientData, schemeData] = await Promise.all([
-        base44.entities.InsuranceClaim.list("-created_date", 100),
-        base44.entities.Invoice.list("-created_date", 200),
-        base44.entities.Patient.list("-created_date", 200),
-        base44.entities.MedicalAidScheme.list("", 100),
+        apiClient.entities.InsuranceClaim.list("-created_date", 100),
+        apiClient.entities.Invoice.list("-created_date", 200),
+        apiClient.entities.Patient.list("-created_date", 200),
+        apiClient.entities.MedicalAidScheme.list("", 100),
       ]);
       setClaims(claimData);
       setInvoices(invoiceData);
@@ -110,7 +110,7 @@ export default function InsuranceClaimPortal() {
     setSaving(true);
     setValidationErrors([]);
     try {
-      await base44.entities.InsuranceClaim.create({
+      await apiClient.entities.InsuranceClaim.create({
         ...form,
         claim_amount: Number(form.claim_amount),
         co_pay_amount: Number(form.co_pay_amount) || 0,
@@ -136,7 +136,7 @@ export default function InsuranceClaimPortal() {
 
   const submitClaim = async (claimId) => {
     try {
-      await base44.entities.InsuranceClaim.update(claimId, {
+      await apiClient.entities.InsuranceClaim.update(claimId, {
         status: "submitted",
         submitted_date: new Date().toISOString(),
       });
@@ -152,7 +152,7 @@ export default function InsuranceClaimPortal() {
       if (newStatus === "submitted" && !claims.find(c => c.id === claimId).submitted_date) {
         updateData.submitted_date = new Date().toISOString();
       }
-      await base44.entities.InsuranceClaim.update(claimId, updateData);
+      await apiClient.entities.InsuranceClaim.update(claimId, updateData);
       loadData();
     } catch (e) {
       toast({ title: "Update failed", description: e.message, variant: "destructive" });
@@ -185,7 +185,7 @@ export default function InsuranceClaimPortal() {
 
     setExportingClaimId(claim.id);
     try {
-      const { data } = await base44.functions.invoke('exportClaimFormPdf', {
+      const { data } = await apiClient.functions.invoke('exportClaimFormPdf', {
         invoice_id: claim.invoice_id,
         patient_id: claim.patient_id,
         scheme_id: claim.scheme_id,
@@ -206,7 +206,7 @@ export default function InsuranceClaimPortal() {
     setBatchSyncing(true);
     try {
       for (const claimId of selectedForBatch) {
-        await base44.functions.invoke('syncClaimsToDrive', { claim_id: claimId });
+        await apiClient.functions.invoke('syncClaimsToDrive', { claim_id: claimId });
       }
       toast({ title: "Sync complete", description: `${selectedForBatch.length} claim(s) synced to Google Drive.` });
       setSelectedForBatch([]);
@@ -362,7 +362,7 @@ export default function InsuranceClaimPortal() {
                 setSaving(true);
                 try {
                   for (const id of selectedForBatch) {
-                    await base44.entities.InsuranceClaim.update(id, {
+                    await apiClient.entities.InsuranceClaim.update(id, {
                       status: "submitted",
                       submitted_date: new Date().toISOString()
                     });

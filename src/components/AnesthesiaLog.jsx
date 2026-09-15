@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Activity, Droplets, Plus, X, AlertCircle } from "lucide-react";
 
 const VITAL_TEMPLATE = { time: "", hr: "", bp_sys: "", bp_dia: "", spo2: "", etco2: "", temp: "", notes: "" };
@@ -96,7 +96,7 @@ export default function AnesthesiaLog({ bookingId, patientId, booking, onComplet
     if (!bookingId || !patientId) return;
     setSaving(true);
     try {
-      await base44.entities.AnesthesiaLog.create({
+      await apiClient.entities.AnesthesiaLog.create({
         surgical_booking_id: bookingId,
         patient_id: patientId,
         anaesthetist_name: staffName || "Anaesthetist",

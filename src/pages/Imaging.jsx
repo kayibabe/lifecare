@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Scan, Plus, Save, FileImage } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
 import { toast } from "@/components/ui/use-toast";
@@ -18,8 +18,8 @@ export default function Imaging() {
     async function load() {
       try {
         const [o, p] = await Promise.all([
-          base44.entities.ImagingOrder.list("-created_date", 100),
-          base44.entities.Patient.list("-created_date", 200),
+          apiClient.entities.ImagingOrder.list("-created_date", 100),
+          apiClient.entities.Patient.list("-created_date", 200),
         ]);
         setOrders(o);
         setPatients(p);
@@ -35,8 +35,8 @@ export default function Imaging() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await base44.entities.ImagingOrder.create({ ...form, order_date: new Date().toISOString(), status: "ordered" });
-      const o = await base44.entities.ImagingOrder.list("-created_date", 100);
+      await apiClient.entities.ImagingOrder.create({ ...form, order_date: new Date().toISOString(), status: "ordered" });
+      const o = await apiClient.entities.ImagingOrder.list("-created_date", 100);
       setOrders(o);
       setShowForm(false);
     } catch (err) {
@@ -47,20 +47,20 @@ export default function Imaging() {
   };
 
   const updateStatus = async (id, status) => {
-    await base44.entities.ImagingOrder.update(id, { status });
+    await apiClient.entities.ImagingOrder.update(id, { status });
     setOrders(orders.map(o => o.id === id ? { ...o, status } : o));
   };
 
   const saveResult = async (orderId) => {
     if (!resultData.findings) return;
-    await base44.entities.ImagingResult.create({
+    await apiClient.entities.ImagingResult.create({
       imaging_order_id: orderId, patient_id: orders.find(o => o.id === orderId)?.patient_id,
       ...resultData, status: "reported", reported_date: new Date().toISOString(),
     });
-    await base44.entities.ImagingOrder.update(orderId, { status: "completed" });
+    await apiClient.entities.ImagingOrder.update(orderId, { status: "completed" });
     setResultForm(null);
     setResultData({ findings: "", impression: "" });
-    const o = await base44.entities.ImagingOrder.list("-created_date", 100);
+    const o = await apiClient.entities.ImagingOrder.list("-created_date", 100);
     setOrders(o);
   };
 

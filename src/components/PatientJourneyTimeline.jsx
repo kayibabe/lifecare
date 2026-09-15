@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { CheckCircle, Circle, Clock, ChevronRight, GitBranch } from "lucide-react";
 
 const ALL_STAGES = [
@@ -55,10 +55,10 @@ export default function PatientJourneyTimeline({ journeyId, patientId, compact =
     async function load() {
       try {
         if (journeyId) {
-          const j = await base44.entities.PatientJourney.get(journeyId);
+          const j = await apiClient.entities.PatientJourney.get(journeyId);
           setJourney(j);
         } else if (patientId) {
-          const journeys = await base44.entities.PatientJourney.filter(
+          const journeys = await apiClient.entities.PatientJourney.filter(
             { patient_id: patientId, status: "active" },
             "-created_date",
             1

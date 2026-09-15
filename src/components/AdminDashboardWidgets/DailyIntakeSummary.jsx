@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { UserPlus, Siren, Footprints, BedDouble } from "lucide-react";
 
 export default function DailyIntakeSummary() {
@@ -10,7 +10,7 @@ export default function DailyIntakeSummary() {
     async function fetchIntake() {
       try {
         const today = new Date().toISOString().split('T')[0];
-        const visits = await base44.entities.Visit.list("", 1000);
+        const visits = await apiClient.entities.Visit.list("", 500);
         const todayVisits = visits.filter(v => v.created_date?.substring(0, 10) === today);
         
         const stats = {

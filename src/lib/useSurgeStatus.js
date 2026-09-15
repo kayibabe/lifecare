@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 
 // Surge thresholds
 const ER_HIGH = 10;
@@ -31,15 +31,15 @@ export function useSurgeStatus() {
     async function load() {
       try {
         const [erVisits, emergencyVisits, beds] = await Promise.all([
-          base44.entities.Visit.filter(
-            { visit_type: "emergency", queue_status: { $in: ["waiting", "triaged", "in_consultation"] } },
+          apiClient.entities.Visit.filter(
+            { encounter_type: "emergency", queue_status: { $in: ["waiting", "triaged", "in_consultation"] } },
             "-created_date", 200
           ),
-          base44.entities.Visit.filter(
-            { priority: "emergency", queue_status: { $in: ["waiting", "triaged"] } },
+          apiClient.entities.Visit.filter(
+            { encounter_type: "emergency", queue_status: { $in: ["waiting", "triaged"] } },
             "-created_date", 200
           ),
-          base44.entities.Bed.list("", 300),
+          apiClient.entities.Bed.list("", 300),
         ]);
 
         const totalBeds = beds.length;

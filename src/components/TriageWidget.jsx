@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { ClipboardCheck, Clock, ChevronRight, Heart, Thermometer, Activity } from "lucide-react";
 
 const PRIORITY_COLORS = {
@@ -22,13 +22,13 @@ export default function TriageWidget() {
     async function load() {
       try {
         const [visits, patientsData, vitals] = await Promise.all([
-          base44.entities.Visit.filter(
+          apiClient.entities.Visit.filter(
             { queue_status: { $in: ["waiting", "triaged"] } },
             "created_date",
             50
           ),
-          base44.entities.Patient.list("", 200),
-          base44.entities.VitalSigns.list("-created_date", 200),
+          apiClient.entities.Patient.list("", 200),
+          apiClient.entities.VitalSigns.list("-created_date", 200),
         ]);
 
         const patientMap = {};

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Pill, AlertTriangle, Package, Clock } from "lucide-react";
 
 export default function PharmacistDashboard() {
@@ -11,9 +11,9 @@ export default function PharmacistDashboard() {
     async function load() {
       try {
         const [drugs, requisitions, dispensings] = await Promise.all([
-          base44.entities.Drug.list("", 500),
-          base44.entities.PharmacyRequisition.filter({ status: "draft" }, "-created_date", 50),
-          base44.entities.PharmacyDispensing.filter({
+          apiClient.entities.Drug.list("", 500),
+          apiClient.entities.PharmacyRequisition.filter({ status: "draft" }, "-created_date", 50),
+          apiClient.entities.PharmacyDispensing.filter({
             dispensing_date: new Date().toISOString().slice(0, 10),
           }, "", 100),
         ]);

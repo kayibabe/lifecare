@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,13 +29,13 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      await base44.auth.loginViaEmailPassword(email, password);
+      await apiClient.auth.loginViaEmailPassword(email, password);
       
       // Check if user has TOTP enabled
-      const user = await base44.auth.me();
+      const user = await apiClient.auth.me();
       
       // Search for UserSecurity by email as fallback if user_id lookup fails
-      let userSecurity = await base44.entities.UserSecurity.filter(
+      let userSecurity = await apiClient.entities.UserSecurity.filter(
         { user_id: user.id },
         '-created_date',
         1
@@ -58,7 +58,7 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      const response = await base44.functions.invoke('loginWithTotp', {
+      const response = await apiClient.functions.invoke('loginWithTotp', {
         token: useBackup ? undefined : totpCode,
         backup_code: useBackup ? backupCode : undefined,
       });
@@ -76,7 +76,7 @@ export default function Login() {
   };
 
   const handleGoogle = () => {
-    base44.auth.loginWithProvider("google", "/");
+    apiClient.auth.loginWithProvider("google", "/");
   };
 
   return (

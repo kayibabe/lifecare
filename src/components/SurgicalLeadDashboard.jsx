@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Activity, Calendar, CheckCircle2, Clock, AlertTriangle, Users } from "lucide-react";
 
 export default function SurgicalLeadDashboard() {
@@ -12,8 +12,8 @@ export default function SurgicalLeadDashboard() {
       try {
         const today = new Date().toISOString().slice(0, 10);
         const [surgeries, staff] = await Promise.all([
-          base44.entities.SurgicalBooking.filter({ scheduled_date: { $gte: today } }, "-scheduled_date", 100),
-          base44.entities.DoctorSchedule.filter({ shift_date: today }, "", 50),
+          apiClient.entities.SurgicalBooking.filter({ scheduled_date: { $gte: today } }, "-scheduled_date", 100),
+          apiClient.entities.DoctorSchedule.filter({ shift_date: today }, "", 50),
         ]);
 
         const scheduled = surgeries.filter(s => s.status === "scheduled" || s.status === "confirmed");

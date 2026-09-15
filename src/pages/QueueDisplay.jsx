@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Clock, Users, ChevronRight } from "lucide-react";
 
 function maskName(name) {
@@ -26,12 +26,12 @@ export default function QueueDisplay() {
     async function load() {
       try {
         const [v, p] = await Promise.all([
-          base44.entities.Visit.filter(
+          apiClient.entities.Visit.filter(
             { queue_status: { $in: ["waiting", "triaged", "in_consultation", "in_lab", "in_pharmacy"] } },
             "-priority",
             50
           ),
-          base44.entities.Patient.list("", 500),
+          apiClient.entities.Patient.list("", 500),
         ]);
         setVisits(v);
         setPatients(p);

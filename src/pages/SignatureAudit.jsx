@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import {
   PenTool, Search, Filter, Calendar, FileText, Pill, FlaskConical,
   Scan, ClipboardPen, Clock, User, ChevronDown, X
@@ -56,9 +56,9 @@ export default function SignatureAudit() {
     async function load() {
       try {
         const [sigs, logs, pats] = await Promise.all([
-          base44.entities.DigitalSignature.list("-signed_at", 200),
-          base44.entities.AuditLog.list("-timestamp", 200),
-          base44.entities.Patient.list("-created_date", 200),
+          apiClient.entities.DigitalSignature.list("-signed_at", 200),
+          apiClient.entities.AuditLog.list("-timestamp", 200),
+          apiClient.entities.Patient.list("-created_date", 200),
         ]);
         setSignatures(sigs);
         setAuditLogs(logs);
@@ -120,7 +120,7 @@ export default function SignatureAudit() {
     setSelectedSig(sig);
     if (sig.signature_url) {
       try {
-        const { data } = await base44.integrations.Core.CreateFileSignedUrl({
+        const { data } = await apiClient.integrations.Core.CreateFileSignedUrl({
           file_uri: sig.signature_url,
           expires_in: 300,
         });

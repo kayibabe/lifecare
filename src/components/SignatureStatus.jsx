@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { PenTool, Check, Clock } from "lucide-react";
 
 export default function SignatureStatus({ documentType, documentId, compact = false }) {
@@ -9,7 +9,7 @@ export default function SignatureStatus({ documentType, documentId, compact = fa
   useEffect(() => {
     async function load() {
       try {
-        const sigs = await base44.entities.DigitalSignature.filter(
+        const sigs = await apiClient.entities.DigitalSignature.filter(
           { document_type: documentType, document_id: documentId },
           "-created_date",
           1
@@ -18,7 +18,7 @@ export default function SignatureStatus({ documentType, documentId, compact = fa
           const sig = sigs[0];
           if (sig.signature_url) {
             try {
-              const { data } = await base44.functions.invoke("getSignedUrl", { file_uri: sig.signature_url });
+              const { data } = await apiClient.functions.invoke("getSignedUrl", { file_uri: sig.signature_url });
               sig.displayUrl = data?.signed_url || sig.signature_url;
             } catch {
               sig.displayUrl = sig.signature_url;

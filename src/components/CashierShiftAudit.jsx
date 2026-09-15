@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { DollarSign, Clock, User, TrendingUp, Wallet, CreditCard, Smartphone, Building2 } from "lucide-react";
 
 const PAYMENT_METHODS = ["cash", "card", "airtel_money", "tnm_mpamba", "bank_transfer"];
@@ -33,9 +33,9 @@ export default function CashierShiftAudit() {
       try {
         const today = new Date().toISOString().slice(0, 10);
         const [s, p, u] = await Promise.all([
-          base44.entities.CashierShift.list("-created_date", 100),
-          base44.entities.Payment.filter({ created_date: { $gte: today } }, "-created_date", 500),
-          base44.entities.User.list("", 50),
+          apiClient.entities.CashierShift.list("-created_date", 100),
+          apiClient.entities.Payment.filter({ created_date: { $gte: today } }, "-created_date", 500),
+          apiClient.entities.User.list("", 50),
         ]);
         setShifts(s);
         setPayments(p);

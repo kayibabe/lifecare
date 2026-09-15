@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { BedDouble, AlertTriangle, X } from "lucide-react";
 
 export default function BedOccupancyAlert({ threshold = 80 }) {
@@ -10,8 +10,8 @@ export default function BedOccupancyAlert({ threshold = 80 }) {
     async function check() {
       try {
         const [wards, beds] = await Promise.all([
-          base44.entities.Ward.list("", 20),
-          base44.entities.Bed.list("", 300),
+          apiClient.entities.Ward.list("", 20),
+          apiClient.entities.Bed.list("", 300),
         ]);
         const wardAlerts = wards.map(w => {
           const wardBeds = beds.filter(b => b.ward_id === w.id);

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "@/components/ui/use-toast";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import {
   Heart, Thermometer, Activity, Wind, Stethoscope, Pill, Syringe,
   ClipboardCheck, GitBranch, ArrowRight, Loader2, CheckCircle,
@@ -116,7 +116,7 @@ export default function Nursing() {
 
   useEffect(() => {
     loadData();
-    base44.entities.WasteCategory.list("", 20).then(setWasteCategories).catch(() => {});
+    apiClient.entities.WasteCategory.list("", 20).then(setWasteCategories).catch(() => {});
   }, []);
 
   const loadData = async () => {
@@ -124,19 +124,19 @@ export default function Nursing() {
     try {
       const today = new Date().toISOString().slice(0, 10);
       const [triaged, adminJ, p, v, disp, labs, vitalsToday] = await Promise.all([
-        base44.entities.PatientJourney.filter(
+        apiClient.entities.PatientJourney.filter(
           { current_stage: "TRIAGE", status: "active" }, "-created_date", 30
         ),
-        base44.entities.PatientJourney.filter(
+        apiClient.entities.PatientJourney.filter(
           { current_stage: "NURSING_ADMINISTRATION", status: "active" }, "-created_date", 30
         ),
-        base44.entities.Patient.list("-created_date", 200),
-        base44.entities.Visit.list("-created_date", 100),
-        base44.entities.PharmacyDispensing.list("-created_date", 50),
-        base44.entities.LabResult.filter(
+        apiClient.entities.Patient.list("-created_date", 200),
+        apiClient.entities.Visit.list("-created_date", 100),
+        apiClient.entities.PharmacyDispensing.list("-created_date", 50),
+        apiClient.entities.LabResult.filter(
           { status: { $in: ["final", "preliminary"] } }, "-created_date", 20
         ),
-        base44.entities.VitalSigns.filter(
+        apiClient.entities.VitalSigns.filter(
           { created_date: { $gte: today } }, "-created_date", 100
         ),
       ]);
@@ -169,7 +169,7 @@ export default function Nursing() {
   const handleAutoAssess = async (journey) => {
     setAssessing(prev => ({ ...prev, [journey.id]: true }));
     try {
-      const { data } = await base44.functions.invoke("calculateTriageScore", {
+      const { data } = await apiClient.functions.invoke("calculateTriageScore", {
         journey_id: journey.id,
         patient_id: journey.patient_id,
         visit_id: journey.visit_id,
@@ -186,7 +186,7 @@ export default function Nursing() {
   const handleTriageTransition = async (journey, priority) => {
     setTransitioning(true);
     try {
-      const { data } = await base44.functions.invoke("formalizeTriageWorkflow", {
+      const { data } = await apiClient.functions.invoke("formalizeTriageWorkflow", {
         journey_id: journey.id,
         triage_priority: priority,
         notes: `Triaged as ${priority} — sent to consultation`,
@@ -222,7 +222,7 @@ export default function Nursing() {
     setBulkTriageing(true);
     setBulkResult(null);
     try {
-      const { data } = await base44.functions.invoke("bulkTriage", {
+      const { data } = await apiClient.functions.invoke("bulkTriage", {
         journey_ids: [...bulkSelect],
         priority: bulkTriagePriority,
         notes: bulkTriageNotes || `Bulk triaged as ${bulkTriagePriority}`,
@@ -257,7 +257,7 @@ export default function Nursing() {
       });
       payload.notes = vitalsForm.notes || undefined;
 
-      await base44.entities.VitalSigns.create(payload);
+      await apiClient.entities.VitalSigns.create(payload);
 
       if (vitalsForm.bmi == null && payload.weight && payload.height) {
         // BMI would be calculated here if height was available
@@ -290,7 +290,7 @@ export default function Nursing() {
 
   const handleAdministerMed = async (dispensing) => {
     try {
-      await base44.entities.PharmacyDispensing.update(dispensing.id, {
+      await apiClient.entities.PharmacyDispensing.update(dispensing.id, {
         notes: (dispensing.notes || "") + " [Administered " + new Date().toISOString() + "]",
       });
       setMedicationResult(`Medication administered: ${dispensing.drug_name}`);
@@ -304,7 +304,7 @@ export default function Nursing() {
   const handleLogWaste = async (e) => {
     e.preventDefault();
     const cat = wasteCategories.find(c => c.id === wasteForm.waste_category_id);
-    await base44.entities.WasteLog.create({
+    await apiClient.entities.WasteLog.create({
       ...wasteForm,
       category_code: cat?.code || "",
       origin_department: "nursing",
@@ -331,7 +331,7 @@ export default function Nursing() {
   const handleNursingTransition = async (journey, nextStage) => {
     setTransitioning(true);
     try {
-      await base44.functions.invoke("handleWorkflowStageChange", {
+      await apiClient.functions.invoke("handleWorkflowStageChange", {
         journey_id: journey.id,
         next_stage: nextStage,
         notes: `Nursing administration complete — sent to ${nextStage}`,
@@ -1148,13 +1148,13 @@ export default function Nursing() {
                     <form onSubmit={async (e) => {
                       e.preventDefault();
                       if (!carePlanForm.patient_id || !carePlanForm.nursing_diagnosis) return;
-                      await base44.entities.NursingCarePlan.create({
+                      await apiClient.entities.NursingCarePlan.create({
                         ...carePlanForm,
                         plan_date: new Date().toISOString(),
                         fluid_balance_target_ml: Number(carePlanForm.fluid_balance_target_ml) || 0,
                         status: "active",
                       });
-                      const plans = await base44.entities.NursingCarePlan.filter({ status: "active" }, "-created_date", 30);
+                      const plans = await apiClient.entities.NursingCarePlan.filter({ status: "active" }, "-created_date", 30);
                       setCarePlans(plans);
                       setShowCarePlan(false);
                     }} className="space-y-3">

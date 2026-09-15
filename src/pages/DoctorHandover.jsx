@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { formatRole } from "@/lib/utils";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { ArrowRightLeft, Plus, Check, Clock, Stethoscope, AlertTriangle, Users, Search, X, Save, Loader2, ClipboardList, ShieldCheck, ClipboardPen, FileDown, RefreshCw, Bookmark, Copy } from "lucide-react";
 import StaffComplianceDashboard from "@/components/StaffComplianceDashboard";
 import PageHeader from "@/components/ui/PageHeader";
@@ -44,11 +44,11 @@ export default function DoctorHandover() {
     async function load() {
       try {
         const [h, u, p, admissions, templateList] = await Promise.all([
-          base44.entities.DoctorHandover.list("-created_date", 50),
-          base44.entities.User.list("", 50),
-          base44.entities.Patient.list("-created_date", 200),
-          base44.entities.Admission.filter({ status: "admitted" }, "-created_date", 100),
-          base44.entities.HandoverTemplate.filter({ is_active: true }, "name", 20),
+          apiClient.entities.DoctorHandover.list("-created_date", 50),
+          apiClient.entities.User.list("", 50),
+          apiClient.entities.Patient.list("-created_date", 200),
+          apiClient.entities.Admission.filter({ status: "admitted" }, "-created_date", 100),
+          apiClient.entities.HandoverTemplate.filter({ is_active: true }, "name", 20),
         ]);
         setHandovers(h);
         setUsers(u);
@@ -72,7 +72,7 @@ export default function DoctorHandover() {
   };
 
   const acknowledgeHandover = async (id) => {
-    await base44.entities.DoctorHandover.update(id, {
+    await apiClient.entities.DoctorHandover.update(id, {
       acknowledged: true,
       acknowledged_date: new Date().toISOString(),
       status: "acknowledged",
@@ -96,14 +96,14 @@ export default function DoctorHandover() {
         };
       }));
 
-      await base44.entities.DoctorHandover.create({
+      await apiClient.entities.DoctorHandover.create({
         ...form,
         active_patients: activePatientsJson,
         linked_patient_ids: JSON.stringify(selectedPatients),
         handover_date: new Date().toISOString(),
       });
 
-      const h = await base44.entities.DoctorHandover.list("-created_date", 50);
+      const h = await apiClient.entities.DoctorHandover.list("-created_date", 50);
       setHandovers(h);
       setShowForm(false);
       setSelectedPatients([]);
@@ -159,7 +159,7 @@ export default function DoctorHandover() {
     setSyncing(true);
     setSyncResult(null);
     try {
-      const { data } = await base44.functions.invoke("syncShiftReports", {});
+      const { data } = await apiClient.functions.invoke("syncShiftReports", {});
       setSyncResult(data);
     } catch (e) {
       setSyncResult({ error: "Sync failed" });
@@ -171,7 +171,7 @@ export default function DoctorHandover() {
   const exportHandoverCSV = async () => {
     setExporting(true);
     try {
-      const response = await base44.functions.invoke("exportHandoverReport", {});
+      const response = await apiClient.functions.invoke("exportHandoverReport", {});
       const blob = new Blob([response.data], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");

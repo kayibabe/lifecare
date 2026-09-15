@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "@/components/ui/use-toast";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Package, Check, Clock } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
 
@@ -20,8 +20,8 @@ export default function SurgicalDispensing() {
     setLoading(true);
     try {
       const [reqs, disp] = await Promise.all([
-        base44.entities.SurgicalRequisition.filter({ status: { $in: ["approved", "partial"] } }, "-created_date", 100),
-        base44.entities.SurgicalDispensing.filter({ status: { $in: ["pending", "dispensed"] } }, "-created_date", 200),
+        apiClient.entities.SurgicalRequisition.filter({ status: { $in: ["approved", "partial"] } }, "-created_date", 100),
+        apiClient.entities.SurgicalDispensing.filter({ status: { $in: ["pending", "dispensed"] } }, "-created_date", 200),
       ]);
       setRequisitions(reqs);
       setDispensing(disp);
@@ -40,11 +40,11 @@ export default function SurgicalDispensing() {
 
     setSaving(true);
     try {
-      const u = await base44.auth.me();
+      const u = await apiClient.auth.me();
       const existing = dispensing.find(d => d.requisition_id === req.id && d.item_id === item.item_id);
       
       if (existing) {
-        await base44.entities.SurgicalDispensing.update(existing.id, {
+        await apiClient.entities.SurgicalDispensing.update(existing.id, {
           quantity_dispensed: qty,
           status: "dispensed",
           dispensed_by_id: u.id,
@@ -52,7 +52,7 @@ export default function SurgicalDispensing() {
           dispensed_date: new Date().toISOString(),
         });
       } else {
-        await base44.entities.SurgicalDispensing.create({
+        await apiClient.entities.SurgicalDispensing.create({
           requisition_id: req.id,
           booking_id: req.booking_id,
           patient_id: req.patient_id,
@@ -79,12 +79,12 @@ export default function SurgicalDispensing() {
 
   const receiveItems = async (reqId) => {
     try {
-      const u = await base44.auth.me();
+      const u = await apiClient.auth.me();
       const reqDispensing = dispensing.filter(d => d.requisition_id === reqId);
       
       for (const d of reqDispensing) {
         if (d.status === "dispensed") {
-          await base44.entities.SurgicalDispensing.update(d.id, {
+          await apiClient.entities.SurgicalDispensing.update(d.id, {
             status: "received",
             received_by_id: u.id,
             received_by_name: u.display_name || u.full_name,
@@ -96,7 +96,7 @@ export default function SurgicalDispensing() {
       const allItems = requisitions.find(r => r.id === reqId).total_items;
       const receivedItems = reqDispensing.filter(d => d.status === "dispensed").length;
       
-      await base44.entities.SurgicalRequisition.update(reqId, {
+      await apiClient.entities.SurgicalRequisition.update(reqId, {
         status: receivedItems === allItems ? "completed" : "partial",
         items_fulfilled: receivedItems,
       });

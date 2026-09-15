@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, GitBranch } from "lucide-react";
 import moment from "moment";
 import ShiftCalendar from "@/components/ShiftCalendar";
@@ -17,8 +17,8 @@ export default function Calendar() {
     async function load() {
       try {
         const [apps, pats] = await Promise.all([
-          base44.entities.Appointment.list("-appointment_date", 500),
-          base44.entities.Patient.list("", 300),
+          apiClient.entities.Appointment.list("-appointment_date", 500),
+          apiClient.entities.Patient.list("", 300),
         ]);
         setAppointments(apps);
         setPatients(pats);

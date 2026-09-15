@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { toast } from "@/components/ui/use-toast";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { useSurgeStatus } from "@/lib/useSurgeStatus";
 import PageHeader from "@/components/ui/PageHeader";
 import { Siren, AlertTriangle, CheckCircle, Users, BedDouble, Activity, RefreshCw } from "lucide-react";
@@ -21,7 +21,7 @@ export default function Surge() {
   const runProtocols = async () => {
     setRunning(true);
     try {
-      const { data } = await base44.functions.invoke("emergencySurgeCapacity", {});
+      const { data } = await apiClient.functions.invoke("emergencySurgeCapacity", {});
       setProtocol(data);
     } catch (e) {
       toast({ title: "Surge protocol failed", description: e.response?.data?.error || e.message, variant: "destructive" });

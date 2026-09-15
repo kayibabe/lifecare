@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { AlertTriangle, Clock, X, ChevronDown, ChevronUp } from "lucide-react";
 
 export default function InventoryAlerts() {
@@ -8,7 +8,7 @@ export default function InventoryAlerts() {
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
-    base44.functions.invoke('checkInventoryAlerts', {})
+    apiClient.functions.invoke('checkInventoryAlerts', {})
       .then(({ data }) => setAlerts(data))
       .catch(() => {});
   }, []);

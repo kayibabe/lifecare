@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { FileText, Search, X, Zap, Clock, XCircle } from "lucide-react";
 import TemplateEditorModal from "@/components/TemplateEditorModal";
 
@@ -29,7 +29,7 @@ export default function TemplateSelector({ onSelectTemplate }) {
   const [editingTemplate, setEditingTemplate] = useState(null);
 
   useEffect(() => {
-    base44.entities.ClinicalTemplate.filter({ is_active: true }, "category", 100)
+    apiClient.entities.ClinicalTemplate.filter({ is_active: true }, "category", 100)
       .then(setTemplates)
       .catch(() => {});
 

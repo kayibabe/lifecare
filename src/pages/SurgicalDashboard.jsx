@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Package, AlertTriangle, Clock, CheckCircle2, Plus, Eye, Zap } from "lucide-react";
 import SurgicalRequisitionModal from "@/components/SurgicalRequisitionModal";
 import PageHeader from "@/components/ui/PageHeader";
@@ -23,20 +23,20 @@ export default function SurgicalDashboard() {
 
   const loadData = async () => {
     try {
-      const u = await base44.auth.me();
+      const u = await apiClient.auth.me();
       setCurrentUser(u);
 
       const today = new Date().toISOString().slice(0, 10);
       const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
 
       const [book, req, disp, inv] = await Promise.all([
-        base44.entities.SurgicalBooking.filter({ 
+        apiClient.entities.SurgicalBooking.filter({ 
           scheduled_date: { $in: [today, tomorrow] },
           status: { $in: ["scheduled", "confirmed", "in_progress"] }
         }, "-scheduled_date", 50),
-        base44.entities.SurgicalRequisition.filter({ status: { $in: ["draft", "submitted", "partial"] } }, "-created_date", 100),
-        base44.entities.SurgicalDispensing.filter({ status: { $in: ["pending", "dispensed", "received"] } }, "-created_date", 100),
-        base44.entities.Drug.filter({}, "", 500),
+        apiClient.entities.SurgicalRequisition.filter({ status: { $in: ["draft", "submitted", "partial"] } }, "-created_date", 100),
+        apiClient.entities.SurgicalDispensing.filter({ status: { $in: ["pending", "dispensed", "received"] } }, "-created_date", 100),
+        apiClient.entities.Drug.filter({}, "", 500),
       ]);
 
       setBookings(book);

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import {
   Calendar, Plus, Edit2, X,
   ChevronLeft, ChevronRight, Save, Trash2
@@ -47,9 +47,9 @@ export default function DoctorSchedule() {
   const loadData = async () => {
     try {
       const [scheduleData, doctorData, wardData] = await Promise.all([
-        base44.entities.DoctorSchedule.list("-schedule_date", 500),
-        base44.entities.User.list("", 100),
-        base44.entities.Ward.list("", 50),
+        apiClient.entities.DoctorSchedule.list("-schedule_date", 500),
+        apiClient.entities.User.list("", 100),
+        apiClient.entities.Ward.list("", 50),
       ]);
       setSchedules(scheduleData);
       setDoctors(doctorData);
@@ -67,13 +67,13 @@ export default function DoctorSchedule() {
 
     try {
       if (editingId) {
-        await base44.entities.DoctorSchedule.update(editingId, {
+        await apiClient.entities.DoctorSchedule.update(editingId, {
           ...form,
           shift_start_time: SHIFT_TIMES[form.shift_type].start,
           shift_end_time: SHIFT_TIMES[form.shift_type].end,
         });
       } else {
-        await base44.entities.DoctorSchedule.create({
+        await apiClient.entities.DoctorSchedule.create({
           ...form,
           shift_start_time: SHIFT_TIMES[form.shift_type].start,
           shift_end_time: SHIFT_TIMES[form.shift_type].end,
@@ -103,7 +103,7 @@ export default function DoctorSchedule() {
     const id = deleteConfirmId;
     setDeleteConfirmId(null);
     try {
-      await base44.entities.DoctorSchedule.delete(id);
+      await apiClient.entities.DoctorSchedule.delete(id);
       loadData();
     } catch (e) {
       toast({ title: "Delete failed", variant: "destructive" });

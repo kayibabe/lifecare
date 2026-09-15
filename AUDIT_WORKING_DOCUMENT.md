@@ -35,6 +35,15 @@ My independent audit adds **14 new findings (N1–N14)**, the most serious being
 
 N2's code defects are fixed; its infrastructure half (attaching a Redis instance) is an operator action listed in Advisory §2. Test evidence per tier is in the Implementation Log.
 
+### Update — 2026-09-15 re-verification
+
+Re-checked against current code (over two months and 12 commits since the 3 July session, including a LifeCare rebrand and the `base44/` directory's removal):
+
+- **No regressions** in any safety-critical FIXED item sampled (C4 endpoint auth, C5/C6 pharmacy stock + allergy gates, C12/N1 nginx CSP).
+- **C10, C11, H14, M13 closed as moot** — all four referenced files under `base44/`, which no longer exists in this repo (see `CLAUDE.md`). Marked individually above rather than removed, to preserve the audit trail.
+- Backend tests: **81/81 passing**. Frontend tests: **18/18 passing**. Both up from this document's own last-cited figures — no regression.
+- Migration chain is now `001` → `009` (was `008` at time of writing this document).
+
 ---
 
 # PART 1 — CRITICAL FINDINGS
@@ -67,13 +76,18 @@ Verified every endpoint in all 10 routers now carries `require_role(...)`: patie
 ## C9. Malaria confirmation doesn't check positive result — **FIXED** (`6ade3dc`)
 [Clinical.jsx:321-324](src/pages/Clinical.jsx:321): save-time gate requires completed/verified **and** a positive result. Residual: the *advisory warnings panel* ([Clinical.jsx:233](src/pages/Clinical.jsx:233)) still passes on any completed test — tracked as **N11**, fixed this session.
 
-## C10. Base44 RLS missing on Bed / Ward / DrugInteraction — **FIXED (this session)**
+## C10. Base44 RLS missing on Bed / Ward / DrugInteraction — **FIXED (historical) / MOOT — see note**
 **Was OPEN** — verified: [Bed.jsonc](base44/entities/Bed.jsonc), [Ward.jsonc](base44/entities/Ward.jsonc), [DrugInteraction.jsonc](base44/entities/DrugInteraction.jsonc) had no `rls` blocks (63 of 66 entities have them).
 **Fix:** added role-scoped RLS to all three, modelled on the existing entity pattern: clinical staff read; Bed writes limited to admin/nurse/receptionist (bed management roles); Ward writes admin-only; DrugInteraction writes admin/pharmacist-only (it is safety-rule data). **Note:** RLS takes effect only when these entity definitions are pushed to the Base44 platform — see Advisory §3.
+**2026-09-15 update:** the `base44/` directory (and the Base44 platform layer it described) has been removed from this repo — see `CLAUDE.md`. The app now runs on the FastAPI backend, which enforces authorization via `require_role(...)` (see C4), not Base44 RLS. This finding is retained for history only; there is nothing left in this repo for it to apply to, and whatever became of the Base44-side push described above is untracked here.
 
-## C11. ~70% of cloud functions use `asServiceRole` — **OPEN / DEFERRED (platform work)**
+## C11. ~70% of cloud functions use `asServiceRole` — **CLOSED — MOOT (base44/ removed)**
+**2026-09-15 update:** was OPEN/DEFERRED as platform work against `base44/functions/` (102 cloud functions, 59+ `asServiceRole` occurrences, 9 flagged as highest-risk). The `base44/` directory no longer exists in this repo (see `CLAUDE.md`), so the files this finding names are gone and the remediation plan below no longer has a target here. Closing as moot rather than leaving it open against nonexistent files. If any of that Base44 platform-side function code still runs in production outside this repo, it needs separate tracking — this document can no longer speak to its status.
+<details><summary>Original finding (retained for history)</summary>
+
 Confirmed and quantified: **59+ `asServiceRole` occurrences across the 102 cloud functions** in `base44/functions/`. This cannot be responsibly "fixed" in one session — each function needs individual rework and platform-side testing that this repo cannot exercise.
 **Triage performed:** 36 functions are invocable from the frontend (`functions.invoke(...)` call sites enumerated during audit — highest risk are the ones both user-invocable *and* service-role: `checkDrugSafety`, `bulkTriage`, `handleWorkflowStageChange`, `reconcileShift`, `saveSignature`, `generateRevenueReport`, `batchExportReports`, `automateClaimSubmissions`, `syncClaimsToDrive`). Remediation plan: (1) rework the 9 listed user-invocable functions to `auth.me()` + input validation first; (2) leave scheduled automation on service role but validate inputs; (3) platform-test each. Estimated 3–5 days of Base44 work. See Advisory §3.
+</details>
 
 ## C12. Nginx missing security headers — **FIXED** (`6ade3dc`) — *but introduced N1*
 [deploy/nginx-fly.conf:10-15](deploy/nginx-fly.conf:10) now sets X-Frame-Options, X-Content-Type-Options, HSTS, CSP, Referrer-Policy. However the CSP as written would break the app — see **N1**.
@@ -85,9 +99,10 @@ Confirmed and quantified: **59+ `asServiceRole` occurrences across the 102 cloud
 **Was OPEN** (intentionally skipped in `6ade3dc` because the prod DB host was unconfirmed). [database.py:9](backend/app/core/database.py:9) disabled SSL for *any* `DATABASE_URL`.
 **Fix:** SSL is now disabled **only** when the host is on Fly's private network (`.flycast` / `.internal`); any other host gets `ssl="require"`. The production URL (`lifecare-db.flycast`) matches the private-network branch, so behaviour in the current deployment is unchanged — no outage risk — while any future external Postgres is encrypted by default.
 
-## N1 (NEW). CSP blocks the API origin — production-breaking on next deploy — **FIXED (this session)**
-**Severity: CRITICAL (availability).** The CSP added in `6ade3dc` sets `connect-src 'self' https://*.base44.app wss://*.base44.app` ([nginx-fly.conf:14](deploy/nginx-fly.conf:14)), but the frontend is built with `VITE_BACKEND_URL = 'https://lifecare-api.fly.dev/api/v1'` ([fly.toml:6](fly.toml:6), [base44Client.js:14](src/api/base44Client.js:14)). Browsers would refuse every API call the moment this nginx config ships — login itself would fail clinic-wide.
-**Fix:** added `https://lifecare-api.fly.dev` and `wss://lifecare-api.fly.dev` to `connect-src`. Longer-term the frontend should call the same-origin `/api/` proxy path instead of the absolute URL (Advisory §5).
+## N1 (NEW). CSP blocks the API origin — production-breaking on next deploy — **FIXED (historical) / re-platformed for Railway (2026-09-15)**
+**Severity: CRITICAL (availability).** The CSP added in `6ade3dc` sets `connect-src 'self' https://*.base44.app wss://*.base44.app` (`deploy/nginx-fly.conf`), but the frontend is built with an absolute `VITE_BACKEND_URL` pointing at the Fly backend. Browsers would refuse every API call the moment this nginx config ships — login itself would fail clinic-wide.
+**Fix (at the time):** added the Fly backend origin to `connect-src`.
+**2026-09-15 update:** the app has moved off Fly.io to Railway (see `CLAUDE.md`). `deploy/nginx-fly.conf` is removed; `deploy/nginx-railway.conf.template` uses `connect-src 'self' https: wss:` since the Railway backend's public URL isn't known at image-build time. The underlying lesson (CSP `connect-src` must match wherever `VITE_BACKEND_URL` actually points) still applies — verify this after the first Railway deploy.
 
 ---
 
@@ -136,8 +151,9 @@ No `diagnosis` field on [AdmissionCreate](backend/app/schemas/admission.py:35). 
 Vitals and pharmacy validators landed in `67ad4c0` ([nursing.py:21-68](backend/app/schemas/nursing.py:21), [pharmacy.py:19-121](backend/app/schemas/pharmacy.py:19)). Still missing, confirmed by the failing test `test_vital_signs_validation_bp_systolic_out_of_range`: **TriageCreate had zero validators**, and **billing schemas had none at all** (see N3).
 **Fix:** triage vitals validators (same ranges as VitalSignsCreate, plus pain score 0–10, weight/height sanity), billing validators under N3.
 
-## H14. Patient RLS `id: {{user.id}}` flaw — **FIXED (this session)**
+## H14. Patient RLS `id: {{user.id}}` flaw — **FIXED (historical) / MOOT — see note**
 Confirmed at [Patient.jsonc:124](base44/entities/Patient.jsonc:124): the read rule matches the *patient's* id against the *staff user's* id. With UUIDs this is a dead condition rather than a bypass, but it is wrong and was removed. Same platform-push caveat as C10.
+**2026-09-15 update:** `base44/` removed from this repo — same note as C10. Retained for history only.
 
 ## H15. Docker runs as root — **FIXED** (`6ade3dc`)
 [backend/Dockerfile:16-17](backend/Dockerfile:16): `appuser` created and used.
@@ -178,10 +194,11 @@ Polling at a 40-bed clinic is adequate; WebSocket infra is not justified now. Ad
 ## M6. Unused heavy dependencies — **FIXED (this session)**
 Verified by grep: `celery`, `WeasyPrint`, `fhir.resources`, `aiosmtplib`, `Pillow`, `africastalking`, `Jinja2` — **zero imports** in backend code. Removed from [requirements.txt](backend/requirements.txt) (smaller image, smaller attack surface). Kept: `httpx` (tests), `python-multipart` (FastAPI form handling).
 
-## M7. Fly.io 512MB RAM — **DEFERRED** (no OOM evidence in outage history; monitor — Advisory §2).
+## M7. Fly.io 512MB RAM — **MOOT (2026-09-15: migrated to Railway)**
+Was DEFERRED (no OOM evidence in outage history). The app no longer runs on Fly.io — see `CLAUDE.md` Deployment section. Railway's equivalent RAM/resource limits should be monitored the same way once live.
 
-## M8. No healthcheck — **FIXED (this session)**
-Fly ignores Docker `HEALTHCHECK`; the platform-correct fix is an HTTP check in [backend/fly.toml](backend/fly.toml) against `/health`. Added.
+## M8. No healthcheck — **FIXED (historical) / re-platformed for Railway (2026-09-15)**
+Fly ignores Docker `HEALTHCHECK`; the platform-correct fix at the time was an HTTP check in `backend/fly.toml` against `/health`. `fly.toml` has been removed; the same `/health` check is now configured via `backend/railway.json`'s `healthcheckPath`.
 
 ## M9. `window.location.href` navigation — **DEFERRED** (cosmetic; Advisory §6).
 
@@ -191,7 +208,8 @@ Fly ignores Docker `HEALTHCHECK`; the platform-correct fix is an HTTP check in [
 
 ## M12. `stored.decode()` assumes bytes — **FIXED (this session)** — see N2. This was not a latent nit: it made refresh crash with any real Redis.
 
-## M13. Hardcoded SLA thresholds / interaction lists — **DEFERRED** (Base44 data modelling; Advisory §3).
+## M13. Hardcoded SLA thresholds / interaction lists — **CLOSED — MOOT (base44/ removed)**
+Was DEFERRED against Base44 data modelling (Advisory §3) — tied to the now-deleted `DrugInteraction` Base44 entity. **2026-09-15 update:** `base44/` no longer exists in this repo; closing as moot rather than leaving it open against nonexistent files. If hardcoded SLA/interaction data still lives in the FastAPI backend or frontend, it needs a fresh finding, not this one.
 
 ## M14. Mobile app is a scaffold — **PARTIAL / DISPUTED (count)**
 Now 12 Dart files, not 2; auth is done properly (`flutter_secure_storage`, Dio interceptor refresh — [api_client.dart](mobile/lib/core/api/api_client.dart)). Still a scaffold functionally. Advisory §4.

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "@/components/ui/use-toast";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { BedDouble, Plus, Save, Building, DoorOpen, FileText, Loader2, ArrowRightLeft, AlertCircle } from "lucide-react";
 import WardTransferModal from "@/components/WardTransferModal";
 import IncidentReportForm from "@/components/IncidentReportForm";
@@ -33,10 +33,10 @@ export default function Inpatient() {
     async function load() {
       try {
         const [w, b, a, p] = await Promise.all([
-          base44.entities.Ward.list("", 50),
-          base44.entities.Bed.list("", 200),
-          base44.entities.Admission.filter({ status: "admitted" }, "-created_date", 50),
-          base44.entities.Patient.list("-created_date", 200),
+          apiClient.entities.Ward.list("", 50),
+          apiClient.entities.Bed.list("", 200),
+          apiClient.entities.Admission.filter({ status: "admitted" }, "-created_date", 50),
+          apiClient.entities.Patient.list("-created_date", 200),
         ]);
         setWards(w);
         setBeds(b);
@@ -48,17 +48,17 @@ export default function Inpatient() {
     load();
 
     // Subscribe to real-time bed status updates
-    const unsubscribeBeds = base44.entities.Bed.subscribe((event) => {
+    const unsubscribeBeds = apiClient.entities.Bed.subscribe((event) => {
       if (event.type === "update") {
         setBeds(prev => prev.map(b => b.id === event.id ? event.data : b));
       }
     });
 
     // Subscribe to real-time admission updates
-    const unsubscribeAdmissions = base44.entities.Admission.subscribe((event) => {
+    const unsubscribeAdmissions = apiClient.entities.Admission.subscribe((event) => {
       if (event.type === "update" || event.type === "create") {
         // Re-load admissions to keep in sync
-        base44.entities.Admission.filter({ status: "admitted" }, "-created_date", 50)
+        apiClient.entities.Admission.filter({ status: "admitted" }, "-created_date", 50)
           .then(a => setAdmissions(a))
           .catch(e => console.error("Failed to refresh admissions:", e));
       }
@@ -79,16 +79,16 @@ export default function Inpatient() {
 
   const addWard = async (e) => {
     e.preventDefault();
-    await base44.entities.Ward.create({ ...wardForm, total_beds: Number(wardForm.total_beds) });
-    const w = await base44.entities.Ward.list("", 50);
+    await apiClient.entities.Ward.create({ ...wardForm, total_beds: Number(wardForm.total_beds) });
+    const w = await apiClient.entities.Ward.list("", 50);
     setWards(w);
     setShowWardForm(false);
   };
 
   const addBed = async (e) => {
     e.preventDefault();
-    await base44.entities.Bed.create({ ...bedForm, rate_per_day: Number(bedForm.rate_per_day) });
-    const b = await base44.entities.Bed.list("", 200);
+    await apiClient.entities.Bed.create({ ...bedForm, rate_per_day: Number(bedForm.rate_per_day) });
+    const b = await apiClient.entities.Bed.list("", 200);
     setBeds(b);
     setShowBedForm(false);
   };
@@ -98,11 +98,11 @@ export default function Inpatient() {
     if (!admitForm.bed_id) return;
     setAdmitting(true);
     try {
-      await base44.entities.Admission.create({ ...admitForm, admission_date: new Date().toISOString(), status: "admitted" });
-      await base44.entities.Bed.update(admitForm.bed_id, { status: "occupied" });
+      await apiClient.entities.Admission.create({ ...admitForm, admission_date: new Date().toISOString(), status: "admitted" });
+      await apiClient.entities.Bed.update(admitForm.bed_id, { status: "occupied" });
       const [a, b] = await Promise.all([
-        base44.entities.Admission.filter({ status: "admitted" }, "-created_date", 50),
-        base44.entities.Bed.list("", 200),
+        apiClient.entities.Admission.filter({ status: "admitted" }, "-created_date", 50),
+        apiClient.entities.Bed.list("", 200),
       ]);
       setAdmissions(a);
       setBeds(b);
@@ -115,12 +115,12 @@ export default function Inpatient() {
   };
 
   const dischargePatient = async (admissionId, bedId) => {
-    await base44.entities.Admission.update(admissionId, { status: "discharged" });
-    await base44.entities.Discharge.create({ admission_id: admissionId, patient_id: admissions.find(a => a.id === admissionId)?.patient_id, discharge_type: "normal", discharge_date: new Date().toISOString() });
-    if (bedId) await base44.entities.Bed.update(bedId, { status: "available" });
+    await apiClient.entities.Admission.update(admissionId, { status: "discharged" });
+    await apiClient.entities.Discharge.create({ admission_id: admissionId, patient_id: admissions.find(a => a.id === admissionId)?.patient_id, discharge_type: "normal", discharge_date: new Date().toISOString() });
+    if (bedId) await apiClient.entities.Bed.update(bedId, { status: "available" });
     const [a, b] = await Promise.all([
-      base44.entities.Admission.filter({ status: "admitted" }, "-created_date", 50),
-      base44.entities.Bed.list("", 200),
+      apiClient.entities.Admission.filter({ status: "admitted" }, "-created_date", 50),
+      apiClient.entities.Bed.list("", 200),
     ]);
     setAdmissions(a);
     setBeds(b);
@@ -135,7 +135,7 @@ export default function Inpatient() {
     }
     setSummaryLoading(true);
     try {
-      const { data } = await base44.functions.invoke('generateDischargeSummary', { admission_id: admissionId });
+      const { data } = await apiClient.functions.invoke('generateDischargeSummary', { admission_id: admissionId });
       if (!data || !data.structured_summary) {
         throw new Error("Invalid response from discharge summary generator");
       }
@@ -156,7 +156,7 @@ export default function Inpatient() {
   const toggleBedStatus = async (bedId, currentStatus) => {
     const next = bedStatusCycle[currentStatus];
     if (!next) return;
-    await base44.entities.Bed.update(bedId, { status: next });
+    await apiClient.entities.Bed.update(bedId, { status: next });
     setBeds(beds.map(b => b.id === bedId ? { ...b, status: next } : b));
   };
 
@@ -345,9 +345,9 @@ export default function Inpatient() {
           admission={selectedAdmission}
           onComplete={async () => {
             setShowTransferModal(false);
-            const updated = await base44.entities.Admission.filter({ status: "admitted" }, "-created_date", 50);
+            const updated = await apiClient.entities.Admission.filter({ status: "admitted" }, "-created_date", 50);
             setAdmissions(updated);
-            const b = await base44.entities.Bed.list("", 200);
+            const b = await apiClient.entities.Bed.list("", 200);
             setBeds(b);
           }}
           onCancel={() => setShowTransferModal(false)}

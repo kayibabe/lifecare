@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import PatientMedicalHistoryTimeline from "@/components/PatientMedicalHistoryTimeline";
 
@@ -18,7 +18,7 @@ export default function PatientHistory() {
         return;
       }
       try {
-        const p = await base44.entities.Patient.get(patientId);
+        const p = await apiClient.entities.Patient.get(patientId);
         setPatient(p);
       } catch (err) {
         console.error(err);

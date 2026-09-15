@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Scan, Clock, CheckCircle2, AlertTriangle, FileText } from "lucide-react";
 
 export default function RadiographerDashboard() {
@@ -12,8 +12,8 @@ export default function RadiographerDashboard() {
       try {
         const today = new Date().toISOString().slice(0, 10);
         const [orders, results] = await Promise.all([
-          base44.entities.ImagingOrder.filter({ order_date: { $gte: today } }, "-created_date", 100),
-          base44.entities.ImagingResult.filter({ created_date: { $gte: today } }, "-created_date", 50),
+          apiClient.entities.ImagingOrder.filter({ order_date: { $gte: today } }, "-created_date", 100),
+          apiClient.entities.ImagingResult.filter({ created_date: { $gte: today } }, "-created_date", 50),
         ]);
 
         const completed = orders.filter(o => o.status === "completed" || o.status === "reported");

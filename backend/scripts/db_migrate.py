@@ -1,5 +1,7 @@
 """
-Fly.io release_command: migrate the database to the latest Alembic revision.
+Pre-deploy command: migrate the database to the latest Alembic revision.
+Run automatically before each backend deploy (see backend/railway.json
+"preDeployCommand").
 
 Handles two states:
   1. Fresh database (no tables) — runs create_all for base schema, stamps at

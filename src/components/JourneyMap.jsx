@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { GitBranch, AlertTriangle, Clock, Hash, ShieldAlert } from "lucide-react";
 
 const ALL_STAGES = [
@@ -45,7 +45,7 @@ export default function JourneyMap() {
   useEffect(() => {
     async function load() {
       try {
-        const jList = await base44.entities.PatientJourney.filter(
+        const jList = await apiClient.entities.PatientJourney.filter(
           { status: "active" },
           "-created_date",
           100
@@ -56,7 +56,7 @@ export default function JourneyMap() {
         const pMap = {};
         await Promise.all(pids.map(async (pid) => {
           try {
-            const p = await base44.entities.Patient.get(pid);
+            const p = await apiClient.entities.Patient.get(pid);
             if (p) pMap[pid] = `${p.first_name} ${p.last_name}`;
           } catch (_) { pMap[pid] = pid?.slice(0, 8) || "Unknown"; }
         }));

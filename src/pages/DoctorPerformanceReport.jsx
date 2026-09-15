@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "@/components/ui/use-toast";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer
 } from "recharts";
@@ -21,13 +21,13 @@ export default function DoctorPerformanceReport() {
 
   const loadDoctors = async () => {
     try {
-      const users = await base44.entities.User.filter(
+      const users = await apiClient.entities.User.filter(
         { role: { $in: ["admin", "user"] } },
         "",
         100
       );
-      const consultations = await base44.entities.Consultation.list("-created_date", 500);
-      const visits = await base44.entities.Visit.list("-created_date", 500);
+      const consultations = await apiClient.entities.Consultation.list("-created_date", 500);
+      const visits = await apiClient.entities.Visit.list("-created_date", 500);
       
       const doctorIds = [...new Set([
         ...consultations.map(c => c.doctor_id).filter(Boolean),
@@ -46,7 +46,7 @@ export default function DoctorPerformanceReport() {
   const analyzeDoctor = async (doctorId) => {
     setAnalyzing(true);
     try {
-      const { data } = await base44.functions.invoke("analyzePhysicianPerformance", {
+      const { data } = await apiClient.functions.invoke("analyzePhysicianPerformance", {
         doctor_id: doctorId,
       });
       setMetrics(data);

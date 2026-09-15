@@ -1,0 +1,27 @@
+server {
+    listen __PORT__;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    client_max_body_size 20M;
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    # The backend runs as a separate Railway service reached over HTTPS/WSS at
+    # the URL baked into VITE_BACKEND_URL at build time (see Dockerfile ARG).
+    # A single wildcard scheme policy is used here rather than pinning the
+    # exact backend origin, since that origin isn't known until the backend
+    # service's Railway URL is assigned — tighten this to the specific origin
+    # once it's stable if you want a stricter policy.
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https: wss:;" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # Serve the React SPA — fall back to index.html for client-side routes
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

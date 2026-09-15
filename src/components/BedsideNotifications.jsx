@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Bell, FlaskConical, Pill, Heart, AlertTriangle, Clock, FileText, ChevronDown, ChevronUp, Wifi, X, Thermometer, Wind } from "lucide-react";
 
 export default function BedsideNotifications({ patientId, visitId, compact = false }) {
@@ -18,24 +18,24 @@ export default function BedsideNotifications({ patientId, visitId, compact = fal
     setLoading(true);
     try {
       const [notifs, labs, rx, vitals] = await Promise.all([
-        base44.entities.Notification.filter(
+        apiClient.entities.Notification.filter(
           { patient_id: patientId, is_read: false },
           "-created_date",
           10
         ),
-        base44.entities.LabResult.filter(
+        apiClient.entities.LabResult.filter(
           { patient_id: patientId, status: { $in: ["final", "preliminary"] } },
           "-created_date",
           5
         ),
-        base44.entities.Prescription.filter(
+        apiClient.entities.Prescription.filter(
           { patient_id: patientId, status: { $in: ["pending", "partial"] } },
           "-created_date",
           5
         ),
         visitId
-          ? base44.entities.VitalSigns.filter({ visit_id: visitId }, "-created_date", 1)
-          : base44.entities.VitalSigns.filter({ patient_id: patientId }, "-created_date", 1),
+          ? apiClient.entities.VitalSigns.filter({ visit_id: visitId }, "-created_date", 1)
+          : apiClient.entities.VitalSigns.filter({ patient_id: patientId }, "-created_date", 1),
       ]);
       setNotifications(notifs.filter(n => !dismissed.has(n.id)));
       setLabResults(labs);
@@ -57,7 +57,7 @@ export default function BedsideNotifications({ patientId, visitId, compact = fal
 
     try {
       unsubs.push(
-        base44.entities.Notification.subscribe((event) => {
+        apiClient.entities.Notification.subscribe((event) => {
           if (event.data?.patient_id === patientId && !event.data?.is_read && !dismissed.has(event.data.id)) {
             setNotifications(prev => [event.data, ...prev].slice(0, 10));
             setLiveCount(c => c + 1);
@@ -68,7 +68,7 @@ export default function BedsideNotifications({ patientId, visitId, compact = fal
 
     try {
       unsubs.push(
-        base44.entities.LabResult.subscribe((event) => {
+        apiClient.entities.LabResult.subscribe((event) => {
           if ((event.type === "create" || event.type === "update") && event.data?.patient_id === patientId) {
             setLabResults(prev => {
               const filtered = prev.filter(r => r.id !== event.data.id);
@@ -82,7 +82,7 @@ export default function BedsideNotifications({ patientId, visitId, compact = fal
 
     try {
       unsubs.push(
-        base44.entities.VitalSigns.subscribe((event) => {
+        apiClient.entities.VitalSigns.subscribe((event) => {
           if (event.type === "create" && event.data?.patient_id === patientId) {
             setLatestVitals(event.data);
             setLiveCount(c => c + 1);

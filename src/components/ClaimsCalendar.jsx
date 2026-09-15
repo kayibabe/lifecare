@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 
 export default function ClaimsCalendar() {
@@ -14,7 +14,7 @@ export default function ClaimsCalendar() {
 
   const loadClaims = async () => {
     try {
-      const data = await base44.entities.InsuranceClaim.list("-submitted_date", 300);
+      const data = await apiClient.entities.InsuranceClaim.list("-submitted_date", 300);
       setClaims(data);
     } catch (e) {
       console.error(e);

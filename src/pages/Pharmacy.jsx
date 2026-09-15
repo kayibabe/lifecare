@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Pill, Plus, Save, AlertTriangle, Clock, TrendingDown, Loader2, BarChart3, Calendar, ArrowRight, CheckCircle, GitBranch, PenTool, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/use-toast";
@@ -35,12 +35,12 @@ export default function Pharmacy() {
     async function load() {
       try {
         const [d, p, pi, disp, jList, patList] = await Promise.all([
-          base44.entities.Drug.list("-created_date", 200),
-          base44.entities.Prescription.filter({ status: { $in: ["pending", "partial"] } }, "-created_date", 50),
-          base44.entities.PrescriptionItem.filter({ status: { $in: ["pending", "partial"] } }, "-created_date", 100),
-          base44.entities.PharmacyDispensing.list("-created_date", 50),
-          base44.entities.PatientJourney.filter({ current_stage: { $in: ["PHARMACY_PENDING", "PHARMACY_DISPENSING"] }, status: "active" }, "-created_date", 30),
-          base44.entities.Patient.list("-created_date", 100),
+          apiClient.entities.Drug.list("-created_date", 200),
+          apiClient.entities.Prescription.filter({ status: { $in: ["pending", "partial"] } }, "-created_date", 50),
+          apiClient.entities.PrescriptionItem.filter({ status: { $in: ["pending", "partial"] } }, "-created_date", 100),
+          apiClient.entities.PharmacyDispensing.list("-created_date", 50),
+          apiClient.entities.PatientJourney.filter({ current_stage: { $in: ["PHARMACY_PENDING", "PHARMACY_DISPENSING"] }, status: "active" }, "-created_date", 30),
+          apiClient.entities.Patient.list("-created_date", 100),
         ]);
         setDrugs(d);
         setPrescriptions(p);
@@ -60,11 +60,11 @@ export default function Pharmacy() {
     e.preventDefault();
     setSavingDrug(true);
     try {
-      await base44.entities.Drug.create({
+      await apiClient.entities.Drug.create({
         ...drugForm, unit_price: Number(drugForm.unit_price), cost_price: Number(drugForm.cost_price),
         quantity_in_stock: Number(drugForm.quantity_in_stock), reorder_level: Number(drugForm.reorder_level),
       });
-      const d = await base44.entities.Drug.list("-created_date", 200);
+      const d = await apiClient.entities.Drug.list("-created_date", 200);
       setDrugs(d);
       setShowAddDrug(false);
       setDrugForm({ name: "", generic_name: "", category: "", strength: "", form: "", manufacturer: "", unit_price: "", cost_price: "", quantity_in_stock: "", reorder_level: "10", batch_number: "", expiry_date: "" });
@@ -91,9 +91,9 @@ export default function Pharmacy() {
     const qty = Number(dispenseQty);
     if (!qty || qty <= 0 || qty > drug.quantity_in_stock) return;
 
-    await base44.entities.Drug.update(drug.id, { quantity_in_stock: drug.quantity_in_stock - qty });
+    await apiClient.entities.Drug.update(drug.id, { quantity_in_stock: drug.quantity_in_stock - qty });
 
-    await base44.entities.PharmacyDispensing.create({
+    await apiClient.entities.PharmacyDispensing.create({
       prescription_item_id: prescriptionItem?.id || "",
       prescription_id: prescriptionItem?.prescription_id || "",
       patient_id: prescriptionItem?.patient_id || "",
@@ -108,15 +108,15 @@ export default function Pharmacy() {
     // Update prescription item status
     if (prescriptionItem?.id) {
       const remaining = (prescriptionItem.quantity || 0) - qty;
-      await base44.entities.PrescriptionItem.update(prescriptionItem.id, {
+      await apiClient.entities.PrescriptionItem.update(prescriptionItem.id, {
         status: remaining <= 0 ? "dispensed" : "partial",
         quantity: remaining < 0 ? 0 : remaining,
       });
     }
 
     const [d, disp] = await Promise.all([
-      base44.entities.Drug.list("-created_date", 200),
-      base44.entities.PharmacyDispensing.list("-created_date", 50),
+      apiClient.entities.Drug.list("-created_date", 200),
+      apiClient.entities.PharmacyDispensing.list("-created_date", 50),
     ]);
     setDrugs(d);
     setDispensings(disp);
@@ -133,9 +133,9 @@ export default function Pharmacy() {
     setWasteConfirm(null);
     if (!drug) return;
     try {
-      const cats = await base44.entities.WasteCategory.filter({ code: "PHM" }, "", 1);
+      const cats = await apiClient.entities.WasteCategory.filter({ code: "PHM" }, "", 1);
       const catId = cats.length > 0 ? cats[0].id : null;
-      await base44.entities.WasteLog.create({
+      await apiClient.entities.WasteLog.create({
         waste_category_id: catId || "",
         category_code: "PHM",
         origin_department: "pharmacy",
@@ -150,8 +150,8 @@ export default function Pharmacy() {
         linked_document_id: drug.id,
         sla_deadline: new Date(Date.now() + 168 * 3600000).toISOString(),
       });
-      await base44.entities.Drug.update(drug.id, { status: "discontinued", quantity_in_stock: 0 });
-      const d = await base44.entities.Drug.list("-created_date", 200);
+      await apiClient.entities.Drug.update(drug.id, { status: "discontinued", quantity_in_stock: 0 });
+      const d = await apiClient.entities.Drug.list("-created_date", 200);
       setDrugs(d);
       toast({ title: "Waste disposal logged", description: `${drug.name} marked for incineration.` });
     } catch (e) {
@@ -165,8 +165,8 @@ export default function Pharmacy() {
     if (!signingDoc) return;
     setSavingSignature(true);
     try {
-      const { data: uploadData } = await base44.integrations.Core.UploadFile({ file });
-      await base44.functions.invoke("saveSignature", {
+      const { data: uploadData } = await apiClient.integrations.Core.UploadFile({ file });
+      await apiClient.functions.invoke("saveSignature", {
         file_url: uploadData.file_url,
         document_type: "prescription_dispensed",
         document_id: signingDoc.document_id,
@@ -174,7 +174,7 @@ export default function Pharmacy() {
         visit_id: '',
       });
       setSigningDoc(null);
-      const disp = await base44.entities.PharmacyDispensing.list("-created_date", 50);
+      const disp = await apiClient.entities.PharmacyDispensing.list("-created_date", 50);
       setDispensings(disp);
     } catch (e) {
       console.error('Signature save failed:', e);
@@ -186,8 +186,8 @@ export default function Pharmacy() {
   const transitionWorkflow = async (journeyId, nextStage, notes = "") => {
     setTransitioning(true);
     try {
-      await base44.functions.invoke('handleWorkflowStageChange', { journey_id: journeyId, next_stage: nextStage, notes });
-      const jList = await base44.entities.PatientJourney.filter({ current_stage: { $in: ["PHARMACY_PENDING", "PHARMACY_DISPENSING"] }, status: "active" }, "-created_date", 30);
+      await apiClient.functions.invoke('handleWorkflowStageChange', { journey_id: journeyId, next_stage: nextStage, notes });
+      const jList = await apiClient.entities.PatientJourney.filter({ current_stage: { $in: ["PHARMACY_PENDING", "PHARMACY_DISPENSING"] }, status: "active" }, "-created_date", 30);
       setPharmacyJourneys(jList);
     } catch (e) {
       toast({ title: "Workflow transition failed", description: e.response?.data?.error || e.message, variant: "destructive" });
@@ -202,7 +202,7 @@ export default function Pharmacy() {
   const loadForecast = async () => {
     setForecastLoading(true);
     try {
-      const { data } = await base44.functions.invoke('generateInventoryForecast', {});
+      const { data } = await apiClient.functions.invoke('generateInventoryForecast', {});
       setForecast(data);
     } catch (e) {
       console.error(e);

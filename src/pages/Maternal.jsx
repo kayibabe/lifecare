@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Baby, Plus, Save, Heart } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
 
@@ -34,8 +34,8 @@ export default function Maternal() {
     async function load() {
       try {
         const [m, p] = await Promise.all([
-          base44.entities.MaternalVisit.list("-created_date", 100),
-          base44.entities.Patient.list("-created_date", 200),
+          apiClient.entities.MaternalVisit.list("-created_date", 100),
+          apiClient.entities.Patient.list("-created_date", 200),
         ]);
         setVisits(m);
         setPatients(p);
@@ -56,7 +56,7 @@ export default function Maternal() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await base44.entities.MaternalVisit.create({
+    await apiClient.entities.MaternalVisit.create({
       ...form, edd: calculateEDD(form.lmp), visit_date: new Date().toISOString(),
       gravida: Number(form.gravida) || 0, para: Number(form.para) || 0,
       gestational_age_weeks: Number(form.gestational_age_weeks) || 0,
@@ -64,7 +64,7 @@ export default function Maternal() {
       fetal_heart_rate: Number(form.fetal_heart_rate) || 0,
       weight: Number(form.weight) || 0,
     });
-    const m = await base44.entities.MaternalVisit.list("-created_date", 100);
+    const m = await apiClient.entities.MaternalVisit.list("-created_date", 100);
     setVisits(m);
     setShowForm(false);
   };
@@ -74,8 +74,8 @@ export default function Maternal() {
     setPartograph([]);
     setNewborns([]);
     try {
-      const p = await base44.entities.PartographEntry.filter({ maternal_visit_id: visit.id }, "entry_time", 50);
-      const n = await base44.entities.NewbornRecord.filter({ maternal_visit_id: visit.id }, "-created_date", 10);
+      const p = await apiClient.entities.PartographEntry.filter({ maternal_visit_id: visit.id }, "entry_time", 50);
+      const n = await apiClient.entities.NewbornRecord.filter({ maternal_visit_id: visit.id }, "-created_date", 10);
       setPartograph(p);
       setNewborns(n);
     } catch (e) {
@@ -85,7 +85,7 @@ export default function Maternal() {
 
   const addPartographEntry = async () => {
     if (!selectedVisit || !partoForm.cervical_dilation_cm) return;
-    await base44.entities.PartographEntry.create({
+    await apiClient.entities.PartographEntry.create({
       maternal_visit_id: selectedVisit.id, patient_id: selectedVisit.patient_id,
       entry_time: new Date().toISOString(),
       cervical_dilation_cm: Number(partoForm.cervical_dilation_cm),
@@ -102,7 +102,7 @@ export default function Maternal() {
       amniotic_fluid: partoForm.amniotic_fluid,
       moulding: partoForm.moulding,
     });
-    const p = await base44.entities.PartographEntry.filter({ maternal_visit_id: selectedVisit.id }, "entry_time", 50);
+    const p = await apiClient.entities.PartographEntry.filter({ maternal_visit_id: selectedVisit.id }, "entry_time", 50);
     setPartograph(p);
   };
 
@@ -110,7 +110,7 @@ export default function Maternal() {
     e.preventDefault();
     if (!selectedVisit) return;
     if (!newbornForm.baby_name || !newbornForm.birth_weight_kg) return;
-    await base44.entities.NewbornRecord.create({
+    await apiClient.entities.NewbornRecord.create({
       maternal_visit_id: selectedVisit.id, mother_id: selectedVisit.patient_id,
       baby_name: newbornForm.baby_name, gender: newbornForm.gender,
       birth_weight_kg: Number(newbornForm.birth_weight_kg),
@@ -119,7 +119,7 @@ export default function Maternal() {
       apgar_1min: Number(newbornForm.apgar_1min) || 0,
       apgar_5min: Number(newbornForm.apgar_5min) || 0,
     });
-    const n = await base44.entities.NewbornRecord.filter({ maternal_visit_id: selectedVisit.id }, "-created_date", 10);
+    const n = await apiClient.entities.NewbornRecord.filter({ maternal_visit_id: selectedVisit.id }, "-created_date", 10);
     setNewborns(n);
     setShowNewborn(false);
     setNewbornForm({ baby_name: "", gender: "male", birth_weight_kg: "", birth_date: new Date().toISOString().slice(0,10), delivery_type: "normal_vaginal", apgar_1min: "", apgar_5min: "" });

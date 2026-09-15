@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { toast } from "@/components/ui/use-toast";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import {
   ClipboardCheck, AlertTriangle, Clock, Heart, Thermometer, Activity,
   Users, Filter, RefreshCw, CheckCircle, Printer, BarChart2, TrendingUp, X
@@ -36,9 +36,9 @@ export default function TriageSummary() {
   const load = async () => {
     try {
       const [visits, patientsData, vitals] = await Promise.all([
-        base44.entities.Visit.filter({ queue_status: { $in: ["waiting", "triaged"] } }, "created_date", 100),
-        base44.entities.Patient.list("", 300),
-        base44.entities.VitalSigns.list("-created_date", 300),
+        apiClient.entities.Visit.filter({ queue_status: { $in: ["waiting", "triaged"] } }, "created_date", 100),
+        apiClient.entities.Patient.list("", 300),
+        apiClient.entities.VitalSigns.list("-created_date", 300),
       ]);
 
       const patientMap = {};
@@ -80,7 +80,7 @@ export default function TriageSummary() {
   useEffect(() => { load(); }, []);
 
   useEffect(() => {
-    const unsub = base44.entities.Visit.subscribe((event) => {
+    const unsub = apiClient.entities.Visit.subscribe((event) => {
       if (event.type === "create" || event.type === "update") load();
     });
     return () => { if (unsub) unsub(); };
@@ -124,7 +124,7 @@ export default function TriageSummary() {
     if (selected.length === 0) return;
     setTriaging(true);
     try {
-      const { data } = await base44.functions.invoke("bulkTriage", {
+      const { data } = await apiClient.functions.invoke("bulkTriage", {
         journey_ids: selected,
         priority: bulkPriority,
         notes: `Bulk triaged as ${bulkPriority} from Triage Summary`,
@@ -138,7 +138,7 @@ export default function TriageSummary() {
   const fetchDailyReport = async () => {
     setReportLoading(true);
     try {
-      const { data } = await base44.functions.invoke("generateDailyReport", {});
+      const { data } = await apiClient.functions.invoke("generateDailyReport", {});
       setDailyReport(data);
     } catch (_) {}
     finally { setReportLoading(false); }

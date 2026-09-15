@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { CheckCircle, Clock, AlertCircle, TrendingUp, Download, RotateCw, Loader2 } from "lucide-react";
 
 const STATUS_CONFIG = {
@@ -24,7 +24,7 @@ export default function ClaimStatusTracker({ compact = false }) {
 
   const loadClaims = async () => {
     try {
-      const data = await base44.entities.InsuranceClaim.list("-created_date", 100);
+      const data = await apiClient.entities.InsuranceClaim.list("-created_date", 100);
       setClaims(data);
       updateStats(data);
     } catch (e) {
@@ -51,7 +51,7 @@ export default function ClaimStatusTracker({ compact = false }) {
   const handleAutoSubmit = async () => {
     setAutoSubmitting(true);
     try {
-      const { data } = await base44.functions.invoke("automateClaimSubmissions", {});
+      const { data } = await apiClient.functions.invoke("automateClaimSubmissions", {});
       alert(`✅ Automated Submission\n\n${data.submitted} claims submitted\n${data.failed} failed`);
       await loadClaims();
     } catch (e) {
@@ -64,7 +64,7 @@ export default function ClaimStatusTracker({ compact = false }) {
   const handleSyncDrive = async () => {
     setSyncingDrive(true);
     try {
-      const { data } = await base44.functions.invoke("syncClaimsToDrive", {
+      const { data } = await apiClient.functions.invoke("syncClaimsToDrive", {
         status_filter: null
       });
       // Download CSV

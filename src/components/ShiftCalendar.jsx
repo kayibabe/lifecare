@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { ChevronLeft, ChevronRight, Clock, ClipboardCheck } from "lucide-react";
 
 const SHIFT_TYPES = {
@@ -40,12 +40,12 @@ export default function ShiftCalendar({ compact = false }) {
         const startOfMonth = new Date(year, month, 1).toISOString();
         const endOfMonth = new Date(year, month + 1, 1).toISOString();
         const [h, u] = await Promise.all([
-          base44.entities.ShiftHandoverLog.filter(
+          apiClient.entities.ShiftHandoverLog.filter(
             { handover_date: { $gte: startOfMonth, $lt: endOfMonth } },
             "-handover_date",
             200
           ),
-          base44.entities.User.list("", 50),
+          apiClient.entities.User.list("", 50),
         ]);
         setHandovers(h);
         setUsers(u);

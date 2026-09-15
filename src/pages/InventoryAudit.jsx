@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "@/components/ui/use-toast";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { AlertTriangle, Package, RefreshCw, Save, Loader2, Search } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
 
@@ -21,8 +21,8 @@ export default function InventoryAudit() {
   const loadData = async () => {
     try {
       const [drugData, reagentData] = await Promise.all([
-        base44.entities.Drug.list("-updated_date", 500),
-        base44.entities.LabReagent.list("-updated_date", 200),
+        apiClient.entities.Drug.list("-updated_date", 500),
+        apiClient.entities.LabReagent.list("-updated_date", 200),
       ]);
       setDrugs(drugData);
       setReagents(reagentData);
@@ -43,7 +43,7 @@ export default function InventoryAudit() {
     setSaving(true);
     try {
       const isReagent = selectedItem.type === "reagent";
-      const entity = isReagent ? base44.entities.LabReagent : base44.entities.Drug;
+      const entity = isReagent ? apiClient.entities.LabReagent : apiClient.entities.Drug;
       const physicalCount = Number(auditForm.physical_count);
       const systemCount = isReagent ? selectedItem.quantity_in_stock : selectedItem.quantity_in_stock;
 
@@ -63,8 +63,8 @@ export default function InventoryAudit() {
         setDiscrepancies(prev => [...prev, discrepancyRecord]);
 
         // Log to backend AuditLog
-        await base44.entities.AuditLog.create({
-          user_id: (await base44.auth.me()).id,
+        await apiClient.entities.AuditLog.create({
+          user_id: (await apiClient.auth.me()).id,
           action: "inventory_audit_discrepancy",
           entity_type: isReagent ? "LabReagent" : "Drug",
           entity_id: selectedItem.id,

@@ -8,8 +8,9 @@ RUN npm ci --prefer-offline
 
 COPY . .
 
-# VITE_BACKEND_URL is a build-time arg.
-# Set it in fly.toml [build.args] to point to your FastAPI backend.
+# VITE_BACKEND_URL is a build-time arg — set it as a Railway service variable
+# (Settings → Variables) on the frontend service to the backend service's
+# public URL, e.g. https://lifecare-api.up.railway.app/api/v1
 ARG VITE_BACKEND_URL=/api/v1
 ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
 
@@ -19,7 +20,11 @@ RUN npm run build
 FROM nginx:1.27-alpine
 
 COPY --from=builder /app/dist /usr/share/nginx/html
-COPY deploy/nginx-fly.conf /etc/nginx/conf.d/default.conf
+COPY deploy/nginx-railway.conf.template /etc/nginx/nginx.conf.template
+COPY deploy/docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
+# Railway assigns the actual port via $PORT at runtime; 8080 is just the
+# documented default for local `docker run`.
 EXPOSE 8080
-CMD ["nginx", "-g", "daemon off;"]
+ENTRYPOINT ["/docker-entrypoint.sh"]

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Plus, X, Loader2, Check, AlertCircle } from "lucide-react";
 
 export default function DigitalClaimFormBuilder({ invoice, onClose, onSave }) {
@@ -37,7 +37,7 @@ export default function DigitalClaimFormBuilder({ invoice, onClose, onSave }) {
 
   const loadSchemes = async () => {
     try {
-      const data = await base44.entities.MedicalAidScheme.list("", 50);
+      const data = await apiClient.entities.MedicalAidScheme.list("", 50);
       setSchemes(data);
     } catch (e) {
       console.error(e);
@@ -48,11 +48,11 @@ export default function DigitalClaimFormBuilder({ invoice, onClose, onSave }) {
     setLoading(true);
     try {
       const [patientData, consultationData, prescriptionData] = await Promise.all([
-        base44.entities.Patient.get(patientId),
-        base44.entities.Consultation.filter({ patient_id: patientId }, "-created_date", 1),
-        base44.entities.Prescription.filter({ patient_id: patientId }, "-created_date", 1).then(async (presc) => {
+        apiClient.entities.Patient.get(patientId),
+        apiClient.entities.Consultation.filter({ patient_id: patientId }, "-created_date", 1),
+        apiClient.entities.Prescription.filter({ patient_id: patientId }, "-created_date", 1).then(async (presc) => {
           if (presc.length === 0) return [];
-          const items = await base44.entities.PrescriptionItem.filter({ prescription_id: presc[0].id }, "", 50);
+          const items = await apiClient.entities.PrescriptionItem.filter({ prescription_id: presc[0].id }, "", 50);
           return items;
         }).catch(() => []),
       ]);
@@ -180,7 +180,7 @@ export default function DigitalClaimFormBuilder({ invoice, onClose, onSave }) {
     setValidationErrors([]);
     setSaving(true);
     try {
-      await base44.entities.InsuranceClaim.create({
+      await apiClient.entities.InsuranceClaim.create({
         invoice_id: invoice?.id || "",
         patient_id: invoice?.patient_id || "",
         scheme_id: form.scheme_id,

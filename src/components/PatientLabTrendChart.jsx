@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Search, TrendingUp, AlertCircle } from "lucide-react";
 
@@ -14,7 +14,7 @@ export default function PatientLabTrendChart() {
   useEffect(() => {
     async function load() {
       try {
-        const p = await base44.entities.Patient.list("-created_date", 200);
+        const p = await apiClient.entities.Patient.list("-created_date", 200);
         setPatients(p);
       } catch (e) { /* silent */ }
     }
@@ -29,7 +29,7 @@ export default function PatientLabTrendChart() {
   const loadPatientResults = async (patientId) => {
     setLoading(true);
     try {
-      const results = await base44.entities.LabResult.filter(
+      const results = await apiClient.entities.LabResult.filter(
         { patient_id: patientId, status: { $in: ["final", "verified", "preliminary"] } },
         "-created_date",
         100

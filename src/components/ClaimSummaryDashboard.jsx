@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { TrendingUp, DollarSign, CheckCircle, Loader2, Download } from "lucide-react";
 
 export default function ClaimSummaryDashboard() {
@@ -14,7 +14,7 @@ export default function ClaimSummaryDashboard() {
 
   const loadClaims = async () => {
     try {
-      const data = await base44.entities.InsuranceClaim.list("-created_date", 200);
+      const data = await apiClient.entities.InsuranceClaim.list("-created_date", 200);
       setClaims(data);
       computeStats(data);
     } catch (e) {
@@ -54,7 +54,7 @@ export default function ClaimSummaryDashboard() {
   const handleExportSummary = async () => {
     setExporting(true);
     try {
-      const { data } = await base44.functions.invoke("automateClaimExports", {
+      const { data } = await apiClient.functions.invoke("automateClaimExports", {
         format: "summary"
       });
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { CheckCircle, Clock, FileText, Download, Send, Loader2, X } from "lucide-react";
 
 export default function ClaimApprovalWorkflow() {
@@ -17,7 +17,7 @@ export default function ClaimApprovalWorkflow() {
 
   const loadPendingClaims = async () => {
     try {
-      const data = await base44.entities.InsuranceClaim.filter(
+      const data = await apiClient.entities.InsuranceClaim.filter(
         { status: { $in: ["pending", "submitted", "approved"] } },
         "-created_date",
         100
@@ -29,7 +29,7 @@ export default function ClaimApprovalWorkflow() {
         data.map(async (claim) => {
           if (claim.patient_id && !pMap[claim.patient_id]) {
             try {
-              const p = await base44.entities.Patient.get(claim.patient_id);
+              const p = await apiClient.entities.Patient.get(claim.patient_id);
               if (p) pMap[claim.patient_id] = `${p.first_name} ${p.last_name}`;
             } catch (_) {}
           }
@@ -46,7 +46,7 @@ export default function ClaimApprovalWorkflow() {
   const approveClaim = async (claimId) => {
     setApproving(true);
     try {
-      await base44.entities.InsuranceClaim.update(claimId, {
+      await apiClient.entities.InsuranceClaim.update(claimId, {
         status: "approved"
       });
       await loadPendingClaims();
@@ -67,7 +67,7 @@ export default function ClaimApprovalWorkflow() {
         return;
       }
 
-      const { data } = await base44.functions.invoke("exportClaimFormPdf", {
+      const { data } = await apiClient.functions.invoke("exportClaimFormPdf", {
         invoice_id: claim.invoice_id,
         scheme_id: claim.scheme_id || "liberty"
       });
@@ -86,7 +86,7 @@ export default function ClaimApprovalWorkflow() {
   const syncToGoogleDrive = async (claimId) => {
     setSyncing(true);
     try {
-      const { data } = await base44.functions.invoke("syncClaimsToDrive", {
+      const { data } = await apiClient.functions.invoke("syncClaimsToDrive", {
         claim_id: claimId
       });
       alert(`✅ Synced to Google Drive\nFile: ${data.file_name || claimId}`);
@@ -238,7 +238,7 @@ export default function ClaimApprovalWorkflow() {
                       {claim.status === "pending" && (
                         <button
                           onClick={async () => {
-                            await base44.entities.InsuranceClaim.update(claim.id, {
+                            await apiClient.entities.InsuranceClaim.update(claim.id, {
                               status: "submitted",
                               submitted_date: new Date().toISOString()
                             });

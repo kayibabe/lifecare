@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Users, Save, Loader2, X, Plus, AlertCircle } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import PageHeader from "@/components/ui/PageHeader";
@@ -84,11 +84,11 @@ export default function PatientIntake() {
         status: "active",
       };
 
-      const patient = await base44.entities.Patient.create(patientData);
+      const patient = await apiClient.entities.Patient.create(patientData);
 
       // Create allergies
       for (const allergy of allergies) {
-        await base44.entities.PatientAllergy.create({
+        await apiClient.entities.PatientAllergy.create({
           patient_id: patient.id,
           drug_name: allergy.drug,
           reaction_type: allergy.reaction,
@@ -98,7 +98,7 @@ export default function PatientIntake() {
       }
 
       // Create initial appointment/visit record
-      await base44.entities.Visit.create({
+      await apiClient.entities.Visit.create({
         patient_id: patient.id,
         visit_type: "initial_intake",
         priority: "routine",

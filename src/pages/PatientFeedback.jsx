@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "@/components/ui/use-toast";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { MessageSquare, Star, Send, Loader2, BarChart2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import PageHeader from "@/components/ui/PageHeader";
@@ -30,9 +30,9 @@ export default function PatientFeedback() {
   const loadData = async () => {
     try {
       // Create feedback entity data if not exists
-      const feedbackData = await base44.entities.list?.("Feedback") || [];
-      const patientData = await base44.entities.Patient.list("-created_date", 200);
-      const visitData = await base44.entities.Visit.list("-created_date", 200);
+      const feedbackData = await apiClient.entities.list?.("Feedback") || [];
+      const patientData = await apiClient.entities.Patient.list("-created_date", 200);
+      const visitData = await apiClient.entities.Visit.list("-created_date", 200);
       
       setFeedbacks(feedbackData);
       setPatients(patientData);
@@ -54,7 +54,7 @@ export default function PatientFeedback() {
     setSubmitting(true);
     try {
       // Store as Notification for now (no Feedback entity yet)
-      await base44.entities.Notification.create({
+      await apiClient.entities.Notification.create({
         title: "Patient Feedback Received",
         message: form.feedback_text,
         target_role: "admin",

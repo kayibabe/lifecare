@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { AlertTriangle, FlaskConical, Pill, X, RefreshCw } from "lucide-react";
 
 export default function ExpiryAlerts({ department }) {
@@ -11,7 +11,7 @@ export default function ExpiryAlerts({ department }) {
   const fetchAlerts = useCallback(async () => {
     setRefreshing(true);
     try {
-      const { data: result } = await base44.functions.invoke('runExpiryAlerts', {});
+      const { data: result } = await apiClient.functions.invoke('runExpiryAlerts', {});
       setData(result);
     } catch (e) {
       console.error('Expiry alerts failed:', e);

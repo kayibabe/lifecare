@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { DollarSign, Receipt, TrendingUp, AlertCircle } from "lucide-react";
 
 export default function CashierDashboard() {
@@ -12,9 +12,9 @@ export default function CashierDashboard() {
       try {
         const today = new Date().toISOString().slice(0, 10);
         const [invoices, payments, shifts] = await Promise.all([
-          base44.entities.Invoice.filter({ created_date: { $gte: today } }, "-created_date", 50),
-          base44.entities.Payment.filter({ payment_date: today }, "", 100),
-          base44.entities.CashierShift.filter({ shift_date: today, status: { $in: ["open", "active"] } }, "", 10),
+          apiClient.entities.Invoice.filter({ created_date: { $gte: today } }, "-created_date", 50),
+          apiClient.entities.Payment.filter({ payment_date: today }, "", 100),
+          apiClient.entities.CashierShift.filter({ shift_date: today, status: { $in: ["open", "active"] } }, "", 10),
         ]);
 
         const totalRev = invoices

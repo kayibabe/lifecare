@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { BedDouble, AlertCircle, RefreshCw } from "lucide-react";
 
 export default function WardSummary() {
@@ -17,9 +17,9 @@ export default function WardSummary() {
   const loadData = async () => {
     try {
       const [wardData, bedData, admissionData] = await Promise.all([
-        base44.entities.Ward.list("-created_date", 50),
-        base44.entities.Bed.list("", 500),
-        base44.entities.Admission.filter({ status: "active" }, "-created_date", 500),
+        apiClient.entities.Ward.list("-created_date", 50),
+        apiClient.entities.Bed.list("", 500),
+        apiClient.entities.Admission.filter({ status: "active" }, "-created_date", 500),
       ]);
       setWards(wardData);
       setBeds(bedData);

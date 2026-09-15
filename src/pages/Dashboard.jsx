@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Users, Calendar, FlaskConical, BedDouble, Pill, Receipt, TrendingUp, Clock, Activity, RefreshCw, Bell, Send, Loader2, GitBranch, Megaphone, ArrowRight, AlertTriangle, FileDown, CheckSquare, Square, X, ChevronDown, ChevronUp, RefreshCcw, Download } from "lucide-react";
 import InventoryAlerts from "@/components/InventoryAlerts";
 import LivePulse from "@/components/LivePulse";
@@ -97,7 +97,7 @@ export default function Dashboard() {
   const refreshDailyReport = async () => {
     setReportLoading(true);
     try {
-      const { data } = await base44.functions.invoke('generateDailyReport', {});
+      const { data } = await apiClient.functions.invoke('generateDailyReport', {});
       setDailyReport(data);
     } catch (e) { /* silent */ }
     finally { setReportLoading(false); }
@@ -107,7 +107,7 @@ export default function Dashboard() {
     setReminderSending(true);
     setReminderResult(null);
     try {
-      const { data } = await base44.functions.invoke('sendAppointmentReminders', {});
+      const { data } = await apiClient.functions.invoke('sendAppointmentReminders', {});
       setReminderResult(data);
     } catch (e) {
       setReminderResult({ error: "Failed to send reminders" });
@@ -125,7 +125,7 @@ export default function Dashboard() {
     setBatchExporting(true);
     setBatchResult(null);
     try {
-      const { data } = await base44.functions.invoke('batchExportReports', { reports: batchReports });
+      const { data } = await apiClient.functions.invoke('batchExportReports', { reports: batchReports });
       setBatchResult(data);
     } catch (e) {
       setBatchResult({ error: 'Batch export failed' });
@@ -138,7 +138,7 @@ export default function Dashboard() {
     setShiftSyncLoading(true);
     setShiftSyncResult(null);
     try {
-      const { data } = await base44.functions.invoke('syncShiftReports', {});
+      const { data } = await apiClient.functions.invoke('syncShiftReports', {});
       setShiftSyncResult(data);
     } catch (e) {
       setShiftSyncResult({ error: 'Shift sync failed' });
@@ -150,7 +150,7 @@ export default function Dashboard() {
   const exportPatientData = async (type) => {
     setPatientExportLoading(true);
     try {
-      const { data } = await base44.functions.invoke('batchExportReports', { reports: [type] });
+      const { data } = await apiClient.functions.invoke('batchExportReports', { reports: [type] });
       if (data?.exports?.[type]?.status === 'ok') {
         const csvData = data.exports[type].data || [];
         if (csvData.length > 0) {
@@ -172,9 +172,9 @@ export default function Dashboard() {
   const loadOccupancyData = async () => {
     try {
       const [wards, beds, visits] = await Promise.all([
-        base44.entities.Ward.list("", 20),
-        base44.entities.Bed.list("", 200),
-        base44.entities.Visit.filter({ queue_status: { $in: ["waiting", "triaged", "in_consultation", "in_lab", "in_pharmacy"] } }, "", 100),
+        apiClient.entities.Ward.list("", 20),
+        apiClient.entities.Bed.list("", 200),
+        apiClient.entities.Visit.filter({ queue_status: { $in: ["waiting", "triaged", "in_consultation", "in_lab", "in_pharmacy"] } }, "", 100),
       ]);
       const queueSummary = {};
       visits.forEach(v => {
@@ -188,7 +188,7 @@ export default function Dashboard() {
   useEffect(() => {
     async function fetchUser() {
       try {
-        const u = await base44.auth.me();
+        const u = await apiClient.auth.me();
         setCurrentUser(u);
       } catch (e) {
         console.error(e);
@@ -201,13 +201,13 @@ export default function Dashboard() {
     async function load() {
       try {
         const [patients, appointments, labOrders, beds, drugs, visits, invoices] = await Promise.all([
-          base44.entities.Patient.list("-created_date", 1000),
-          base44.entities.Appointment.filter({ appointment_date: new Date().toISOString().slice(0, 10) }, "-appointment_date", 200),
-          base44.entities.LabOrder.filter({ status: { $in: ["ordered", "in_progress"] } }, "-created_date", 1000),
-          base44.entities.Bed.filter({ status: "occupied" }, "", 1000),
-          base44.entities.Drug.list("", 1000),
-          base44.entities.Visit.list("-created_date", 10),
-          base44.entities.Invoice.filter({ status: "paid" }, "-created_date", 1000),
+          apiClient.entities.Patient.list("-created_date", 500),
+          apiClient.entities.Appointment.filter({ appointment_date: new Date().toISOString().slice(0, 10) }, "-appointment_date", 200),
+          apiClient.entities.LabOrder.filter({ status: { $in: ["ordered", "in_progress"] } }, "-created_date", 500),
+          apiClient.entities.Bed.filter({ status: "occupied" }, "", 500),
+          apiClient.entities.Drug.list("", 1000),
+          apiClient.entities.Visit.list("-created_date", 10),
+          apiClient.entities.Invoice.filter({ status: "paid" }, "-created_date", 500),
         ]);
         const rev = invoices.reduce((sum, inv) => sum + (inv.net_amount || inv.total_amount || 0), 0);
         setStats({
@@ -237,8 +237,8 @@ export default function Dashboard() {
   const loadWorkflowData = async () => {
     try {
       const [journeys, notifs] = await Promise.all([
-        base44.entities.PatientJourney.filter({ status: "active" }, "-created_date", 50),
-        base44.entities.Notification.filter({ is_read: false }, "-created_date", 10),
+        apiClient.entities.PatientJourney.filter({ status: "active" }, "-created_date", 50),
+        apiClient.entities.Notification.filter({ is_read: false }, "-created_date", 10),
       ]);
       setActiveJourneys(journeys);
       setNotifications(notifs);
@@ -246,7 +246,7 @@ export default function Dashboard() {
       const pids = [...new Set(journeys.map(j => j.patient_id).filter(Boolean))];
       const pMap = {};
       await Promise.all(pids.map(async (pid) => {
-        try { const p = await base44.entities.Patient.get(pid); if (p) pMap[pid] = `${p.first_name} ${p.last_name}`; }
+        try { const p = await apiClient.entities.Patient.get(pid); if (p) pMap[pid] = `${p.first_name} ${p.last_name}`; }
         catch (_) { pMap[pid] = pid?.slice(0, 8) || "Unknown"; }
       }));
       setJourneyPatients(pMap);
@@ -254,7 +254,7 @@ export default function Dashboard() {
   };
 
   const markNotifRead = async (id) => {
-    await base44.entities.Notification.update(id, { is_read: true });
+    await apiClient.entities.Notification.update(id, { is_read: true });
     setNotifications(notifications.filter(n => n.id !== id));
   };
 

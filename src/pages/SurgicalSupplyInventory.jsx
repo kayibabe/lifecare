@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "@/components/ui/use-toast";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Package, Plus, Search, AlertTriangle, RefreshCw, Save, Loader2, Edit2, X } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
 
@@ -31,7 +31,7 @@ export default function SurgicalSupplyInventory() {
   const loadData = async () => {
     try {
       // Load surgical supplies (store in Drug entity as fallback)
-      const drugData = await base44.entities.Drug.filter(
+      const drugData = await apiClient.entities.Drug.filter(
         { category: { $in: ["surgical", "instruments", "implants"] } },
         "-updated_date",
         500
@@ -54,9 +54,9 @@ export default function SurgicalSupplyInventory() {
     setSaving(true);
     try {
       if (selectedSupply) {
-        await base44.entities.Drug.update(selectedSupply.id, form);
+        await apiClient.entities.Drug.update(selectedSupply.id, form);
       } else {
-        await base44.entities.Drug.create({
+        await apiClient.entities.Drug.create({
           ...form,
           quantity_in_stock: Number(form.quantity_in_stock),
           reorder_level: Number(form.reorder_level),

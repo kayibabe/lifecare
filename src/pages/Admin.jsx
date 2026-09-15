@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Shield, Plus, Save, Users, UserPlus, Upload, FileBarChart, Building2, Loader2, ClipboardList, X, Clock, TrendingUp, Trash2, DollarSign, CheckCircle2, AlertCircle, Mail } from "lucide-react";
 import WasteManagement from "@/components/WasteManagement";
 import ShiftManagement from "@/components/ShiftManagement";
@@ -54,10 +54,10 @@ export default function Admin() {
     async function load() {
       try {
         const [u, s, e, a] = await Promise.all([
-          base44.entities.User.list("", 100),
-          base44.entities.MedicalAidScheme.list("", 50),
-          base44.entities.DHIS2Export.list("-created_date", 20),
-          base44.entities.AuditLog.list("-created_date", 100),
+          apiClient.entities.User.list("", 100),
+          apiClient.entities.MedicalAidScheme.list("", 50),
+          apiClient.entities.DHIS2Export.list("-created_date", 20),
+          apiClient.entities.AuditLog.list("-created_date", 100),
         ]);
         setUsers(u);
         setSchemes(s);
@@ -74,7 +74,7 @@ export default function Admin() {
     try {
       // Platform only accepts "user" or "admin" at invite time; role is updated after registration
       const inviteRole = ["admin"].includes(inviteForm.role) ? "admin" : "user";
-      await base44.users.inviteUser(inviteForm.email, inviteRole);
+      await apiClient.users.inviteUser(inviteForm.email, inviteRole);
       const roleLabel = STAFF_ROLES.find(r => r.value === inviteForm.role)?.label || inviteForm.role;
       const sentEmail = inviteForm.email;
       setInviteForm({ email: "", role: "user" });
@@ -88,7 +88,7 @@ export default function Admin() {
   const updateUserRole = async (userId, newRole) => {
     setUpdatingRole(userId);
     try {
-      await base44.entities.User.update(userId, { role: newRole });
+      await apiClient.entities.User.update(userId, { role: newRole });
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
     } catch (err) {
       showToast("error", "Role Update Failed", err.message);
@@ -104,7 +104,7 @@ export default function Admin() {
 
   const saveEditName = async (userId) => {
     try {
-      await base44.entities.User.update(userId, { display_name: editingName });
+      await apiClient.entities.User.update(userId, { display_name: editingName });
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, display_name: editingName } : u));
     } catch (err) {
       showToast("error", "Name Update Failed", err.message);
@@ -115,8 +115,8 @@ export default function Admin() {
 
   const addScheme = async (e) => {
     e.preventDefault();
-    await base44.entities.MedicalAidScheme.create(schemeForm);
-    const s = await base44.entities.MedicalAidScheme.list("", 50);
+    await apiClient.entities.MedicalAidScheme.create(schemeForm);
+    const s = await apiClient.entities.MedicalAidScheme.list("", 50);
     setSchemes(s);
     setShowSchemeForm(false);
     setSchemeForm({ name: "", code: "", contact_phone: "", contact_email: "", coverage_details: "" });
@@ -129,8 +129,8 @@ export default function Admin() {
 
   const saveEditScheme = async () => {
     try {
-      await base44.entities.MedicalAidScheme.update(editingScheme, schemeEditForm);
-      const s = await base44.entities.MedicalAidScheme.list("", 50);
+      await apiClient.entities.MedicalAidScheme.update(editingScheme, schemeEditForm);
+      const s = await apiClient.entities.MedicalAidScheme.list("", 50);
       setSchemes(s);
       setEditingScheme(null);
     } catch (err) {
@@ -142,7 +142,7 @@ export default function Admin() {
     const filters = {};
     if (auditFilter.entity_type) filters.entity_type = auditFilter.entity_type;
     if (auditFilter.action) filters.action = auditFilter.action;
-    const a = await base44.entities.AuditLog.list("-created_date", auditFilter.limit);
+    const a = await apiClient.entities.AuditLog.list("-created_date", auditFilter.limit);
     setAuditLogs(a);
   };
 
@@ -156,8 +156,8 @@ export default function Admin() {
     setExporting(true);
     try {
       const period = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
-      await base44.functions.invoke('generateDHIS2Report', { period, report_type: 'aggregate_monthly' });
-      const e = await base44.entities.DHIS2Export.list("-created_date", 20);
+      await apiClient.functions.invoke('generateDHIS2Report', { period, report_type: 'aggregate_monthly' });
+      const e = await apiClient.entities.DHIS2Export.list("-created_date", 20);
       setExports(e);
     } catch (err) {
       showToast("error", "Export Failed", err.response?.data?.error || err.message);

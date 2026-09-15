@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Users, Calendar, Clock, CheckCircle2 } from "lucide-react";
 
 export default function ReceptionistDashboard() {
@@ -12,10 +12,10 @@ export default function ReceptionistDashboard() {
       try {
         const today = new Date().toISOString().slice(0, 10);
         const [visits, appointments] = await Promise.all([
-          base44.entities.Visit.filter({
+          apiClient.entities.Visit.filter({
             visit_date: { $gte: today }
           }, "-created_date", 100),
-          base44.entities.Appointment.filter({
+          apiClient.entities.Appointment.filter({
             appointment_date: today
           }, "-appointment_date", 50),
         ]);

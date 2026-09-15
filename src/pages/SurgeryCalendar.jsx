@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "@/components/ui/use-toast";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { ChevronLeft, ChevronRight, Plus, Clock, MapPin, User, AlertCircle, X, Search, CheckCircle, Calendar, ClipboardCheck, Activity, Package } from "lucide-react";
 import moment from "moment";
 import SurgicalChecklist from "@/components/SurgicalChecklist";
@@ -69,8 +69,8 @@ export default function SurgeryCalendar() {
     try {
       const dayStr = date.format("YYYY-MM-DD");
       const [b, p] = await Promise.all([
-        base44.entities.SurgicalBooking.filter({ scheduled_date: dayStr }, "start_time", 100),
-        base44.entities.Patient.list("", 300),
+        apiClient.entities.SurgicalBooking.filter({ scheduled_date: dayStr }, "start_time", 100),
+        apiClient.entities.Patient.list("", 300),
       ]);
       setBookings(b);
       setPatients(p);
@@ -125,7 +125,7 @@ export default function SurgeryCalendar() {
     setSaving(true);
     try {
       const patient = patients.find(p => p.id === form.patient_id);
-      await base44.entities.SurgicalBooking.create({
+      await apiClient.entities.SurgicalBooking.create({
         ...form,
         patient_id: form.patient_id,
         scheduled_date: date.format("YYYY-MM-DD"),
@@ -151,7 +151,7 @@ export default function SurgeryCalendar() {
   };
 
   const updateStatus = async (booking, newStatus) => {
-    await base44.entities.SurgicalBooking.update(booking.id, { status: newStatus });
+    await apiClient.entities.SurgicalBooking.update(booking.id, { status: newStatus });
     await loadData();
   };
 

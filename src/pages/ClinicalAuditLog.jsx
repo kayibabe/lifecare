@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { FileText, Search, RefreshCw } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
 
@@ -16,7 +16,7 @@ export default function ClinicalAuditLog() {
 
   const loadData = async () => {
     try {
-      const logs = await base44.entities.AuditLog?.list?.("-created_date", 500) || [];
+      const logs = await apiClient.entities.AuditLog?.list?.("-created_date", 500) || [];
       setAuditLogs(logs);
     } catch (e) {
       console.error(e);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Activity } from "lucide-react";
 
 const DEPARTMENTS = [
@@ -27,7 +27,7 @@ export default function DepartmentHeatmap() {
 
   const load = async () => {
     try {
-      const visits = await base44.entities.Visit.filter(
+      const visits = await apiClient.entities.Visit.filter(
         { queue_status: { $in: ["waiting", "triaged", "in_consultation", "in_lab", "in_pharmacy", "admitted"] } },
         "",
         500
@@ -37,7 +37,7 @@ export default function DepartmentHeatmap() {
         result[dept.key] = visits.filter(v => dept.queue_statuses.includes(v.queue_status)).length;
       });
       // Add inpatient from admissions directly
-      const admissions = await base44.entities.Admission.filter({ status: "admitted" }, "", 200);
+      const admissions = await apiClient.entities.Admission.filter({ status: "admitted" }, "", 200);
       result.inpatient = admissions.length;
       setCounts(result);
       setLastRefresh(new Date());

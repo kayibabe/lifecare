@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { TrendingUp, Loader2 } from "lucide-react";
 
@@ -10,7 +10,7 @@ export default function VitalSignsChart({ patientId, visitId }) {
 
   useEffect(() => {
     if (!patientId) { setLoading(false); return; }
-    base44.entities.VitalSigns.filter({ patient_id: patientId }, "-created_date", 30)
+    apiClient.entities.VitalSigns.filter({ patient_id: patientId }, "-created_date", 30)
       .then(list => {
         setVitalsData(list.reverse());
       })

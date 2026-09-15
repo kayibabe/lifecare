@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "@/components/ui/use-toast";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Package, Filter, Download } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
 
@@ -31,9 +31,9 @@ export default function SurgicalSupplyTracker() {
     setLoading(true);
     try {
       const [disp, booking, supply] = await Promise.all([
-        base44.entities.SurgicalDispensing.list("-created_date", 500),
-        base44.entities.SurgicalBooking.list("", 200),
-        base44.entities.Drug.filter({ category: { $in: ["surgical", "instruments", "implants"] } }, "", 500),
+        apiClient.entities.SurgicalDispensing.list("-created_date", 500),
+        apiClient.entities.SurgicalBooking.list("", 200),
+        apiClient.entities.Drug.filter({ category: { $in: ["surgical", "instruments", "implants"] } }, "", 500),
       ]);
       setDispensing(disp);
       setBookings(booking);
@@ -55,7 +55,7 @@ export default function SurgicalSupplyTracker() {
 
   const exportToSheets = async () => {
     try {
-      const { data } = await base44.functions.invoke('syncSurgicalRecordsToSheets', { sync_type: 'dispensing' });
+      const { data } = await apiClient.functions.invoke('syncSurgicalRecordsToSheets', { sync_type: 'dispensing' });
       if (data?.data) {
         const headers = data.headers;
         const csv = [

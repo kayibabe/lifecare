@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { BedDouble, AlertCircle, Users, Activity } from "lucide-react";
 
 export default function WardOccupancySummary() {
@@ -10,8 +10,8 @@ export default function WardOccupancySummary() {
     async function fetchOccupancy() {
       try {
         const [wards, beds] = await Promise.all([
-          base44.entities.Ward.list("", 50),
-          base44.entities.Bed.list("", 500),
+          apiClient.entities.Ward.list("", 50),
+          apiClient.entities.Bed.list("", 500),
         ]);
 
         const occupancy = wards.map(ward => {

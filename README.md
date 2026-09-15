@@ -1,4 +1,4 @@
-# LifeCare â€” HIMS
+# LifeCare — HIMS
 
 Full-stack Hospital Information Management System (HIMS) for LifeCare, Malawi.
 
@@ -7,10 +7,10 @@ Full-stack Hospital Information Management System (HIMS) for LifeCare, Malawi.
 | Directory | Description |
 |-----------|-------------|
 | `src/` | Primary React frontend (Vite, JS). Connects to the FastAPI backend. |
-| `backend/` | FastAPI + SQLAlchemy async backend â€” system of record. |
+| `backend/` | FastAPI + SQLAlchemy async backend — system of record. |
 | `frontend/` | Secondary React 19 + TypeScript scaffold (early-stage). |
 | `mobile/` | Flutter mobile app (`lifecare_mobile`). |
-| `deploy/` | Fly.io configs, nginx, and local startup scripts. |
+| `deploy/` | Railway configs, nginx, and local startup scripts. |
 
 ## Local development
 
@@ -47,6 +47,6 @@ npm test
 
 ## Deployment
 
-Three Fly.io apps: `lifecare` (frontend) â†’ `lifecare-api` (backend) â†’ `lifecare-db` (Postgres).
+Two Railway services, each built from this repo via Docker: `backend/` (FastAPI) and the repo root (frontend, served by nginx). Attach a Railway Postgres plugin to the backend service.
 
-Deploy backend before frontend. Migrations run automatically via `release_command`.
+Deploy backend before frontend. Migrations run automatically via the backend's `preDeployCommand` (`backend/railway.json`). See `CLAUDE.md` for the full setup (env vars, service variable wiring).

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Trash2, AlertTriangle, CheckCircle, Clock, Flame, Plus, Save, ArrowRight, Building2, X, PenTool, FileSignature } from "lucide-react";
 import SignaturePad from "@/components/SignaturePad";
 import WasteVolumeChart from "@/components/WasteVolumeChart";
@@ -58,8 +58,8 @@ export default function WasteManagement() {
   const loadData = useCallback(async () => {
     try {
       const [cats, l] = await Promise.all([
-        base44.entities.WasteCategory.list("", 50),
-        base44.entities.WasteLog.list("-created_date", 200),
+        apiClient.entities.WasteCategory.list("", 50),
+        apiClient.entities.WasteLog.list("-created_date", 200),
       ]);
       setCategories(cats);
       setLogs(l);
@@ -71,7 +71,7 @@ export default function WasteManagement() {
 
   const addCategory = async (e) => {
     e.preventDefault();
-    await base44.entities.WasteCategory.create({
+    await apiClient.entities.WasteCategory.create({
       ...categoryForm,
       max_storage_hours: Number(categoryForm.max_storage_hours),
     });
@@ -83,7 +83,7 @@ export default function WasteManagement() {
   const addLog = async (e) => {
     e.preventDefault();
     const cat = categories.find(c => c.id === logForm.waste_category_id);
-    await base44.entities.WasteLog.create({
+    await apiClient.entities.WasteLog.create({
       ...logForm,
       category_code: cat?.code || "",
       quantity_kg: Number(logForm.quantity_kg),
@@ -105,7 +105,7 @@ export default function WasteManagement() {
       const update = { status: nextStatus };
       if (nextStatus === "collected") update.collected_at = new Date().toISOString();
       if (nextStatus === "treated") update.treated_at = new Date().toISOString();
-      await base44.entities.WasteLog.update(logId, update);
+      await apiClient.entities.WasteLog.update(logId, update);
       loadData();
     }
   };
@@ -118,15 +118,15 @@ export default function WasteManagement() {
     if (!signingLog) return;
     setSavingSignature(true);
     try {
-      const { data: uploadData } = await base44.integrations.Core.UploadFile({ file });
-      await base44.functions.invoke("saveSignature", {
+      const { data: uploadData } = await apiClient.integrations.Core.UploadFile({ file });
+      await apiClient.functions.invoke("saveSignature", {
         file_url: uploadData.file_url,
         document_type: "discharge_summary",
         document_id: signingLog.id,
         patient_id: "",
         visit_id: "",
       });
-      await base44.entities.WasteLog.update(signingLog.id, {
+      await apiClient.entities.WasteLog.update(signingLog.id, {
         signature_url: uploadData.file_url,
         signed_by: "current_user",
         signed_by_name: "Staff Member",

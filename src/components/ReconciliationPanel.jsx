@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { RotateCcw, CheckCircle, AlertTriangle, XCircle, Loader2, DollarSign, CreditCard, Smartphone, Building2, Shield, ChevronDown, ChevronUp } from "lucide-react";
 
 const SEVERITY_STYLES = {
@@ -33,7 +33,7 @@ export default function ReconciliationPanel() {
 
   const loadShifts = async () => {
     try {
-      const s = await base44.entities.CashierShift.list("-created_date", 30);
+      const s = await apiClient.entities.CashierShift.list("-created_date", 30);
       setShifts(s);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
@@ -42,7 +42,7 @@ export default function ReconciliationPanel() {
   const reconcileShift = async (shift) => {
     setReconciling(prev => ({ ...prev, [shift.id]: true }));
     try {
-      const { data } = await base44.functions.invoke("reconcileShift", { shift_id: shift.id });
+      const { data } = await apiClient.functions.invoke("reconcileShift", { shift_id: shift.id });
       setResults(prev => ({ ...prev, [shift.id]: data }));
       setExpandedShift(shift.id);
     } catch (e) {

@@ -1,9 +1,9 @@
 /**
- * FastAPI adapter that implements the same interface as @base44/sdk.
- * Lets all 48 Base44 pages work against the self-hosted FastAPI backend
- * without any changes to the page components.
+ * FastAPI adapter for the LifeCare frontend. Implements the entities/auth/functions
+ * interface the 48 page components were originally written against, so those pages
+ * work unmodified against the self-hosted FastAPI backend.
  *
- * Usage: exported from base44Client.js when VITE_BASE44_APP_ID / ?app_id= is absent.
+ * Usage: exported as `apiClient` from apiClient.js.
  */
 
 // ─── TOKEN MANAGEMENT ────────────────────────────────────────────────────────
@@ -16,9 +16,8 @@ export function getToken() {
 }
 
 /**
- * Turn an API error (from the custom adapter or the Base44 SDK) into a readable
- * message. Handles FastAPI's 422 `detail` arrays ([{loc, msg}, ...]),
- * string `detail`, and plain Error messages.
+ * Turn an API error into a readable message. Handles FastAPI's 422 `detail`
+ * arrays ([{loc, msg}, ...]), string `detail`, and plain Error messages.
  */
 export function formatApiError(err, fallback = 'Something went wrong. Please try again.') {
   const detail = err?.data?.detail ?? err?.response?.data?.detail;
@@ -119,7 +118,7 @@ function makeHttp(baseURL) {
 }
 
 // ─── ENTITY DEFINITIONS ───────────────────────────────────────────────────────
-// For each Base44 entity name: endpoint path, field transforms (both directions),
+// For each frontend entity name: endpoint path, field transforms (both directions),
 // and a filterMap for renaming filter keys before sending to FastAPI.
 
 export const ENTITY_DEFS = {
@@ -147,7 +146,7 @@ export const ENTITY_DEFS = {
     filterMap: { created_date: 'created_at', updated_date: 'updated_at' },
   },
 
-  // Base44 calls OPD encounters "Visit"
+  // The frontend calls OPD encounters "Visit"
   Visit: {
     endpoint: '/encounters',
     fromAPI: (e) => e && ({
@@ -180,7 +179,7 @@ export const ENTITY_DEFS = {
       ...o,
       created_date: o.created_at,
       updated_date: o.updated_at,
-      // Base44 stores tests as a comma-string; FastAPI stores as items array
+      // The frontend expects tests as a comma-string; FastAPI stores as items array
       tests: Array.isArray(o.items)
         ? o.items.map((i) => i.test_name || i.test_id).join(', ')
         : o.tests || '',
@@ -242,7 +241,7 @@ export const ENTITY_DEFS = {
     }),
     toAPI: (d) => d,
     filterMap: { created_date: 'created_at' },
-    // Base44 pages use status:"active" to mean currently admitted
+    // The frontend pages use status:"active" to mean currently admitted
     preFilter: (f) => f?.status === 'active' ? { ...f, status: 'admitted' } : f,
   },
 
@@ -297,7 +296,7 @@ export const ENTITY_DEFS = {
 
   // Read-only flattened view of resulted lab order items. Result *entry* still
   // flows through the normalized /lab/orders/{id}/results/{item_id} endpoint;
-  // creating a LabResult directly from the Base44 page is not wired (see notes).
+  // creating a LabResult directly from the frontend page is not wired (see notes).
   LabResult: {
     endpoint: '/lab/results',
     fromAPI: (r) => r && ({ ...r, created_date: r.resulted_at || r.created_at }),
@@ -317,7 +316,7 @@ export const ENTITY_DEFS = {
     filterMap: {},
   },
 
-  // Base44 page uses appointment_date + appointment_time + type + doctor_id;
+  // The frontend page uses appointment_date + appointment_time + type + doctor_id;
   // FastAPI uses a single scheduled_datetime + appointment_type + provider_id.
   Appointment: {
     endpoint: '/appointments',
@@ -416,7 +415,7 @@ const STUB_ENTITIES = new Set([
 
 // ─── FILTER HELPERS ───────────────────────────────────────────────────────────
 
-// Builds FastAPI query params from a Base44 filter object.
+// Builds FastAPI query params from a frontend filter object.
 // $in operators are skipped here and handled client-side to avoid server-side
 // incompatibility with comma-joined values.
 function buildParams(filters, def, limit) {
@@ -444,7 +443,7 @@ function applyClientFilter(arr, filters, def) {
     Object.entries(filters).every(([key, val]) => {
       if (val !== null && typeof val === 'object' && '$in' in val) {
         const apiKey = fm[key] ?? key;
-        // Check both the API field name and original Base44 field name
+        // Check both the API field name and the original frontend field name
         return val.$in.includes(item[apiKey]) || val.$in.includes(item[key]);
       }
       return true;
@@ -454,9 +453,10 @@ function applyClientFilter(arr, filters, def) {
 
 // ─── ENTITY HANDLER ───────────────────────────────────────────────────────────
 
-// No-op real-time subscription. Base44 supports live entity subscriptions;
-// the FastAPI backend does not (yet), so return an unsubscribe function that
-// does nothing. This keeps components that call `.subscribe()` from crashing.
+// No-op real-time subscription. The frontend pages call `.subscribe()`
+// expecting live entity updates; the FastAPI backend does not support that
+// (yet), so return an unsubscribe function that does nothing. This keeps
+// those pages from crashing.
 function noopSubscribe() {
   return () => {};
 }
@@ -737,7 +737,7 @@ async function invokeFunction(name, params, http) {
     return { data: { total_alerts: allAlerts.length, alerts: allAlerts, low_stock_count: lowStock, expiring_count: 0, expired_count: 0 } };
   }
 
-  // All other Base44 serverless functions are stubs.
+  // All other legacy serverless functions are stubs.
   // Add cases here as FastAPI equivalents are built.
   throw new UnsupportedFeatureError(`Function ${name}`, 'invoke');
 }
@@ -768,7 +768,7 @@ function makeAuth(http) {
       return data;
     },
 
-    // Called by Login.jsx (Base44's email/password flow) — treat the email field as employee_id
+    // Called by Login.jsx (the legacy email/password flow) — treat the email field as employee_id
     async loginViaEmailPassword(email, password) {
       return this.login(email, password);
     },

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { AlertTriangle, MessageSquare, Clock, Loader2 } from "lucide-react";
 
 export default function ClaimRejectionTracker() {
@@ -14,7 +14,7 @@ export default function ClaimRejectionTracker() {
 
   const loadRejections = async () => {
     try {
-      const data = await base44.entities.InsuranceClaim.filter(
+      const data = await apiClient.entities.InsuranceClaim.filter(
         { status: "rejected" },
         "-created_date",
         100
@@ -27,7 +27,7 @@ export default function ClaimRejectionTracker() {
         data.map(async (claim) => {
           if (claim.patient_id && !pMap[claim.patient_id]) {
             try {
-              const p = await base44.entities.Patient.get(claim.patient_id);
+              const p = await apiClient.entities.Patient.get(claim.patient_id);
               if (p) pMap[claim.patient_id] = `${p.first_name} ${p.last_name}`;
             } catch (_) {}
           }
@@ -44,7 +44,7 @@ export default function ClaimRejectionTracker() {
   const triggerRejectionNotifications = async () => {
     setNotifying(true);
     try {
-      const { data } = await base44.functions.invoke("notifyRejectedClaims", {});
+      const { data } = await apiClient.functions.invoke("notifyRejectedClaims", {});
       alert(`✅ Notified ${data.notified} rejection(s)`);
       await loadRejections();
     } catch (e) {
@@ -56,7 +56,7 @@ export default function ClaimRejectionTracker() {
 
   const resubmitClaim = async (claimId) => {
     try {
-      await base44.entities.InsuranceClaim.update(claimId, {
+      await apiClient.entities.InsuranceClaim.update(claimId, {
         status: "pending",
         response_notes: null
       });

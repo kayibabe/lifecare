@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Loader2, ChevronDown, ChevronUp, Stethoscope, FlaskConical, Heart, Pill, Scan, AlertCircle } from "lucide-react";
 
 export default function PatientMedicalHistoryTimeline({ patientId }) {
@@ -11,12 +11,12 @@ export default function PatientMedicalHistoryTimeline({ patientId }) {
     async function fetchHistory() {
       try {
         const [visits, consultations, labResults, imagingResults, vitals, prescriptions] = await Promise.all([
-          base44.entities.Visit.filter({ patient_id: patientId }, "-visit_date", 100),
-          base44.entities.Consultation.filter({ patient_id: patientId }, "-consultation_date", 100),
-          base44.entities.LabResult.filter({ patient_id: patientId }, "-created_date", 200),
-          base44.entities.ImagingResult.filter({ patient_id: patientId }, "-created_date", 100),
-          base44.entities.VitalSigns.filter({ patient_id: patientId }, "-recorded_date", 200),
-          base44.entities.Prescription.filter({ patient_id: patientId }, "-prescription_date", 100),
+          apiClient.entities.Visit.filter({ patient_id: patientId }, "-visit_date", 100),
+          apiClient.entities.Consultation.filter({ patient_id: patientId }, "-consultation_date", 100),
+          apiClient.entities.LabResult.filter({ patient_id: patientId }, "-created_date", 200),
+          apiClient.entities.ImagingResult.filter({ patient_id: patientId }, "-created_date", 100),
+          apiClient.entities.VitalSigns.filter({ patient_id: patientId }, "-recorded_date", 200),
+          apiClient.entities.Prescription.filter({ patient_id: patientId }, "-prescription_date", 100),
         ]);
 
         // Aggregate all events with timestamps

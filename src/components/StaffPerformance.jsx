@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Users, Clock, FlaskConical, Pill, ClipboardCheck, Loader2, AlertCircle } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
@@ -12,7 +12,7 @@ export default function StaffPerformance() {
   useEffect(() => {
     async function load() {
       try {
-        const { data: result } = await base44.functions.invoke("analyzeStaffPerformance", {});
+        const { data: result } = await apiClient.functions.invoke("analyzeStaffPerformance", {});
         setData(result);
       } catch (e) { console.error(e); }
       finally { setLoading(false); }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Activity, Users, AlertTriangle, ClipboardList, Heart } from "lucide-react";
 
 export default function NurseDashboard() {
@@ -11,10 +11,10 @@ export default function NurseDashboard() {
     async function load() {
       try {
         const [admissions, tasks, vitals, discharges] = await Promise.all([
-          base44.entities.Admission.filter({ status: "admitted" }, "", 100),
-          base44.entities.NurseTask.filter({ status: { $in: ["pending", "in_progress"] } }, "-created_date", 20),
-          base44.entities.VitalSigns.filter({ recorded_date: new Date().toISOString().slice(0, 10) }, "-recorded_date", 100),
-          base44.entities.Discharge.filter({ discharge_date: new Date().toISOString().slice(0, 10) }, "", 50),
+          apiClient.entities.Admission.filter({ status: "admitted" }, "", 100),
+          apiClient.entities.NurseTask.filter({ status: { $in: ["pending", "in_progress"] } }, "-created_date", 20),
+          apiClient.entities.VitalSigns.filter({ recorded_date: new Date().toISOString().slice(0, 10) }, "-recorded_date", 100),
+          apiClient.entities.Discharge.filter({ discharge_date: new Date().toISOString().slice(0, 10) }, "", 50),
         ]);
         
         const critical = vitals.filter(v => 

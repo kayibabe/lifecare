@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "@/components/ui/use-toast";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Scan, Search, Download, Plus, X, Save, Loader2, Eye, FileText } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
 
@@ -32,8 +32,8 @@ export default function RadiologyReportLibrary() {
   const loadData = async () => {
     try {
       const [reportData, patientData] = await Promise.all([
-        base44.entities.ImagingResult?.list?.("-created_date", 500) || [],
-        base44.entities.Patient.list("-created_date", 200),
+        apiClient.entities.ImagingResult?.list?.("-created_date", 500) || [],
+        apiClient.entities.Patient.list("-created_date", 200),
       ]);
       setReports(reportData);
       setPatients(patientData);
@@ -54,12 +54,12 @@ export default function RadiologyReportLibrary() {
     setSaving(true);
     try {
       if (selectedReport) {
-        await base44.entities.ImagingResult.update(selectedReport.id, {
+        await apiClient.entities.ImagingResult.update(selectedReport.id, {
           ...form,
           report_date: new Date().toISOString(),
         });
       } else {
-        await base44.entities.ImagingResult.create({
+        await apiClient.entities.ImagingResult.create({
           ...form,
           report_date: new Date().toISOString(),
         });

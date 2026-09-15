@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { AlertTriangle, Save } from "lucide-react";
 
 export default function IncidentReportForm({ patientId, visitId, onComplete, onCancel }) {
@@ -24,8 +24,8 @@ export default function IncidentReportForm({ patientId, visitId, onComplete, onC
 
     setSubmitting(true);
     try {
-      const user = await base44.auth.me();
-      await base44.entities.IncidentReport.create({
+      const user = await apiClient.auth.me();
+      await apiClient.entities.IncidentReport.create({
         ...form,
         patient_id: patientId,
         visit_id: visitId,

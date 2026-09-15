@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "@/components/ui/use-toast";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Plus, Check, Loader2, X, Edit2, Package } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
 
@@ -31,9 +31,9 @@ export default function SurgicalRequisitions() {
     setLoading(true);
     try {
       const [reqs, k, s] = await Promise.all([
-        base44.entities.SurgicalRequisition.filter({ status: filterStatus }, "-created_date", 100),
-        base44.entities.SurgicalSupplyKit.filter({ status: "active" }, "", 50),
-        base44.entities.Drug.filter({ category: { $in: ["surgical", "instruments", "implants"] } }, "", 500),
+        apiClient.entities.SurgicalRequisition.filter({ status: filterStatus }, "-created_date", 100),
+        apiClient.entities.SurgicalSupplyKit.filter({ status: "active" }, "", 50),
+        apiClient.entities.Drug.filter({ category: { $in: ["surgical", "instruments", "implants"] } }, "", 500),
       ]);
       setRequisitions(reqs);
       setKits(k);
@@ -83,15 +83,15 @@ export default function SurgicalRequisitions() {
     
     setSaving(true);
     try {
-      const u = await base44.auth.me();
+      const u = await apiClient.auth.me();
       if (selectedReq) {
-        await base44.entities.SurgicalRequisition.update(selectedReq.id, {
+        await apiClient.entities.SurgicalRequisition.update(selectedReq.id, {
           ...form,
           items: JSON.stringify(form.items),
           total_items: form.items.length,
         });
       } else {
-        await base44.entities.SurgicalRequisition.create({
+        await apiClient.entities.SurgicalRequisition.create({
           ...form,
           items: JSON.stringify(form.items),
           total_items: form.items.length,
@@ -114,15 +114,15 @@ export default function SurgicalRequisitions() {
 
   const submitRequisition = async (req) => {
     try {
-      await base44.entities.SurgicalRequisition.update(req.id, { status: "submitted" });
+      await apiClient.entities.SurgicalRequisition.update(req.id, { status: "submitted" });
       loadData();
     } catch (e) { toast({ title: "Action failed", description: e.message, variant: "destructive" }); }
   };
 
   const approveRequisition = async (req) => {
     try {
-      const u = await base44.auth.me();
-      await base44.entities.SurgicalRequisition.update(req.id, { 
+      const u = await apiClient.auth.me();
+      await apiClient.entities.SurgicalRequisition.update(req.id, { 
         status: "approved",
         approved_by_id: u.id,
         approved_date: new Date().toISOString()

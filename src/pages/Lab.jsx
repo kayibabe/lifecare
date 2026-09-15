@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { FlaskConical, Plus, Save, ClipboardCheck, Square, CheckSquare, Play, ArrowRight, CheckCircle, GitBranch } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import PatientJourneyTimeline from "@/components/PatientJourneyTimeline";
@@ -26,9 +26,9 @@ export default function Lab() {
     async function load() {
       try {
         const [o, p, jList] = await Promise.all([
-          base44.entities.LabOrder.list("-created_date", 100),
-          base44.entities.Patient.list("-created_date", 200),
-          base44.entities.PatientJourney.filter({ current_stage: { $in: ["LAB_PENDING", "LAB_PROCESSING"] }, status: "active" }, "-created_date", 30),
+          apiClient.entities.LabOrder.list("-created_date", 100),
+          apiClient.entities.Patient.list("-created_date", 200),
+          apiClient.entities.PatientJourney.filter({ current_stage: { $in: ["LAB_PENDING", "LAB_PROCESSING"] }, status: "active" }, "-created_date", 30),
         ]);
         setOrders(o);
         setPatients(p);
@@ -48,8 +48,8 @@ export default function Lab() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await base44.entities.LabOrder.create({ ...form, order_date: new Date().toISOString(), status: "ordered" });
-      const o = await base44.entities.LabOrder.list("-created_date", 100);
+      await apiClient.entities.LabOrder.create({ ...form, order_date: new Date().toISOString(), status: "ordered" });
+      const o = await apiClient.entities.LabOrder.list("-created_date", 100);
       setOrders(o);
       setShowForm(false);
     } catch (err) {
@@ -60,7 +60,7 @@ export default function Lab() {
   };
 
   const updateStatus = async (id, status) => {
-    await base44.entities.LabOrder.update(id, { status });
+    await apiClient.entities.LabOrder.update(id, { status });
     setOrders(orders.map(o => o.id === id ? { ...o, status } : o));
   };
 
@@ -69,7 +69,7 @@ export default function Lab() {
   const bulkUpdateStatus = async (status) => {
     if (selectedIds.length === 0) return;
     setBulkBusy(true);
-    for (const id of selectedIds) await base44.entities.LabOrder.update(id, { status });
+    for (const id of selectedIds) await apiClient.entities.LabOrder.update(id, { status });
     setOrders(orders.map(o => selectedIds.includes(o.id) ? { ...o, status } : o));
     setSelectedIds([]);
     setBulkBusy(false);
@@ -94,16 +94,16 @@ export default function Lab() {
       }
     } catch (_) {}
 
-    await base44.entities.LabResult.create({
+    await apiClient.entities.LabResult.create({
       lab_order_id: orderId, patient_id: orders.find(o => o.id === orderId)?.patient_id,
       ...r, status: isCritical ? "critical" : "final",
     });
-    await base44.entities.LabOrder.update(orderId, { status: isCritical ? "critical" : "completed" });
+    await apiClient.entities.LabOrder.update(orderId, { status: isCritical ? "critical" : "completed" });
 
     // Notify on critical result
     if (isCritical) {
       try {
-        await base44.functions.invoke("notifyLabResultReady", {
+        await apiClient.functions.invoke("notifyLabResultReady", {
           lab_order_id: orderId,
           patient_id: orders.find(o => o.id === orderId)?.patient_id,
           critical: true,
@@ -113,15 +113,15 @@ export default function Lab() {
 
     setResultForm(null);
     setResults({});
-    const o = await base44.entities.LabOrder.list("-created_date", 100);
+    const o = await apiClient.entities.LabOrder.list("-created_date", 100);
     setOrders(o);
   };
 
   const transitionWorkflow = async (journeyId, nextStage, notes = "") => {
     setTransitioning(true);
     try {
-      await base44.functions.invoke('handleWorkflowStageChange', { journey_id: journeyId, next_stage: nextStage, notes });
-      const jList = await base44.entities.PatientJourney.filter({ current_stage: { $in: ["LAB_PENDING", "LAB_PROCESSING"] }, status: "active" }, "-created_date", 30);
+      await apiClient.functions.invoke('handleWorkflowStageChange', { journey_id: journeyId, next_stage: nextStage, notes });
+      const jList = await apiClient.entities.PatientJourney.filter({ current_stage: { $in: ["LAB_PENDING", "LAB_PROCESSING"] }, status: "active" }, "-created_date", 30);
       setLabJourneys(jList);
     } catch (e) {
       toast({ title: "Workflow transition failed", description: e.response?.data?.error || e.message, variant: "destructive" });
@@ -283,8 +283,8 @@ export default function Lab() {
                       {o.status === "ordered" && (
                         <button onClick={async () => {
                           const barcode = `SPC-${Date.now().toString(36).toUpperCase()}`;
-                          await base44.entities.LabOrder.update(o.id, { status: "collected", collected_at: new Date().toISOString(), specimen_barcode: barcode });
-                          const oList = await base44.entities.LabOrder.list("-created_date", 100);
+                          await apiClient.entities.LabOrder.update(o.id, { status: "collected", collected_at: new Date().toISOString(), specimen_barcode: barcode });
+                          const oList = await apiClient.entities.LabOrder.list("-created_date", 100);
                           setOrders(oList);
                         }} className="p-1.5 rounded hover:bg-chart-4/10 text-chart-4 text-xs" title="Collect specimen & assign barcode">Collect</button>
                       )}

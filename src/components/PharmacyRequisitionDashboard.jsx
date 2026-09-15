@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Package, Check, X, Loader2, AlertCircle } from "lucide-react";
 
 export default function PharmacyRequisitionDashboard() {
@@ -11,7 +11,7 @@ export default function PharmacyRequisitionDashboard() {
   useEffect(() => {
     async function fetchRequisitions() {
       try {
-        const reqs = await base44.entities.PharmacyRequisition.filter(
+        const reqs = await apiClient.entities.PharmacyRequisition.filter(
           { status: filter },
           "-created_date",
           100
@@ -29,9 +29,9 @@ export default function PharmacyRequisitionDashboard() {
   const approveRequisition = async (id) => {
     setApproving(id);
     try {
-      await base44.entities.PharmacyRequisition.update(id, {
+      await apiClient.entities.PharmacyRequisition.update(id, {
         status: "approved",
-        approved_by: (await base44.auth.me()).id,
+        approved_by: (await apiClient.auth.me()).id,
         approved_date: new Date().toISOString(),
       });
       setRequisitions(
@@ -47,7 +47,7 @@ export default function PharmacyRequisitionDashboard() {
   const rejectRequisition = async (id) => {
     setApproving(id);
     try {
-      await base44.entities.PharmacyRequisition.update(id, { status: "rejected" });
+      await apiClient.entities.PharmacyRequisition.update(id, { status: "rejected" });
       setRequisitions(requisitions.filter(r => r.id !== id));
     } catch (e) {
       console.error(e);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { CheckCircle, Circle, FileText, Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import PageHeader from "@/components/ui/PageHeader";
@@ -34,8 +34,8 @@ export default function DischargeChecklistFlow() {
   const loadData = async () => {
     try {
       const [admissionData, patientData] = await Promise.all([
-        base44.entities.Admission.filter({ status: "active" }, "-created_date", 100),
-        base44.entities.Patient.list("-created_date", 200),
+        apiClient.entities.Admission.filter({ status: "active" }, "-created_date", 100),
+        apiClient.entities.Patient.list("-created_date", 200),
       ]);
       setAdmissions(admissionData);
       setPatients(patientData);
@@ -58,7 +58,7 @@ export default function DischargeChecklistFlow() {
       const completedItems = Object.values(checklist).filter(Boolean).length;
       
       // Create discharge record
-      await base44.entities.Discharge.create({
+      await apiClient.entities.Discharge.create({
         admission_id: selectedAdmission.id,
         patient_id: selectedAdmission.patient_id,
         discharge_date: new Date().toISOString(),
@@ -70,7 +70,7 @@ export default function DischargeChecklistFlow() {
       });
 
       // Update admission status
-      await base44.entities.Admission.update(selectedAdmission.id, {
+      await apiClient.entities.Admission.update(selectedAdmission.id, {
         status: "discharged",
         discharge_date: new Date().toISOString(),
       });

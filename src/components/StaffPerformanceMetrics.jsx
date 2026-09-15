@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer
@@ -22,7 +22,7 @@ export default function StaffPerformanceMetrics() {
 
   const loadData = async () => {
     try {
-      const userData = await base44.entities.User.list("", 100);
+      const userData = await apiClient.entities.User.list("", 100);
       setUsers(userData.filter(u => u.role === "user" || u.role === "admin"));
     } catch (e) {
       console.error(e);
@@ -34,7 +34,7 @@ export default function StaffPerformanceMetrics() {
   const analyzeStaff = async (userId) => {
     setAnalyzing(true);
     try {
-      const { data } = await base44.functions.invoke("analyzeStaffPerformance", { user_id: userId });
+      const { data } = await apiClient.functions.invoke("analyzeStaffPerformance", { user_id: userId });
       setMetrics(data);
       setAllMetrics(prev => {
         const existing = prev.find(m => m.user_id === userId);

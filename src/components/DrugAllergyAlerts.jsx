@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { AlertTriangle, AlertCircle } from "lucide-react";
 
 export default function DrugAllergyAlerts({ patientId }) {
@@ -16,7 +16,7 @@ export default function DrugAllergyAlerts({ patientId }) {
 
   const loadAllergies = async () => {
     try {
-      const allergy_data = await base44.entities.PatientAllergy.filter(
+      const allergy_data = await apiClient.entities.PatientAllergy.filter(
         { patient_id: patientId, is_active: true },
         "",
         50

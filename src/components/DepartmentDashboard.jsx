@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { ArrowRight, Users, ClipboardCheck, AlertCircle, Clock, Activity, Pill } from "lucide-react";
 
 const DEPT_CONFIGS = {
@@ -77,7 +77,7 @@ export default function DepartmentDashboard({ department, compact = false }) {
 
         // Pull queue from patient journeys
         if (config.pullStage) {
-          const journeys = await base44.entities.PatientJourney.filter(
+          const journeys = await apiClient.entities.PatientJourney.filter(
             { current_stage: config.pullStage, status: "active" },
             "-created_date",
             20
@@ -87,8 +87,8 @@ export default function DepartmentDashboard({ department, compact = false }) {
 
         if (department === "reception") {
           const [registrations, checkins] = await Promise.all([
-            base44.entities.Patient.filter({ created_date: { $gte: today } }, "-created_date", 200),
-            base44.entities.Visit.filter({ created_date: { $gte: today } }, "-created_date", 200),
+            apiClient.entities.Patient.filter({ created_date: { $gte: today } }, "-created_date", 200),
+            apiClient.entities.Visit.filter({ created_date: { $gte: today } }, "-created_date", 200),
           ]);
           result.registrations = registrations.length;
           result.checkins = checkins.length;
@@ -97,9 +97,9 @@ export default function DepartmentDashboard({ department, compact = false }) {
 
         if (department === "clinical") {
           const [consults, diagnoses, prescriptions] = await Promise.all([
-            base44.entities.Consultation.filter({ created_date: { $gte: today } }, "-created_date", 200),
-            base44.entities.Diagnosis.filter({ created_date: { $gte: today } }, "-created_date", 200),
-            base44.entities.Prescription.filter({ created_date: { $gte: today } }, "-created_date", 200),
+            apiClient.entities.Consultation.filter({ created_date: { $gte: today } }, "-created_date", 200),
+            apiClient.entities.Diagnosis.filter({ created_date: { $gte: today } }, "-created_date", 200),
+            apiClient.entities.Prescription.filter({ created_date: { $gte: today } }, "-created_date", 200),
           ]);
           result.consultations = consults.length;
           result.diagnoses = diagnoses.length;
@@ -109,8 +109,8 @@ export default function DepartmentDashboard({ department, compact = false }) {
 
         if (department === "lab") {
           const [orders, results] = await Promise.all([
-            base44.entities.LabOrder.filter({ created_date: { $gte: thirtyDaysAgo } }, "-created_date", 200),
-            base44.entities.LabResult.filter({ created_date: { $gte: thirtyDaysAgo } }, "-created_date", 200),
+            apiClient.entities.LabOrder.filter({ created_date: { $gte: thirtyDaysAgo } }, "-created_date", 200),
+            apiClient.entities.LabResult.filter({ created_date: { $gte: thirtyDaysAgo } }, "-created_date", 200),
           ]);
           result.orders = orders.length;
           result.results = results.length;
@@ -128,8 +128,8 @@ export default function DepartmentDashboard({ department, compact = false }) {
 
         if (department === "imaging") {
           const [orders, results] = await Promise.all([
-            base44.entities.ImagingOrder.filter({ created_date: { $gte: thirtyDaysAgo } }, "-created_date", 200),
-            base44.entities.ImagingResult.filter({ created_date: { $gte: thirtyDaysAgo } }, "-created_date", 200),
+            apiClient.entities.ImagingOrder.filter({ created_date: { $gte: thirtyDaysAgo } }, "-created_date", 200),
+            apiClient.entities.ImagingResult.filter({ created_date: { $gte: thirtyDaysAgo } }, "-created_date", 200),
           ]);
           result.orders = orders.length;
           result.results = results.length;
@@ -139,9 +139,9 @@ export default function DepartmentDashboard({ department, compact = false }) {
 
         if (department === "pharmacy") {
           const [drugs, prescriptions, dispensings] = await Promise.all([
-            base44.entities.Drug.list("", 200),
-            base44.entities.Prescription.filter({ status: { $in: ["pending", "partial"] } }, "-created_date", 100),
-            base44.entities.PharmacyDispensing.filter({ created_date: { $gte: today } }, "-created_date", 100),
+            apiClient.entities.Drug.list("", 200),
+            apiClient.entities.Prescription.filter({ status: { $in: ["pending", "partial"] } }, "-created_date", 100),
+            apiClient.entities.PharmacyDispensing.filter({ created_date: { $gte: today } }, "-created_date", 100),
           ]);
           result.pendingRx = prescriptions.length;
           result.dispensed = dispensings.length;
@@ -151,8 +151,8 @@ export default function DepartmentDashboard({ department, compact = false }) {
 
         if (department === "billing") {
           const [invoices, claims] = await Promise.all([
-            base44.entities.Invoice.filter({ created_date: { $gte: today } }, "-created_date", 200),
-            base44.entities.InsuranceClaim.filter({ created_date: { $gte: thirtyDaysAgo } }, "-created_date", 200),
+            apiClient.entities.Invoice.filter({ created_date: { $gte: today } }, "-created_date", 200),
+            apiClient.entities.InsuranceClaim.filter({ created_date: { $gte: thirtyDaysAgo } }, "-created_date", 200),
           ]);
           result.invoices = invoices.length;
           result.collected = invoices.filter(i => i.status === "paid").reduce((s, i) => s + (i.net_amount || i.total_amount || 0), 0);
@@ -162,10 +162,10 @@ export default function DepartmentDashboard({ department, compact = false }) {
 
         if (department === "inpatient") {
           const [beds, admissions] = await Promise.all([
-            base44.entities.Bed.list("", 200),
-            base44.entities.Admission.list("-created_date", 100),
+            apiClient.entities.Bed.list("", 200),
+            apiClient.entities.Admission.list("-created_date", 100),
           ]);
-          const discharged = await base44.entities.Discharge.filter({ created_date: { $gte: today } }, "-created_date", 50);
+          const discharged = await apiClient.entities.Discharge.filter({ created_date: { $gte: today } }, "-created_date", 50);
           result.occupiedBeds = beds.filter(b => b.status === "occupied").length;
           result.availableBeds = beds.filter(b => b.status === "available").length;
           result.admissions = admissions.filter(a => a.status === "admitted").length;
@@ -174,8 +174,8 @@ export default function DepartmentDashboard({ department, compact = false }) {
 
         if (department === "maternal") {
           const [ancVisits, newborns] = await Promise.all([
-            base44.entities.MaternalVisit.filter({ created_date: { $gte: thirtyDaysAgo } }, "-created_date", 200),
-            base44.entities.NewbornRecord.list("-created_date", 100),
+            apiClient.entities.MaternalVisit.filter({ created_date: { $gte: thirtyDaysAgo } }, "-created_date", 200),
+            apiClient.entities.NewbornRecord.list("-created_date", 100),
           ]);
           result.ancVisits = ancVisits.length;
           result.deliveries = ancVisits.filter(v => v.delivery_outcome === "delivered").length;
@@ -185,13 +185,13 @@ export default function DepartmentDashboard({ department, compact = false }) {
 
         if (department === "nursing") {
           const [triageJourneys, vitals, dispensings] = await Promise.all([
-            base44.entities.PatientJourney.filter(
+            apiClient.entities.PatientJourney.filter(
               { current_stage: "TRIAGE", status: "active" },
               "-created_date",
               100
             ),
-            base44.entities.VitalSigns.filter({ created_date: { $gte: today } }, "-created_date", 200),
-            base44.entities.PharmacyDispensing.filter({ created_date: { $gte: today } }, "-created_date", 200),
+            apiClient.entities.VitalSigns.filter({ created_date: { $gte: today } }, "-created_date", 200),
+            apiClient.entities.PharmacyDispensing.filter({ created_date: { $gte: today } }, "-created_date", 200),
           ]);
           result.triageToday = triageJourneys.length;
           result.vitalsRecorded = vitals.length;
@@ -209,7 +209,7 @@ export default function DepartmentDashboard({ department, compact = false }) {
   const handlePullNext = async (journeyId) => {
     setPulling(true);
     try {
-      await base44.functions.invoke("handleWorkflowStageChange", {
+      await apiClient.functions.invoke("handleWorkflowStageChange", {
         journey_id: journeyId,
         next_stage: config.pullStage,
         notes: `Pulled by ${config.label} department`,

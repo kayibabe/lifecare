@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { Pill, CheckCircle, AlertTriangle, RefreshCw } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import PageHeader from "@/components/ui/PageHeader";
@@ -18,8 +18,8 @@ export default function TreatmentAdherence() {
   const loadData = async () => {
     try {
       const [patientData, consultationData] = await Promise.all([
-        base44.entities.Patient.list("-created_date", 200),
-        base44.entities.Consultation.list("-created_date", 500),
+        apiClient.entities.Patient.list("-created_date", 200),
+        apiClient.entities.Consultation.list("-created_date", 500),
       ]);
       setPatients(patientData);
       setConsultations(consultationData);

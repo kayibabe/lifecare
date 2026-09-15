@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { X, Plus, Trash2, Loader2 } from "lucide-react";
 
 export default function SurgicalRequisitionModal({ bookings, inventory, onClose, onSubmit }) {
@@ -38,13 +38,13 @@ export default function SurgicalRequisitionModal({ bookings, inventory, onClose,
     setError("");
     try {
       const booking = bookings.find(b => b.id === selectedBooking);
-      const req = await base44.entities.SurgicalRequisition.create({
+      const req = await apiClient.entities.SurgicalRequisition.create({
         booking_id: selectedBooking,
         patient_id: booking?.patient_id || "",
         procedure_name: booking?.procedure_name || "Unknown",
         scheduled_date: booking?.scheduled_date || new Date().toISOString().slice(0, 10),
-        requested_by_id: (await base44.auth.me()).id,
-        requested_by_name: (await base44.auth.me()).display_name || (await base44.auth.me()).full_name,
+        requested_by_id: (await apiClient.auth.me()).id,
+        requested_by_name: (await apiClient.auth.me()).display_name || (await apiClient.auth.me()).full_name,
         requisition_date: new Date().toISOString(),
         items: JSON.stringify(items),
         status: "submitted",
@@ -55,7 +55,7 @@ export default function SurgicalRequisitionModal({ bookings, inventory, onClose,
 
       // Auto-create dispensing records for each item
       for (const item of items) {
-        await base44.entities.SurgicalDispensing.create({
+        await apiClient.entities.SurgicalDispensing.create({
           requisition_id: req.id,
           booking_id: selectedBooking,
           patient_id: booking?.patient_id || "",

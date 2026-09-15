@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { FileText, Printer, Loader2, CheckCircle, RefreshCw, User, Stethoscope, Pill, Calendar, Activity, BookOpen, AlertCircle } from "lucide-react";
 
 const CONDITION_OPTIONS = ["stable", "improved", "recovered", "referred", "self_discharge", "deceased"];
@@ -32,19 +32,19 @@ export default function DischargeSummaryTemplate({ patientId, visitId, patientNa
     setPulling(true);
     try {
       const [diagnoses, consultations, prescriptions, labOrders, vitals, admission] = await Promise.all([
-        base44.entities.Diagnosis.filter({ visit_id: visitId }, "-created_date", 20),
-        base44.entities.Consultation.filter({ visit_id: visitId }, "-created_date", 10),
-        base44.entities.Prescription.filter({ visit_id: visitId }, "-created_date", 10),
-        base44.entities.LabOrder.filter({ patient_id: patientId }, "-created_date", 20),
-        base44.entities.VitalSigns.filter({ visit_id: visitId }, "-created_date", 5),
-        base44.entities.Admission.filter({ visit_id: visitId }, "-created_date", 1),
+        apiClient.entities.Diagnosis.filter({ visit_id: visitId }, "-created_date", 20),
+        apiClient.entities.Consultation.filter({ visit_id: visitId }, "-created_date", 10),
+        apiClient.entities.Prescription.filter({ visit_id: visitId }, "-created_date", 10),
+        apiClient.entities.LabOrder.filter({ patient_id: patientId }, "-created_date", 20),
+        apiClient.entities.VitalSigns.filter({ visit_id: visitId }, "-created_date", 5),
+        apiClient.entities.Admission.filter({ visit_id: visitId }, "-created_date", 1),
       ]);
 
       // Fetch prescription items for each prescription
       let allPrescItems = [];
       for (const presc of prescriptions) {
         try {
-          const items = await base44.entities.PrescriptionItem.filter({ prescription_id: presc.id }, "", 30);
+          const items = await apiClient.entities.PrescriptionItem.filter({ prescription_id: presc.id }, "", 30);
           allPrescItems = [...allPrescItems, ...items];
         } catch (_) {}
       }
@@ -120,7 +120,7 @@ export default function DischargeSummaryTemplate({ patientId, visitId, patientNa
   const generateWithAI = async () => {
     setGenerating(true);
     try {
-      const { data } = await base44.functions.invoke("generateDischargeSummary", { visit_id: visitId, patient_id: patientId });
+      const { data } = await apiClient.functions.invoke("generateDischargeSummary", { visit_id: visitId, patient_id: patientId });
       if (data?.structured) setForm(prev => ({ ...prev, ...data.structured }));
       else if (data?.summary) setForm(prev => ({ ...prev, clinical_course: data.summary }));
     } catch (_) {}
@@ -130,7 +130,7 @@ export default function DischargeSummaryTemplate({ patientId, visitId, patientNa
   const handleSave = async () => {
     setSaving(true);
     try {
-      await base44.entities.Discharge.create({
+      await apiClient.entities.Discharge.create({
         patient_id: patientId,
         visit_id: visitId,
         discharge_date: new Date(form.discharge_date).toISOString(),
