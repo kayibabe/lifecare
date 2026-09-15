@@ -19,10 +19,15 @@ Full-stack clinic management system for a Malawi client. This repo holds **four 
 .\.venv\Scripts\python.exe -m pytest tests -q
 # Backend migrations (offline SQL check):
 .\.venv\Scripts\python.exe -m alembic upgrade head --sql
+# Backend dev server (from backend/, against real Postgres — see Windows note below):
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --loop app.core.event_loop:selector_loop_factory
 # Root frontend (from repo root):
 npm test          # vitest (includes src/api/customClient.test.js adapter regressions)
 npm run build     # vite build
+npm run dev       # vite dev server, proxies /api to localhost:8000 (see vite.config.js)
 ```
+
+**Windows dev server note:** `uvicorn`'s default "asyncio" loop hardcodes `ProactorEventLoop` on win32 (unless run with `--reload`/multiple workers), which psycopg's async driver cannot use — the backend fails at startup with `psycopg.InterfaceError`. The `--loop app.core.event_loop:selector_loop_factory` flag above works around it; standalone scripts (`seed_admin.py`, `seed_users.py`) already set `WindowsSelectorEventLoopPolicy` themselves and don't need it. Not an issue on Linux (CI, tests, Railway).
 
 Tests use in-memory SQLite via `backend/tests/conftest.py` (httpx ASGITransport, no server needed). Sequences (MRN/INV/RCT/CLM/…) are Postgres sequences with a COUNT+1 SQLite fallback.
 
