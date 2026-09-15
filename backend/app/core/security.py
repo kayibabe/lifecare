@@ -59,3 +59,31 @@ def create_refresh_token(subject: str) -> str:
 
 def decode_token(token: str) -> dict[str, Any]:
     return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+
+
+# Patient tokens use deliberately distinct `type` values (patient_access /
+# patient_refresh, not access / refresh) so a patient token can never satisfy
+# get_current_user's `type == "access"` check, and a staff token can never
+# satisfy require_patient's `type == "patient_access"` check — the two
+# identity spaces cannot cross even if a caller tries to reuse a token
+# across the wrong endpoint.
+def create_patient_access_token(patient_id: str) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    payload = {
+        "sub": patient_id,
+        "exp": expire,
+        "type": "patient_access",
+        "jti": str(uuid.uuid4()),
+    }
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
+def create_patient_refresh_token(patient_id: str) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    payload = {
+        "sub": patient_id,
+        "exp": expire,
+        "type": "patient_refresh",
+        "jti": str(uuid.uuid4()),
+    }
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)

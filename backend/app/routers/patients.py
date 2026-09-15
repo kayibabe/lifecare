@@ -7,10 +7,12 @@ from app.core.auth import require_role
 from app.core.audit import log_action
 from app.models.user import User, UserRole
 from app.models.patient import Patient, PatientAllergy
+from app.models.patient_message import PatientMessage
 from app.schemas.patient import (
     PatientCreate, PatientUpdate, PatientResponse, PatientListResponse,
     PatientAllergyCreate, PatientAllergyResponse,
 )
+from app.schemas.patient_auth import PatientMessageCreate, PatientMessageResponse
 import uuid
 
 router = APIRouter(prefix="/patients", tags=["patients"])
@@ -212,3 +214,35 @@ async def create_patient_allergy(
         new_value={"patient_id": patient_id, "allergen": allergy.allergen, "severity": allergy.severity},
     )
     return allergy
+
+
+@router.post("/{patient_id}/messages", response_model=PatientMessageResponse, status_code=status.HTTP_201_CREATED)
+async def send_patient_message(
+    patient_id: str,
+    body: PatientMessageCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role(
+        UserRole.admin, UserRole.receptionist, UserRole.doctor, UserRole.nurse,
+        UserRole.clinician, UserRole.lab_technician, UserRole.pharmacist,
+    )),
+):
+    """Minimal one-way send for the patient portal inbox — results ready,
+    reminders, etc. No dedicated staff compose UI yet; this endpoint exists
+    so one can be bolted onto an existing page without a new router."""
+    if not (await db.execute(select(Patient.id).where(
+        Patient.id == patient_id, Patient.is_deleted == False
+    ))).scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Patient not found")
+    message = PatientMessage(
+        id=str(uuid.uuid4()), patient_id=patient_id, created_by_id=current_user.id,
+        **body.model_dump(),
+    )
+    db.add(message)
+    await db.flush()
+    await db.refresh(message)
+    await log_action(
+        db, action="create", entity_type="patient_message",
+        user_id=current_user.id, entity_id=message.id,
+        new_value={"patient_id": patient_id, "subject": message.subject},
+    )
+    return message

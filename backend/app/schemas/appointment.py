@@ -80,7 +80,7 @@ class AppointmentResponse(BaseModel):
     cancellation_reason: str | None
     encounter_id: str | None
     notes: str | None
-    created_by_id: str
+    created_by_id: str | None
     created_at: datetime
     updated_at: datetime
 

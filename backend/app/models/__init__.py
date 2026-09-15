@@ -14,6 +14,7 @@ from app.models.theatre import TheatreCase, PreOpChecklist
 from app.models.mortuary import DeathRecord, MortuaryAdmission
 from app.models.insurance import Insurer, SchemeMember, PreAuthorization, InsuranceClaim
 from app.models.scheduling import DoctorSchedule, DoctorHandover, ShiftHandoverLog
+from app.models.patient_message import PatientMessage
 
 __all__ = [
     "User", "UserRole",
@@ -32,4 +33,5 @@ __all__ = [
     "DeathRecord", "MortuaryAdmission",
     "Insurer", "SchemeMember", "PreAuthorization", "InsuranceClaim",
     "DoctorSchedule", "DoctorHandover", "ShiftHandoverLog",
+    "PatientMessage",
 ]

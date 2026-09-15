@@ -76,8 +76,10 @@ class Appointment(Base):
         ForeignKey("encounters.id"), nullable=True, index=True
     )
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_by_id: Mapped[str] = mapped_column(
-        ForeignKey("users.id"), nullable=False, index=True
+    # Nullable: appointments booked by a patient through the patient portal
+    # have no staff creator.
+    created_by_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id"), nullable=True, index=True
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
