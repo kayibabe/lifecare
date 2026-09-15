@@ -117,6 +117,16 @@ function makeHttp(baseURL) {
   };
 }
 
+// Parses a JSON.stringify'd field back into a real value for entities whose
+// backend column is JSON but whose frontend page builds the field as a
+// string. Returns null for empty/invalid input rather than throwing, since
+// this runs at the request-building boundary.
+function safeParseJSON(v) {
+  if (v == null || v === '') return null;
+  if (typeof v !== 'string') return v;
+  try { return JSON.parse(v); } catch { return null; }
+}
+
 // ─── ENTITY DEFINITIONS ───────────────────────────────────────────────────────
 // For each frontend entity name: endpoint path, field transforms (both directions),
 // and a filterMap for renaming filter keys before sending to FastAPI.
@@ -386,6 +396,68 @@ export const ENTITY_DEFS = {
     }),
     filterMap: { visit_id: 'encounter_id' },
   },
+
+  DoctorSchedule: {
+    endpoint: '/doctor-schedules',
+    fromAPI: (s) => s && ({ ...s, created_date: s.created_at }),
+    toAPI: (d) => d,
+    // SurgicalLeadDashboard.jsx filters by shift_date; DoctorSchedule.jsx's
+    // own field is schedule_date — same column, two frontend names.
+    filterMap: { shift_date: 'schedule_date', created_date: 'created_at' },
+  },
+
+  DoctorHandover: {
+    endpoint: '/doctor-handovers',
+    // active_patients/linked_patient_ids are real JSON columns on the
+    // backend, but the frontend builds/reads them as JSON.stringify'd
+    // strings (a pattern shared with a few other entities) — parse/stringify
+    // at this boundary so the page code doesn't need to change.
+    fromAPI: (h) => h && ({
+      ...h,
+      created_date: h.created_at,
+      active_patients: h.active_patients != null ? JSON.stringify(h.active_patients) : null,
+      linked_patient_ids: h.linked_patient_ids != null ? JSON.stringify(h.linked_patient_ids) : null,
+    }),
+    toAPI: (d) => ({
+      ...d,
+      active_patients: safeParseJSON(d.active_patients),
+      linked_patient_ids: safeParseJSON(d.linked_patient_ids),
+    }),
+    // Range filters ($gte/$lt) are plain object values buildParams can't
+    // forward as query params — flatten created_date's range into the
+    // since/until params the backend actually accepts.
+    preFilter: (f) => {
+      if (f?.created_date && typeof f.created_date === 'object') {
+        const { created_date, ...rest } = f;
+        const toISO = (v) => (v instanceof Date ? v.toISOString() : v);
+        const out = { ...rest };
+        if (created_date.$gte) out.since = toISO(created_date.$gte);
+        if (created_date.$lt) out.until = toISO(created_date.$lt);
+        return out;
+      }
+      return f;
+    },
+    filterMap: {},
+  },
+
+  ShiftHandoverLog: {
+    endpoint: '/shift-handover-logs',
+    fromAPI: (h) => h && ({ ...h, created_date: h.created_at }),
+    toAPI: (d) => d,
+    updateMethod: 'patch', // backend exposes PATCH /shift-handover-logs/{id}, not PUT
+    preFilter: (f) => {
+      if (f?.handover_date && typeof f.handover_date === 'object') {
+        const { handover_date, ...rest } = f;
+        const toISO = (v) => (v instanceof Date ? v.toISOString() : v);
+        const out = { ...rest };
+        if (handover_date.$gte) out.since = toISO(handover_date.$gte);
+        if (handover_date.$lt) out.until = toISO(handover_date.$lt);
+        return out;
+      }
+      return f;
+    },
+    filterMap: {},
+  },
 };
 
 const APPT_TYPE_TO_API = {
@@ -407,7 +479,7 @@ const STUB_ENTITIES = new Set([
   'PartographEntry', 'WardTransfer', 'Discharge', 'Diagnosis',
   'LabReagent', 'AuditFlag', 'IncidentReport', 'DigitalSignature',
   'IPCSurveillance', 'WasteLog', 'WasteCategory', 'DeathCertificate',
-  'DHIS2Export', 'DoctorSchedule', 'DoctorHandover', 'ShiftHandoverLog',
+  'DHIS2Export',
   'LoginSession', 'StaffCompliance', 'UserSecurity', 'NurseTask',
   'ClinicalTemplate', 'HandoverTemplate', 'NursingCarePlan', 'ClinicalPlan',
   'ExchangeRate', 'CashierShift',

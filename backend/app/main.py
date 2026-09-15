@@ -10,12 +10,13 @@ from app.core.ratelimit import limiter
 from app.core.redis import close_redis
 from app.routers import auth, patients, admin, sync
 from app.routers import encounters, billing, lab, pharmacy, admissions, nursing, referrals, appointments
-from app.routers import theatre, mortuary, insurance
+from app.routers import theatre, mortuary, insurance, scheduling
 import app.models.referral       # ensure Referral table is registered with Base.metadata
 import app.models.appointment    # ensure Appointment table is registered with Base.metadata
 import app.models.theatre        # ensure theatre tables are registered with Base.metadata
 import app.models.mortuary       # ensure mortuary tables are registered with Base.metadata
 import app.models.insurance      # ensure insurance tables are registered with Base.metadata
+import app.models.scheduling     # ensure scheduling tables are registered with Base.metadata
 
 
 @asynccontextmanager
@@ -61,6 +62,7 @@ app.include_router(appointments.router, prefix="/api/v1")
 app.include_router(theatre.router, prefix="/api/v1")
 app.include_router(mortuary.router, prefix="/api/v1")
 app.include_router(insurance.router, prefix="/api/v1")
+app.include_router(scheduling.router, prefix="/api/v1")
 
 
 @app.get("/health")
