@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,9 +21,24 @@ import app.models.insurance      # ensure insurance tables are registered with B
 import app.models.scheduling     # ensure scheduling tables are registered with Base.metadata
 import app.models.patient_message  # ensure patient_messages table is registered with Base.metadata
 
+_log = logging.getLogger(__name__)
+
+_LOCALHOST_ONLY = {"http://localhost:5173", "http://127.0.0.1:5173",
+                   "http://localhost:3000", "http://localhost:8080", "http://127.0.0.1:8080"}
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if settings.ENVIRONMENT == "production":
+        origins = set(settings.allowed_origins_list)
+        if origins <= _LOCALHOST_ONLY or not origins:
+            _log.warning(
+                "CORS WARNING: ALLOWED_ORIGINS contains only localhost origins in production. "
+                "Cross-origin requests from the Railway frontend will be blocked. "
+                "Set ALLOWED_ORIGINS to the frontend's public URL on the backend Railway service."
+            )
+        else:
+            _log.info("CORS origins: %s", ", ".join(sorted(origins)))
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield

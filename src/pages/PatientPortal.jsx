@@ -118,7 +118,11 @@ export default function PatientPortal() {
       const a = await apiClient.patientPortal.listAppointments();
       setAppointments(a);
     } catch (err) {
-      setBookingError(formatApiError(err, "Unable to book appointment. Please check your connection and try again."));
+      console.error('[PatientPortal] bookAppointment error:', err);
+      const msg = !err?.status
+        ? "Unable to reach the server. Check your internet connection and try again."
+        : formatApiError(err, "Unable to book appointment. Please try again.");
+      setBookingError(msg);
     } finally {
       setBooking(false);
     }
