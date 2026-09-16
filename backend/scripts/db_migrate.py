@@ -37,6 +37,14 @@ def _run(*args: str) -> None:
     subprocess.run([sys.executable, "-m", *args], check=True)
 
 
+def _col_is_nullable(conn, table: str, column: str) -> bool:
+    row = conn.execute(text(
+        "SELECT is_nullable FROM information_schema.columns "
+        f"WHERE table_schema='public' AND table_name='{table}' AND column_name='{column}'"
+    )).fetchone()
+    return row is None or row[0] == "YES"
+
+
 def main() -> None:
     engine = create_engine(settings.db_url_sync)
 
@@ -50,6 +58,16 @@ def main() -> None:
         if not _table_exists(conn, "alembic_version"):
             print(f"[migrate] Stamping at {_INITIAL_REVISION}")
             _run("alembic", "stamp", _INITIAL_REVISION)
+
+        # Direct DDL fix: Alembic async migrations failed to commit this DDL.
+        # Idempotent in PostgreSQL (no-op if already nullable).
+        if not _col_is_nullable(conn, "appointments", "created_by_id"):
+            print("[migrate] Fixing appointments.created_by_id NOT NULL constraint")
+            conn.execute(text(
+                "ALTER TABLE appointments ALTER COLUMN created_by_id DROP NOT NULL"
+            ))
+            conn.commit()
+            print("[migrate] Fixed")
 
     print("[migrate] Upgrading to head")
     _run("alembic", "upgrade", "head")
