@@ -110,6 +110,7 @@ export const ALL_NAV_GROUPS = [
       { label: "Doctor Performance", path: "/doctor-performance", icon: BarChart2, roles: ["admin"] },
       { label: "MoH Reports", path: "/moh-reports", icon: FileBarChart, roles: ["admin"] },
       { label: "Audit Logs", path: "/audit-logs", icon: ScrollText, roles: ["admin"] },
+      { label: "Analysis Dashboard", path: "/analysis", icon: BarChart3, roles: ["admin"] },
     ],
   },
   {

@@ -77,6 +77,7 @@ import PatientOutcomeTracker from '@/pages/PatientOutcomeTracker';
 import TotpSetup from '@/pages/TotpSetup';
 import TotpManagement from '@/pages/TotpManagement';
 import ClinicalAuditLog from '@/pages/ClinicalAuditLog';
+import AnalysisDashboard from '@/pages/AnalysisDashboard';
 import EmergencyAlertSystem from '@/components/EmergencyAlertSystem';
 import Layout from '@/components/Layout';
 import RoleRoute from '@/components/RoleRoute';
@@ -172,6 +173,7 @@ const AuthenticatedApp = () => {
         <Route path="/treatment-adherence" element={<TreatmentAdherence />} />
         <Route path="/patient-outcomes" element={<PatientOutcomeTracker />} />
         <Route path="/audit-logs" element={<ClinicalAuditLog />} />
+        <Route path="/analysis" element={<AnalysisDashboard />} />
         <Route path="/patient-history" element={<PatientHistory />} />
         <Route path="/surge" element={<Surge />} />
        </Route>

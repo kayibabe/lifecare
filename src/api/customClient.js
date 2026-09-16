@@ -1020,6 +1020,10 @@ export function createCustomClient(baseURL) {
     patientAuth,
     patientPortal,
 
+    reports: {
+      analytics: (days = 30) => http.get('/admin/analytics', { params: { days } }),
+    },
+
     functions: {
       invoke: (name, params) => invokeFunction(name, params, http),
     },
