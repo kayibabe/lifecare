@@ -78,7 +78,6 @@ import TotpSetup from '@/pages/TotpSetup';
 import TotpManagement from '@/pages/TotpManagement';
 import ClinicalAuditLog from '@/pages/ClinicalAuditLog';
 import AnalysisDashboard from '@/pages/AnalysisDashboard';
-import EmergencyAlertSystem from '@/components/EmergencyAlertSystem';
 import Layout from '@/components/Layout';
 import RoleRoute from '@/components/RoleRoute';
 import Login from '@/pages/Login';
@@ -193,7 +192,6 @@ function App() {
           <Router>
             <ScrollToTop />
             <AuthenticatedApp />
-            <EmergencyAlertSystem />
           </Router>
           <Toaster />
         </QueryClientProvider>

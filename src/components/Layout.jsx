@@ -5,12 +5,13 @@ import { apiClient } from "@/api/apiClient";
 import LivePulse from "@/components/LivePulse";
 import QuickActionMenu from "@/components/QuickActionMenu";
 import SurgeAlertBanner from "@/components/SurgeAlertBanner";
+import EmergencyAlertSystem from "@/components/EmergencyAlertSystem";
 
 import {
   LayoutDashboard, Users, CalendarDays, Stethoscope, Microscope,
   Scan, Pill, BedDouble, Baby, Receipt, Shield,
   ChevronLeft, ChevronRight, LogOut, Menu, Activity,
-  Bell, Search, ClipboardPen, Monitor, FileBarChart, Trash2, PenTool,
+  Search, ClipboardPen, Monitor, FileBarChart, Trash2, PenTool,
   ArrowRightLeft, ShieldCheck, ClipboardCheck, Scissors, Map, CalendarClock, CalendarRange,
   TrendingUp, Package2, PackageCheck, MessageSquare, ScrollText, CheckCircle, ChevronDown, Siren,
   ClipboardList, Users2, ShoppingCart, Truck, BarChart3, HeartPulse, Award, BarChart2, Banknote,
@@ -469,12 +470,7 @@ export default function Layout() {
             >
               <Search className="w-5 h-5" />
             </button>
-            <button
-              className="relative p-2 rounded-lg hover:bg-secondary text-muted-foreground transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary"
-              aria-label="Notifications"
-            >
-              <Bell className="w-5 h-5" />
-            </button>
+            <EmergencyAlertSystem />
             <div className="relative">
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
