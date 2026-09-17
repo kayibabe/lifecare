@@ -108,11 +108,12 @@ export const ALL_NAV_GROUPS = [
     color: "#1E40AF",
     icon: BarChart3,
     items: [
+      { label: "Reports Hub", path: "/reports", icon: FileBarChart, roles: ["admin", "user", "receptionist", "cashier", "doctor", "dentist", "clinician", "nurse", "midwife", "pharmacist", "lab_technician", "radiographer", "surgical_lead", "store_manager"] },
       { label: "Physician Performance", path: "/physician-performance", icon: Award, roles: ["admin"] },
       { label: "Doctor Performance", path: "/doctor-performance", icon: BarChart2, roles: ["admin"] },
       { label: "MoH Reports", path: "/moh-reports", icon: FileBarChart, roles: ["admin"] },
       { label: "Audit Logs", path: "/audit-logs", icon: ScrollText, roles: ["admin"] },
-      { label: "Analysis Dashboard", path: "/analysis", icon: BarChart3, roles: ["admin"] },
+      { label: "Analysis Dashboard", path: "/analysis", icon: BarChart3, roles: ["admin", "user", "receptionist", "cashier", "doctor", "dentist", "clinician", "nurse", "midwife", "pharmacist", "lab_technician", "radiographer", "surgical_lead", "store_manager"] },
     ],
   },
   {

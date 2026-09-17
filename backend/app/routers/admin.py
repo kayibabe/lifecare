@@ -5,8 +5,9 @@ from sqlalchemy.orm import selectinload
 from datetime import date, datetime, time, timedelta, timezone
 from app.models.encounter import Encounter
 from app.models.lab import LabOrder
-from app.models.pharmacy import Drug, Prescription
-from app.models.billing import BillingInvoice
+from app.models.pharmacy import Drug, Prescription, PrescriptionItem
+from app.models.billing import BillingInvoice, Payment
+from app.models.insurance import InsuranceClaim
 from pydantic import BaseModel, field_validator
 from app.core.database import get_db
 from app.core.auth import require_role
@@ -198,7 +199,7 @@ async def get_stats(
 async def get_analytics(
     days: int = Query(30, ge=1, le=365),
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_role(UserRole.admin)),
+    current_user: User = Depends(require_role(*tuple(UserRole))),
 ):
     """Read-only operational analysis over persisted backend records.
 
@@ -256,6 +257,12 @@ async def get_analytics(
             "expiry_date": nearest.isoformat() if nearest else None, "status": status,
         })
 
+    # Operational aggregates are safe for authenticated staff. Financial
+    # totals remain restricted because the report hub is available to all
+    # clinical and operational roles.
+    can_view_financials = current_user.role in {
+        UserRole.admin, UserRole.cashier, UserRole.billing_clerk,
+    }
     return {
         "as_of": datetime.now(timezone.utc).isoformat(),
         "range_days": days,
@@ -267,5 +274,195 @@ async def get_analytics(
                   "out_of_stock": out_count, "commodities": commodities},
         "operations": {"encounters": len(encounters), "lab_orders": len(lab_orders),
                        "prescription_items": len(prescriptions),
-                       "paid_revenue": float(sum((i.total or 0) for i in invoices))},
+                       "paid_revenue": float(sum((i.total or 0) for i in invoices)) if can_view_financials else None},
+    }
+
+
+@router.get("/reports/clinical-activity")
+async def get_clinical_activity_report(
+    days: int = Query(30, ge=1, le=365),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role(*tuple(UserRole))),
+):
+    """Return aggregate clinical activity for a bounded reporting period.
+
+    This endpoint intentionally returns counts and categories only. It does
+    not expose patient identifiers or free-text clinical notes.
+    """
+    today = date.today()
+    start = today - timedelta(days=days - 1)
+    start_dt = datetime.combine(start, time.min, tzinfo=timezone.utc)
+    end_dt = datetime.combine(today + timedelta(days=1), time.min, tzinfo=timezone.utc)
+
+    patients = (await db.execute(
+        select(Patient).where(
+            Patient.created_at >= start_dt,
+            Patient.created_at < end_dt,
+            Patient.is_deleted == False,
+        )
+    )).scalars().all()
+    encounters = (await db.execute(
+        select(Encounter).where(
+            Encounter.encounter_date >= start_dt,
+            Encounter.encounter_date < end_dt,
+        )
+    )).scalars().all()
+    lab_orders = (await db.execute(
+        select(LabOrder).where(
+            LabOrder.created_at >= start_dt,
+            LabOrder.created_at < end_dt,
+        )
+    )).scalars().all()
+    prescriptions = (await db.execute(
+        select(Prescription).where(
+            Prescription.prescribed_at >= start_dt,
+            Prescription.prescribed_at < end_dt,
+        )
+    )).scalars().all()
+
+    def counts(rows, attribute):
+        result = {}
+        for row in rows:
+            value = getattr(row, attribute, None)
+            key = value.value if hasattr(value, "value") else (value or "unknown")
+            result[key] = result.get(key, 0) + 1
+        return dict(sorted(result.items()))
+
+    return {
+        "as_of": datetime.now(timezone.utc).isoformat(),
+        "period": {"start": start.isoformat(), "end": today.isoformat(), "days": days},
+        "patients": {
+            "new_registrations": len(patients),
+            "by_gender": counts(patients, "gender"),
+        },
+        "encounters": {
+            "total": len(encounters),
+            "by_type": counts(encounters, "encounter_type"),
+            "by_status": counts(encounters, "status"),
+        },
+        "laboratory": {
+            "orders": len(lab_orders),
+            "by_status": counts(lab_orders, "status"),
+            "by_priority": counts(lab_orders, "priority"),
+        },
+        "prescriptions": {
+            "total": len(prescriptions),
+            "by_status": counts(prescriptions, "status"),
+        },
+    }
+
+
+@router.get("/reports/finance-summary")
+async def get_finance_summary_report(
+    days: int = Query(30, ge=1, le=365),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role(UserRole.admin, UserRole.cashier, UserRole.billing_clerk)),
+):
+    """Return aggregate finance and claims metrics for finance staff."""
+    today = date.today()
+    start = today - timedelta(days=days - 1)
+    start_dt = datetime.combine(start, time.min, tzinfo=timezone.utc)
+    end_dt = datetime.combine(today + timedelta(days=1), time.min, tzinfo=timezone.utc)
+
+    invoices = (await db.execute(select(BillingInvoice).where(
+        BillingInvoice.created_at >= start_dt, BillingInvoice.created_at < end_dt,
+    ))).scalars().all()
+    payments = (await db.execute(select(Payment).where(
+        Payment.received_at >= start_dt, Payment.received_at < end_dt,
+    ))).scalars().all()
+    claims = (await db.execute(select(InsuranceClaim).where(
+        InsuranceClaim.created_at >= start_dt, InsuranceClaim.created_at < end_dt,
+    ))).scalars().all()
+
+    def counts(rows, attribute):
+        result = {}
+        for row in rows:
+            value = getattr(row, attribute, None)
+            key = value.value if hasattr(value, "value") else (value or "unknown")
+            result[key] = result.get(key, 0) + 1
+        return dict(sorted(result.items()))
+
+    def total(rows, attribute):
+        return float(sum((getattr(row, attribute, 0) or 0) for row in rows))
+
+    return {
+        "as_of": datetime.now(timezone.utc).isoformat(),
+        "period": {"start": start.isoformat(), "end": today.isoformat(), "days": days},
+        "invoices": {
+            "count": len(invoices), "by_status": counts(invoices, "status"),
+            "gross_total": total(invoices, "total"), "outstanding_balance": total(invoices, "balance"),
+        },
+        "payments": {
+            "count": len(payments), "by_method": counts(payments, "payment_mode"),
+            "collected_total": total(payments, "amount"),
+        },
+        "claims": {
+            "count": len(claims), "by_status": counts(claims, "status"),
+            "claimed_total": total(claims, "claimed_amount"),
+            "approved_total": total(claims, "approved_amount"),
+        },
+    }
+
+
+@router.get("/reports/pharmacy-summary")
+async def get_pharmacy_summary_report(
+    days: int = Query(30, ge=1, le=365),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role(UserRole.admin, UserRole.pharmacist, UserRole.store_manager)),
+):
+    """Return aggregate inventory risk and dispensing metrics."""
+    today = date.today()
+    start = today - timedelta(days=days - 1)
+    start_dt = datetime.combine(start, time.min, tzinfo=timezone.utc)
+    end_dt = datetime.combine(today + timedelta(days=1), time.min, tzinfo=timezone.utc)
+    expiry_30 = today + timedelta(days=30)
+    expiry_90 = today + timedelta(days=90)
+
+    drugs = (await db.execute(select(Drug).options(selectinload(Drug.stock)).where(
+        Drug.is_active == True,
+    ).order_by(Drug.name))).scalars().all()
+    dispensed = (await db.execute(select(PrescriptionItem).where(
+        PrescriptionItem.dispensed_at >= start_dt,
+        PrescriptionItem.dispensed_at < end_dt,
+        PrescriptionItem.dispensed_quantity > 0,
+    ))).scalars().all()
+
+    low_stock = out_of_stock = total_units = 0
+    stock_value = 0.0
+    expiry = {"expired": 0, "within_30_days": 0, "within_90_days": 0}
+    controlled = {"medicines": 0, "units": 0}
+    for drug in drugs:
+        batches = [batch for batch in drug.stock if batch.quantity_current > 0]
+        units = sum(batch.quantity_current for batch in batches)
+        total_units += units
+        stock_value += units * float(drug.unit_price or 0)
+        if units == 0:
+            out_of_stock += 1
+        elif units <= drug.reorder_level:
+            low_stock += 1
+        if drug.is_controlled:
+            controlled["medicines"] += 1
+            controlled["units"] += units
+        for batch in batches:
+            if batch.expiry_date < today:
+                expiry["expired"] += 1
+            elif batch.expiry_date <= expiry_30:
+                expiry["within_30_days"] += 1
+            elif batch.expiry_date <= expiry_90:
+                expiry["within_90_days"] += 1
+
+    return {
+        "as_of": datetime.now(timezone.utc).isoformat(),
+        "period": {"start": start.isoformat(), "end": today.isoformat(), "days": days},
+        "inventory": {
+            "active_medicines": len(drugs), "total_units": total_units,
+            "estimated_value": round(stock_value, 2),
+            "low_stock_medicines": low_stock, "out_of_stock_medicines": out_of_stock,
+            "expiry_risk": expiry,
+        },
+        "dispensing": {
+            "line_items": len(dispensed),
+            "units_dispensed": sum(item.dispensed_quantity or 0 for item in dispensed),
+        },
+        "controlled": controlled,
     }

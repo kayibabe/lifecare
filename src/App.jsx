@@ -79,6 +79,7 @@ import TotpSetup from '@/pages/TotpSetup';
 import TotpManagement from '@/pages/TotpManagement';
 import ClinicalAuditLog from '@/pages/ClinicalAuditLog';
 import AnalysisDashboard from '@/pages/AnalysisDashboard';
+import ReportsHub from '@/pages/ReportsHub';
 import Layout from '@/components/Layout';
 import RoleRoute from '@/components/RoleRoute';
 import Login from '@/pages/Login';
@@ -175,6 +176,7 @@ const AuthenticatedApp = () => {
         <Route path="/patient-outcomes" element={<PatientOutcomeTracker />} />
         <Route path="/audit-logs" element={<ClinicalAuditLog />} />
         <Route path="/analysis" element={<AnalysisDashboard />} />
+        <Route path="/reports" element={<ReportsHub />} />
         <Route path="/patient-history" element={<PatientHistory />} />
         <Route path="/surge" element={<Surge />} />
        </Route>

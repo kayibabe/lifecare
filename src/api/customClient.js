@@ -1036,6 +1036,9 @@ export function createCustomClient(baseURL) {
 
     reports: {
       analytics: (days = 30) => http.get('/admin/analytics', { params: { days } }),
+      clinicalActivity: (days = 30) => http.get('/admin/reports/clinical-activity', { params: { days } }),
+      financeSummary: (days = 30) => http.get('/admin/reports/finance-summary', { params: { days } }),
+      pharmacySummary: (days = 30) => http.get('/admin/reports/pharmacy-summary', { params: { days } }),
     },
 
     functions: {
