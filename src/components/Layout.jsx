@@ -15,7 +15,7 @@ import {
   ArrowRightLeft, ShieldCheck, ClipboardCheck, Scissors, Map, CalendarClock, CalendarRange,
   TrendingUp, Package2, PackageCheck, MessageSquare, ScrollText, CheckCircle, ChevronDown, Siren,
   ClipboardList, Users2, ShoppingCart, Truck, BarChart3, HeartPulse, Award, BarChart2, Banknote,
-  UserCheck, CreditCard, Calendar, Lock, Warehouse, LineChart, Home, Smile
+  UserCheck, CreditCard, Calendar, Warehouse, LineChart, Home, Smile
 } from "lucide-react";
 
 // Also the source of truth for route-level access control - see
@@ -44,7 +44,7 @@ export const ALL_NAV_GROUPS = [
     ],
   },
   {
-    label: "Clinical",
+    label: "Clinical Care",
     color: "#059669",
     icon: Stethoscope,
     items: [
@@ -58,7 +58,7 @@ export const ALL_NAV_GROUPS = [
     ],
   },
   {
-    label: "Inpatient & Theatre",
+    label: "Inpatient and Procedures",
     color: "#7C3AED",
     icon: BedDouble,
     items: [
@@ -82,7 +82,7 @@ export const ALL_NAV_GROUPS = [
     ],
   },
   {
-    label: "Operations & Scheduling",
+    label: "Scheduling and Operations",
     color: "#4F46E5",
     icon: Calendar,
     items: [
@@ -126,19 +126,12 @@ export const ALL_NAV_GROUPS = [
     ],
   },
   {
-    label: "Security & Documents",
+    label: "Security and Administration",
     color: "#64748B",
-    icon: Lock,
+    icon: Shield,
     items: [
       { label: "My Signatures", path: "/my-signatures", icon: PenTool, roles: ["admin", "user"] },
       { label: "Signature Audit", path: "/signature-audit", icon: ShieldCheck, roles: ["admin"] },
-    ],
-  },
-  {
-    label: "Administration",
-    color: "#DC2626",
-    icon: Shield,
-    items: [
       { label: "Admin", path: "/admin", icon: Shield, roles: ["admin"] },
     ],
   },
