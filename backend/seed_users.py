@@ -1,10 +1,10 @@
 """
-Seed staff users for every role — each with a unique password.
+Seed staff users for every role using one development-only password.
 
 Run from backend/ directory:
     python seed_users.py
 
-WARNING: Development/staging use only.
+WARNING: Development/staging use only. Set SEED_USER_PASSWORD in backend/.env.
 """
 import asyncio
 import sys
@@ -15,25 +15,26 @@ sys.path.insert(0, os.path.dirname(__file__))
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import engine, Base
-from app.core.security import hash_password
+from app.core.security import hash_password, validate_password_strength
 from app.models.user import User, UserRole
 
 
-# employee_id, full_name, role, department, email, password
+# employee_id, full_name, role, department, email
 SEED_USERS = [
-    ("USER001", "Tadala Banda",         UserRole.user,          "General",     "tadala.banda@lifecare.mw",    "Tadala@User001!"),
-    ("DOC001",  "Dr. Chimwemwe Phiri",  UserRole.doctor,        "Outpatient",  "c.phiri@lifecare.mw",         "Chimwemwe@Doc001!"),
-    ("CLN001",  "Dr. Yamikani Gondwe",  UserRole.clinician,     "Outpatient",  "y.gondwe@lifecare.mw",        "Yamikani@Cln001!"),
-    ("NUR001",  "Grace Mhango",         UserRole.nurse,         "Inpatient",   "g.mhango@lifecare.mw",        "Grace@Nur001!"),
-    ("MID001",  "Esther Nkhoma",        UserRole.midwife,       "Maternity",   "e.nkhoma@lifecare.mw",        "Esther@Mid001!"),
-    ("PHA001",  "Limbani Kachale",      UserRole.pharmacist,    "Pharmacy",    "l.kachale@lifecare.mw",       "Limbani@Pha001!"),
-    ("LAB001",  "Mphatso Chirwa",       UserRole.lab_technician,"Laboratory",  "m.chirwa@lifecare.mw",        "Mphatso@Lab001!"),
-    ("RAD001",  "Thoko Mwale",          UserRole.radiographer,  "Imaging",     "t.mwale@lifecare.mw",         "Thoko@Rad001!"),
-    ("CSH001",  "Patrick Zulu",         UserRole.cashier,       "Billing",     "p.zulu@lifecare.mw",          "Patrick@Csh001!"),
-    ("REC001",  "Memory Kumwenda",      UserRole.receptionist,  "Reception",   "m.kumwenda@lifecare.mw",      "Memory@Rec001!"),
-    ("SRG001",  "Dr. Blessings Tembo",  UserRole.surgical_lead, "Theatre",     "b.tembo@lifecare.mw",         "Blessings@Srg001!"),
-    ("STO001",  "Daniel Kanyenda",      UserRole.store_manager, "Stores",      "d.kanyenda@lifecare.mw",      "Daniel@Sto001!"),
+    ("USER001", "Tadala Banda",         UserRole.user,          "General",     "tadala.banda@lifecare.mw"),
+    ("DOC001",  "Dr. Chimwemwe Phiri",  UserRole.doctor,        "Outpatient",  "c.phiri@lifecare.mw"),
+    ("CLN001",  "Dr. Yamikani Gondwe",  UserRole.clinician,     "Outpatient",  "y.gondwe@lifecare.mw"),
+    ("NUR001",  "Grace Mhango",         UserRole.nurse,         "Inpatient",   "g.mhango@lifecare.mw"),
+    ("MID001",  "Esther Nkhoma",        UserRole.midwife,       "Maternity",   "e.nkhoma@lifecare.mw"),
+    ("PHA001",  "Limbani Kachale",      UserRole.pharmacist,    "Pharmacy",    "l.kachale@lifecare.mw"),
+    ("LAB001",  "Mphatso Chirwa",       UserRole.lab_technician, "Laboratory", "m.chirwa@lifecare.mw"),
+    ("RAD001",  "Thoko Mwale",          UserRole.radiographer,  "Imaging",     "t.mwale@lifecare.mw"),
+    ("CSH001",  "Patrick Zulu",         UserRole.cashier,       "Billing",     "p.zulu@lifecare.mw"),
+    ("REC001",  "Memory Kumwenda",      UserRole.receptionist,  "Reception",   "m.kumwenda@lifecare.mw"),
+    ("SRG001",  "Dr. Blessings Tembo",  UserRole.surgical_lead, "Theatre",     "b.tembo@lifecare.mw"),
+    ("STO001",  "Daniel Kanyenda",      UserRole.store_manager, "Stores",      "d.kanyenda@lifecare.mw"),
 ]
 
 
@@ -48,19 +49,20 @@ async def ensure_enum_values():
 
 
 async def seed():
+    common_password = validate_password_strength(settings.SEED_USER_PASSWORD)
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
     await ensure_enum_values()
 
-    created, updated, skipped = 0, 0, 0
+    created, updated = 0, 0
     async with AsyncSession(engine) as db:
-        for emp_id, name, role, dept, email, password in SEED_USERS:
+        for emp_id, name, role, dept, email in SEED_USERS:
             result = await db.execute(select(User).where(User.employee_id == emp_id))
             existing = result.scalar_one_or_none()
             if existing:
-                # Update password so re-runs keep credentials in sync
-                existing.password_hash = hash_password(password)
+                existing.password_hash = hash_password(common_password)
                 print(f"  update {emp_id:8} ({role.value}) — {name}")
                 updated += 1
             else:
@@ -68,7 +70,7 @@ async def seed():
                     employee_id=emp_id,
                     full_name=name,
                     email=email,
-                    password_hash=hash_password(password),
+                    password_hash=hash_password(common_password),
                     role=role,
                     department=dept,
                     is_active=True,
@@ -77,7 +79,7 @@ async def seed():
                 created += 1
         await db.commit()
 
-    print(f"\nDone. Created {created}, updated {updated}, skipped {skipped}.")
+    print(f"\nDone. Created {created}, updated {updated}.")
     await engine.dispose()
 
 
