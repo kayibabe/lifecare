@@ -8,7 +8,7 @@
 | Prepared by | Claude (independent code audit + reconciliation) |
 | Reconciled against | `LifeCare_Audit_Report.docx` (Chatly AI, 25 June 2026) |
 | Branch | `audit-fixes` |
-| Scope | Backend (FastAPI), Frontend (React), Base44 layer, Mobile (Flutter), Deployment (Fly.io/Docker/nginx), CI/CD, tests |
+| Scope | Backend (FastAPI), Frontend (React), Base44 layer, Mobile (Flutter), Deployment (Railway/Docker/nginx), CI/CD, tests |
 
 ## Status legend
 
@@ -23,7 +23,7 @@
 
 The external report (25 June 2026) predates the two fix commits `67ad4c0` (26 June) and `6ade3dc` (29 June). Of its 52 findings, the majority of the critical tier is genuinely fixed in code — I verified each against the current source, not the commit messages. What remains open from the external report is concentrated in: backend clinical safety depth (C6), the Base44 platform layer (C10, C11, H14), transport security (C14), Redis/token infrastructure (H5, M12), rate-limiting coverage (H8), and test health (H1).
 
-My independent audit adds **14 new findings (N1–N14)**, the most serious being **N1: the nginx CSP added in the June fixes would block every browser API call to `https://lifecare-api.fly.dev` on the next frontend deploy** — a fix that would have caused an outage — and **N14: `POST /encounters` returns 500 on every call** (a phantom schema field), meaning new visits could not be registered through the FastAPI backend at all.
+My independent audit adds **14 new findings (N1–N14)**, the most serious being **N1: the nginx CSP added in the June fixes would block every browser API call to the then-configured backend on the next frontend deploy** — a fix that would have caused an outage — and **N14: `POST /encounters` returns 500 on every call** (a phantom schema field), meaning new visits could not be registered through the FastAPI backend at all.
 
 ### Counts at a glance (final)
 
@@ -90,19 +90,19 @@ Confirmed and quantified: **59+ `asServiceRole` occurrences across the 102 cloud
 </details>
 
 ## C12. Nginx missing security headers — **FIXED** (`6ade3dc`) — *but introduced N1*
-[deploy/nginx-fly.conf:10-15](deploy/nginx-fly.conf:10) now sets X-Frame-Options, X-Content-Type-Options, HSTS, CSP, Referrer-Policy. However the CSP as written would break the app — see **N1**.
+The former nginx deployment configuration set X-Frame-Options, X-Content-Type-Options, HSTS, CSP, Referrer-Policy. However the CSP as written would break the app — see **N1**.
 
 ## C13. CORS allows all methods + credentials — **FIXED** (`6ade3dc`)
 [main.py:37-43](backend/app/main.py:37): `allow_credentials=False` (Bearer tokens), methods trimmed to the six used, headers restricted.
 
 ## C14. Database SSL blanket-disabled — **FIXED (this session)**
 **Was OPEN** (intentionally skipped in `6ade3dc` because the prod DB host was unconfirmed). [database.py:9](backend/app/core/database.py:9) disabled SSL for *any* `DATABASE_URL`.
-**Fix:** SSL is now disabled **only** when the host is on Fly's private network (`.flycast` / `.internal`); any other host gets `ssl="require"`. The production URL (`lifecare-db.flycast`) matches the private-network branch, so behaviour in the current deployment is unchanged — no outage risk — while any future external Postgres is encrypted by default.
+**Fix:** SSL is now disabled **only** for private-network database hosts (`.internal`); any other host gets `ssl="require"`. This preserves local/private-network compatibility while any external Postgres connection is encrypted by default.
 
 ## N1 (NEW). CSP blocks the API origin — production-breaking on next deploy — **FIXED (historical) / re-platformed for Railway (2026-09-15)**
-**Severity: CRITICAL (availability).** The CSP added in `6ade3dc` sets `connect-src 'self' https://*.base44.app wss://*.base44.app` (`deploy/nginx-fly.conf`), but the frontend is built with an absolute `VITE_BACKEND_URL` pointing at the Fly backend. Browsers would refuse every API call the moment this nginx config ships — login itself would fail clinic-wide.
-**Fix (at the time):** added the Fly backend origin to `connect-src`.
-**2026-09-15 update:** the app has moved off Fly.io to Railway (see `CLAUDE.md`). `deploy/nginx-fly.conf` is removed; `deploy/nginx-railway.conf.template` uses `connect-src 'self' https: wss:` since the Railway backend's public URL isn't known at image-build time. The underlying lesson (CSP `connect-src` must match wherever `VITE_BACKEND_URL` actually points) still applies — verify this after the first Railway deploy.
+**Severity: CRITICAL (availability).** The CSP added in `6ade3dc` allowed only the former platform origins, but the frontend was built with an absolute `VITE_BACKEND_URL` pointing at the backend. Browsers would refuse every API call the moment this nginx config shipped — login itself would fail clinic-wide.
+**Fix (at the time):** added the backend origin to `connect-src`.
+**2026-09-15 update:** the app has moved to Railway (see `CLAUDE.md`). `deploy/nginx-railway.conf.template` uses `connect-src 'self' https: wss:` since the Railway backend's public URL isn't known at image-build time. The underlying lesson (CSP `connect-src` must match wherever `VITE_BACKEND_URL` actually points) still applies — verify this after the Railway deploy.
 
 ---
 
@@ -123,13 +123,13 @@ Real, but decomposing 70KB clinical components on a live system is exactly the k
 
 ## H5. Redis fallback silently disables token revocation — **FIXED (this session)**
 **Was OPEN** (deliberately skipped in `6ade3dc` — no Redis app exists in the 3-app topology, and a hard-fail would have re-triggered the outage).
-**Fix (as the finding specifies, without an outage path):** [redis.py](backend/app/core/redis.py) now **fails hard when `ENVIRONMENT=production`** and falls back to `_NullRedis` only in development, with a CRITICAL-level log. The deployed backend does not set `ENVIRONMENT`, so today's behaviour is unchanged; **before** setting `ENVIRONMENT=production` on Fly, attach a Redis (e.g. Upstash via `fly redis create`) — see Advisory §2. The refresh flow also now works correctly against real Redis (M12 fix).
+**Fix (as the finding specifies, without an outage path):** [redis.py](backend/app/core/redis.py) now **fails hard when `ENVIRONMENT=production`** and falls back to `_NullRedis` only in development, with a CRITICAL-level log. **Before** setting `ENVIRONMENT=production` on Railway, attach a managed Redis service and set `REDIS_URL` — see Advisory §2. The refresh flow also now works correctly against real Redis (M12 fix).
 
 ## H6. Audit logger swallows errors — **FIXED** (`6ade3dc`)
 [audit.py:49-52](backend/app/core/audit.py:49): failures log a warning *and* print to stderr.
 
 ## H7. JWT in localStorage — **DEFERRED (disputed severity in context)**
-True ([customClient.js:11-16](src/api/customClient.js:11)), but moving to httpOnly cookies means CSRF protection, cookie-domain work across `lifecare.fly.dev`/`lifecare-api.fly.dev`, and a rewrite of the mobile flow — a deliberate architecture change, not a patch. Mitigations now in place: 15-min access tokens, CSP (XSS hardening), CORS locked down. The mobile app already uses `flutter_secure_storage` (correct). Advisory §5.
+True ([customClient.js:11-16](src/api/customClient.js:11)), but moving to httpOnly cookies means CSRF protection, cookie-domain work across the frontend/backend domains, and a rewrite of the mobile flow — a deliberate architecture change, not a patch. Mitigations now in place: 15-min access tokens, CSP (XSS hardening), CORS locked down. The mobile app already uses `flutter_secure_storage` (correct). Advisory §5.
 
 ## H8. No rate limiting beyond login — **FIXED (this session)**
 **Was OPEN**: only `/auth/login` was limited ([auth.py:21](backend/app/routers/auth.py:21)).
@@ -159,11 +159,11 @@ Confirmed at [Patient.jsonc:124](base44/entities/Patient.jsonc:124): the read ru
 [backend/Dockerfile:16-17](backend/Dockerfile:16): `appuser` created and used.
 
 ## H16. No CI/CD beyond CodeQL — **FIXED** (`67ad4c0`)
-[ci.yml](.github/workflows/ci.yml): ruff + pytest (backend), eslint + build (frontend); [deploy.yml](.github/workflows/deploy.yml): manual Fly deploy. Tweak this session: `audit-fixes` added to CI push triggers so this branch gets CI runs.
+[ci.yml](.github/workflows/ci.yml): ruff + pytest (backend), eslint + build (frontend); [deploy.yml](.github/workflows/deploy.yml): Railway deployment workflow. Tweak this session: `audit-fixes` added to CI push triggers so this branch gets CI runs.
 
 ## N2 (NEW). Refresh-token flow broken in production — **FIXED (code) / DEFERRED (infra)**
 **Severity: HIGH (availability).** Two stacked defects: (a) with no Redis in prod, `_NullRedis.get()` returns `None` → every `/auth/refresh` returns 401 → staff are silently forced to re-login every 15 minutes; (b) if a real Redis *were* attached, [auth.py:72](backend/app/routers/auth.py:72) crashes with `AttributeError` — the client is created with `decode_responses=True` so `get()` returns `str`, and `.decode()` doesn't exist on str → 500 on every refresh. The flow was broken in both configurations; test `test_refresh_token_rotation` failed accordingly.
-**Fix:** (b) fixed this session (compare as `str`); test now passes against a fakeredis-style path. (a) requires attaching Redis in Fly — infra action, Advisory §2.
+**Fix:** (b) fixed this session (compare as `str`); test now passes against a fakeredis-style path. (a) requires attaching managed Redis in Railway — infra action, Advisory §2.
 
 ## N3 (NEW). No financial validation in billing — **FIXED (this session)**
 **Severity: HIGH (financial integrity).** [PaymentCreate](backend/app/schemas/billing.py:31) accepted **negative or zero amounts** — a negative payment reduces `amount_paid` and manipulates balances; [LineItemCreate](backend/app/schemas/billing.py:6) accepted negative quantity/unit_price; discount was unbounded (a discount > subtotal produces a negative invoice total).
@@ -194,11 +194,11 @@ Polling at a 40-bed clinic is adequate; WebSocket infra is not justified now. Ad
 ## M6. Unused heavy dependencies — **FIXED (this session)**
 Verified by grep: `celery`, `WeasyPrint`, `fhir.resources`, `aiosmtplib`, `Pillow`, `africastalking`, `Jinja2` — **zero imports** in backend code. Removed from [requirements.txt](backend/requirements.txt) (smaller image, smaller attack surface). Kept: `httpx` (tests), `python-multipart` (FastAPI form handling).
 
-## M7. Fly.io 512MB RAM — **MOOT (2026-09-15: migrated to Railway)**
-Was DEFERRED (no OOM evidence in outage history). The app no longer runs on Fly.io — see `CLAUDE.md` Deployment section. Railway's equivalent RAM/resource limits should be monitored the same way once live.
+## M7. Hosting memory limit — **MOOT (2026-09-15: migrated to Railway)**
+Was DEFERRED (no OOM evidence in outage history). Railway's RAM/resource limits should be monitored once live.
 
 ## M8. No healthcheck — **FIXED (historical) / re-platformed for Railway (2026-09-15)**
-Fly ignores Docker `HEALTHCHECK`; the platform-correct fix at the time was an HTTP check in `backend/fly.toml` against `/health`. `fly.toml` has been removed; the same `/health` check is now configured via `backend/railway.json`'s `healthcheckPath`.
+The former platform's Docker healthcheck behavior required an HTTP check against `/health`. The old configuration has been removed; the same `/health` check is now configured via `backend/railway.json`'s `healthcheckPath`.
 
 ## M9. `window.location.href` navigation — **DEFERRED** (cosmetic; Advisory §6).
 
@@ -232,7 +232,7 @@ pydantic-settings defaults to `extra="forbid"` for dotenv files; the dev `.env` 
 **Severity: MEDIUM (data display integrity).** [customClient.js:231](src/api/customClient.js:231) maps `admission_date: a.admitted_at` but the backend sends `admission_date` — the spread's correct value is overwritten with `undefined` (admission dates blank/Invalid Date). [customClient.js:242](src/api/customClient.js:242) computes `net_amount: i.total_amount - …` but the backend sends `total` → `NaN` in billing views (Billing.jsx references `total_amount`/`net_amount` 17 times). **Fix:** correct mappings (`total_amount: i.total`, drop the bad admission override); adapter unit tests added.
 
 ## N10 (NEW). Rate limiting keyed on direct peer IP behind proxy — **FIXED (this session)**
-All browser traffic proxied by nginx reaches the backend from nginx's IP: the 10/min login limit is shared by the *entire clinic* — a morning shift-change of 11 staff locks everyone out for a minute. **Fix:** shared key function honouring `X-Forwarded-For` (first hop, set by our nginx) with fallback to peer address; both limiter instances unified. (Fly's edge also sets the header for the direct-API path.)
+All browser traffic proxied by nginx reaches the backend from nginx's IP: the 10/min login limit is shared by the *entire clinic* — a morning shift-change of 11 staff locks everyone out for a minute. **Fix:** shared key function honouring `X-Forwarded-For` (first hop, set by our nginx) with fallback to peer address; both limiter instances unified. (The edge proxy also sets the header for the direct-API path.)
 
 ## N13 (NEW). Parameter/code hygiene — **FIXED (this session)**
 `/admin/audit-logs` `limit` accepted negatives ([admin.py:131](backend/app/routers/admin.py:131)) → `Query(100, ge=1, le=500)`; dead `isPrescribingAct` in Clinical.jsx removed; ruff-flagged unused imports cleaned (absorbs external **L5**).
@@ -267,7 +267,7 @@ Discovered and fixed en route: N5 (config `extra="ignore"`), MRN/invoice sequenc
 **High tier** — H5 (Redis fail-hard in production, memory-backed dev fallback), M12/N2 (refresh `str` compare; `jti` claim added to both token types — without it, tokens minted in the same second are byte-identical and rotation is meaningless), H8/N10 (app-wide 300/min default limit via SlowAPIMiddleware with proxy-aware keying; login stays 10/min), N3 (billing validators + router checks, 5 regression tests), H13 (TriageCreate physiological ranges — note: the pre-existing test asserted 300 mmHg systolic is invalid; ranges were made consistent with ward vitals at 40–300 and the test value moved to 350), N9 (adapter mappings + 6 vitest tests), H1 (vitest runner added; `npm test`).
 **Checkpoint: backend 38 passed, 0 failed.**
 
-**Medium tier** — M1 (`with_for_update()` on stock and bed rows), N4 (dispense capped at prescribed quantity), N6 (ward/bed match enforced; phantom schema fields removed), M6 (7 unused heavy deps removed from requirements.txt), M8 (Fly HTTP health check on `/health`), N8 (removed `zcpc-audit-fixed/` tree, zip, and stale patch files — 48 files unstaged from git; caches gitignored), N13 (audit-log limit bounded).
+**Medium tier** — M1 (`with_for_update()` on stock and bed rows), N4 (dispense capped at prescribed quantity), N6 (ward/bed match enforced; phantom schema fields removed), M6 (7 unused heavy deps removed from requirements.txt), M8 (HTTP health check on `/health`), N8 (removed `zcpc-audit-fixed/` tree, zip, and stale patch files — 48 files unstaged from git; caches gitignored), N13 (audit-log limit bounded).
 
 **Low tier** — N11 (advisory CDS panel now uses the positive-result predicate), L5 (ruff `--fix`: 32 unused imports removed; `ruff.toml` added documenting the two SQLAlchemy idioms ruff can't see; frontend `lint:fix` removed 164 unused imports), N12 (CI runs on `audit-fixes` pushes).
 
@@ -289,10 +289,10 @@ Discovered and fixed en route: N5 (config `extra="ignore"`), MRN/invoice sequenc
 # ADVISORY
 
 ### §1. Deploying this round — do it as one unit
-The nginx CSP fix (N1) and the frontend build must ship **together**: the current *deployed* nginx config predates the CSP entirely, so deploying only the frontend is safe, but deploying nginx without the N1 fix would take the clinic offline (every API call blocked). Deploy order: `zcpc-api` (backend) first, then `zcpc` (frontend + nginx). Backend changes are backwards-compatible with the running frontend. After deploy, verify: login, patient search, **create a visit** (N14 means this has been broken — you may find staff have been working around it via Base44 mode), prescribe against a patient with a recorded allergy (expect the 409), record a payment.
+The nginx CSP fix (N1) and the frontend build must ship **together**: the current *deployed* nginx config predates the CSP entirely, so deploying only the frontend is safe, but deploying nginx without the N1 fix would take the clinic offline (every API call blocked). Deploy order: Railway backend service first, then Railway frontend service. Backend changes are backwards-compatible with the running frontend. After deploy, verify: login, patient search, **create a visit** (N14 means this has been broken — you may find staff have been working around it via Base44 mode), prescribe against a patient with a recorded allergy (expect the 409), record a payment.
 
 ### §2. Redis is the one piece of missing infrastructure
-Refresh tokens have never worked in production (N2): staff are silently re-logged-in every 15 minutes. The code now works and degrades gracefully (in-process token store, state lost on restart), but the real fix is `fly redis create` (Upstash) and setting `REDIS_URL` on `zcpc-api`. **Order matters:** set `ENVIRONMENT=production` only *after* Redis is attached — the backend now deliberately refuses to run in production mode without it (H5). Until then it runs in development mode, exactly as it does today.
+Refresh tokens have never worked in production (N2): staff are silently re-logged-in every 15 minutes. The code now works and degrades gracefully (in-process token store, state lost on restart), but the real fix is attaching managed Redis to Railway and setting `REDIS_URL`. **Order matters:** set `ENVIRONMENT=production` only *after* Redis is attached — the backend now deliberately refuses to run in production mode without it (H5).
 
 ### §3. The Base44 layer is the largest remaining risk surface (C11)
 59+ `asServiceRole` usages across 102 cloud functions bypass RLS entirely. The RLS fixes in this round (C10, H14) only take effect when the entity definitions are **pushed to the Base44 platform** — the files in `base44/` are a local mirror. Prioritise reworking the 9 functions that are both user-invocable and service-role (list under C11) to `auth.me()`. Budget 3–5 days. The hardcoded interaction/SLA lists (M13) belong in that same effort — move them into the `DrugInteraction` entity, which now has proper RLS.
@@ -301,7 +301,7 @@ Refresh tokens have never worked in production (N2): staff are silently re-logge
 The scaffold is architecturally sound (secure token storage, refresh interceptor — better token hygiene than the web app). Two things before investing further: (a) `/sync/pull` is admin-only, so the offline-sync feature can't work for clinical staff — decide the intended roles; (b) the web app's allergy gate now lives in the backend (C6), so mobile prescribing inherits it for free. That was the point of moving it server-side.
 
 ### §5. Web auth architecture (H7, deferred)
-JWTs in localStorage are XSS-stealable; mitigations are in place (15-min tokens, CSP, tight CORS), but the durable fix is httpOnly cookies + CSRF or a BFF pattern. Do it together with moving the frontend to the same-origin `/api/` proxy path (drop `VITE_BACKEND_URL` absolute URL) — that also lets you remove `lifecare-api.fly.dev` from the CSP and stop exposing the API publicly at all. This is a deliberate 2–3 day project; don't do it piecemeal.
+JWTs in localStorage are XSS-stealable; mitigations are in place (15-min tokens, CSP, tight CORS), but the durable fix is httpOnly cookies + CSRF or a BFF pattern. Do it together with moving the frontend to the same-origin `/api/` proxy path (drop `VITE_BACKEND_URL` absolute URL) — that also lets you remove the public API origin from the CSP and stop exposing the API publicly at all. This is a deliberate 2–3 day project; don't do it piecemeal.
 
 ### §6. Code quality debt (deferred: H2, M2, M3, M9, L2, L6)
 The 70KB clinical components work but resist safe change — decompose them opportunistically (when a feature touches them), not as a big-bang refactor. Client-side filtering (M2) will start to hurt at a few thousand patients; the backend pagination is already there, the pages just need to use it. Real-time beds (M3) and the stub pages (L6) are feature decisions, not defects.
@@ -311,7 +311,7 @@ Malawi's Data Protection Act (2024) is in force and this system processes exactl
 
 ### §8. Operational posture
 - The frontend runs `min_machines_running = 0` — first visitor each morning eats a cold start; consider 1.
-- 512MB on the API (M7) has shown no OOM evidence; monitor `fly status` before resizing.
-- The backend health check added in M8 gives Fly restart signal — watch it after deploy.
+- The API memory limit (M7) has shown no OOM evidence; monitor Railway resource usage before resizing.
+- The backend health check added in M8 gives Railway a restart signal — watch it after deploy.
 - `Base.metadata.create_all` on startup creates *new* tables but never alters existing ones; you have Alembic wired with one migration — adopt it as the only schema-change path before the next model change, or the next column addition will 500 in production the way N14 did.
-- Set up `fly postgres` snapshot verification — the audit found no evidence backups have ever been restored-tested.
+- Set up Railway Postgres snapshot verification — the audit found no evidence backups have ever been restored-tested.

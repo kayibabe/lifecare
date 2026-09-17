@@ -10,7 +10,7 @@ _ENV_FILE = Path(__file__).resolve().parent.parent.parent / ".env"
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=str(_ENV_FILE), env_file_encoding="utf-8", extra="ignore")
 
-    # Database — fly.dev sets DATABASE_URL when postgres is attached;
+    # Database — Railway sets DATABASE_URL when Postgres is attached;
     # individual DB_* vars are used for local development.
     DATABASE_URL: Optional[str] = None
     DB_HOST: str = "localhost"
@@ -67,8 +67,8 @@ class Settings(BaseSettings):
         url = (raw
                .replace("postgres://", "postgresql+psycopg://")
                .replace("postgresql://", "postgresql+psycopg://"))
-        # Fly Postgres internal/flycast connections reject SSL; psycopg3 defaults
-        # to sslmode=prefer which causes "server closed the connection unexpectedly".
+        # Private Postgres connections may reject SSL; psycopg3 defaults to
+        # sslmode=prefer which can cause "server closed the connection unexpectedly".
         if "sslmode=" not in url:
             sep = "&" if "?" in url else "?"
             url += f"{sep}sslmode=disable"

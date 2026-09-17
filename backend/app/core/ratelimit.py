@@ -1,10 +1,10 @@
 """Shared rate limiter (audit H8/N10).
 
-Keying: all browser traffic reaches the backend through the nginx proxy (or
-Fly's edge), so request.client.host is the proxy address — every user in the
+Keying: all browser traffic reaches the backend through the nginx proxy or an
+edge proxy, so request.client.host is the proxy address — every user in the
 clinic would share one rate-limit bucket and could lock each other out at
 shift change. Prefer the first X-Forwarded-For hop (set by our nginx and by
-Fly's edge), falling back to the direct peer address.
+the edge proxy), falling back to the direct peer address.
 """
 from fastapi import Request
 from slowapi import Limiter

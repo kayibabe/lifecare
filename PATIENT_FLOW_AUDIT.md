@@ -361,7 +361,7 @@ The following were not exercised in this audit run:
 
 ---
 
-*Audit conducted 2026-07-04. Scenarios driven against in-session SQLite test database (commits `9bea033` + `7c01a2f`, branch `audit-fixes`). Re-verified 2026-07-04: full `pytest` suite — 55/55 passed. No Fly.io production systems were accessed.*
+*Audit conducted 2026-07-04. Scenarios driven against in-session SQLite test database (commits `9bea033` + `7c01a2f`, branch `audit-fixes`). Re-verified 2026-07-04: full `pytest` suite — 55/55 passed. No production systems were accessed.*
 
 ---
 
@@ -409,7 +409,7 @@ The following were not exercised in this audit run:
 3. **Claim partial approval from the portal** requires the approved amount; the portal's one-click "Partial" button surfaces a readable error asking for it (backend enforces `0 < approved_amount < claimed`).
 4. Earlier low-severity observations stand: no stale-encounter auto-close, no patient-level ledger across visits, no dedicated imaging module, emergency priority is frontend-enforced.
 
-*Second pass conducted 2026-07-04 on branch `audit-fixes`. Verification: `pytest` 75/75 passed; Alembic chain `001 → 008` generates valid SQL offline; `vitest` 10/10; `vite build` exit 0. No Fly.io production systems were accessed.*
+*Second pass conducted 2026-07-04 on branch `audit-fixes`. Verification: `pytest` 75/75 passed; Alembic chain `001 → 008` generates valid SQL offline; `vitest` 10/10; `vite build` exit 0. No production systems were accessed.*
 
 ### 14 September 2026 implementation update
 
