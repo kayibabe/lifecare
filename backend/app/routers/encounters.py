@@ -15,7 +15,7 @@ import uuid
 router = APIRouter(prefix="/encounters", tags=["encounters"])
 
 _CLINICAL = (
-    UserRole.doctor, UserRole.clinician, UserRole.nurse, UserRole.receptionist,
+    UserRole.doctor, UserRole.dentist, UserRole.clinician, UserRole.nurse, UserRole.receptionist,
     UserRole.lab_technician, UserRole.pharmacist, UserRole.admin,
 )
 
@@ -58,7 +58,7 @@ async def create_encounter(
     body: EncounterCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(
-        UserRole.receptionist, UserRole.doctor, UserRole.clinician, UserRole.nurse, UserRole.admin,
+        UserRole.receptionist, UserRole.doctor, UserRole.dentist, UserRole.clinician, UserRole.nurse, UserRole.admin,
     )),
 ):
     encounter = Encounter(
@@ -80,7 +80,7 @@ async def list_clinical_notes(
     skip: int = 0,
     limit: int = Query(50, ge=1, le=500),
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_role(UserRole.doctor, UserRole.clinician, UserRole.nurse, UserRole.admin)),
+    _: User = Depends(require_role(UserRole.doctor, UserRole.dentist, UserRole.clinician, UserRole.nurse, UserRole.admin)),
 ):
     stmt = select(ClinicalNote, Encounter.patient_id).join(
         Encounter, Encounter.id == ClinicalNote.encounter_id
@@ -99,7 +99,7 @@ async def list_clinical_notes(
 async def get_encounter(
     encounter_id: str,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_role(UserRole.doctor, UserRole.clinician, UserRole.nurse, UserRole.admin)),
+    _: User = Depends(require_role(UserRole.doctor, UserRole.dentist, UserRole.clinician, UserRole.nurse, UserRole.admin)),
 ):
     result = await db.execute(select(Encounter).where(Encounter.id == encounter_id))
     encounter = result.scalar_one_or_none()
@@ -204,7 +204,7 @@ async def add_note(
     encounter_id: str,
     body: ClinicalNoteCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(UserRole.doctor, UserRole.clinician, UserRole.admin)),
+    current_user: User = Depends(require_role(UserRole.doctor, UserRole.dentist, UserRole.clinician, UserRole.admin)),
 ):
     enc_result = await db.execute(select(Encounter).where(Encounter.id == encounter_id))
     encounter = enc_result.scalar_one_or_none()

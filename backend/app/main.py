@@ -11,7 +11,7 @@ from app.core.ratelimit import limiter
 from app.core.redis import close_redis
 from app.routers import auth, patients, admin, sync
 from app.routers import encounters, billing, lab, pharmacy, admissions, nursing, referrals, appointments
-from app.routers import theatre, mortuary, insurance, scheduling
+from app.routers import theatre, mortuary, insurance, scheduling, dental
 from app.routers import patient_auth, patient_portal
 import app.models.referral       # ensure Referral table is registered with Base.metadata
 import app.models.appointment    # ensure Appointment table is registered with Base.metadata
@@ -20,6 +20,7 @@ import app.models.mortuary       # ensure mortuary tables are registered with Ba
 import app.models.insurance      # ensure insurance tables are registered with Base.metadata
 import app.models.scheduling     # ensure scheduling tables are registered with Base.metadata
 import app.models.patient_message  # ensure patient_messages table is registered with Base.metadata
+import app.models.dental  # ensure dental tables are registered with Base.metadata
 
 _log = logging.getLogger(__name__)
 
@@ -83,6 +84,7 @@ app.include_router(insurance.router, prefix="/api/v1")
 app.include_router(scheduling.router, prefix="/api/v1")
 app.include_router(patient_auth.router, prefix="/api/v1")
 app.include_router(patient_portal.router, prefix="/api/v1")
+app.include_router(dental.router, prefix="/api/v1")
 
 
 @app.get("/health")

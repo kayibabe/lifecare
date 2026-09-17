@@ -19,7 +19,7 @@ import uuid
 router = APIRouter(prefix="/appointments", tags=["appointments"])
 
 _BOOKING_ROLES = (
-    UserRole.receptionist, UserRole.doctor, UserRole.clinician,
+    UserRole.receptionist, UserRole.doctor, UserRole.dentist, UserRole.clinician,
     UserRole.nurse, UserRole.midwife, UserRole.admin,
 )
 

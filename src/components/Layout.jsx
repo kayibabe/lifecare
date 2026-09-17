@@ -15,7 +15,7 @@ import {
   ArrowRightLeft, ShieldCheck, ClipboardCheck, Scissors, Map, CalendarClock, CalendarRange,
   TrendingUp, Package2, PackageCheck, MessageSquare, ScrollText, CheckCircle, ChevronDown, Siren,
   ClipboardList, Users2, ShoppingCart, Truck, BarChart3, HeartPulse, Award, BarChart2, Banknote,
-  UserCheck, CreditCard, Calendar, Lock, Warehouse, LineChart, Home
+  UserCheck, CreditCard, Calendar, Lock, Warehouse, LineChart, Home, Smile
 } from "lucide-react";
 
 // Also the source of truth for route-level access control - see
@@ -27,7 +27,7 @@ export const ALL_NAV_GROUPS = [
     color: "#2B7CBF",
     icon: Home,
     items: [
-      { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard, roles: ["admin", "user", "receptionist", "cashier", "doctor", "clinician", "nurse", "midwife", "pharmacist", "lab_technician", "radiographer", "surgical_lead", "store_manager"] },
+      { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard, roles: ["admin", "user", "receptionist", "cashier", "doctor", "dentist", "clinician", "nurse", "midwife", "pharmacist", "lab_technician", "radiographer", "surgical_lead", "store_manager"] },
     ],
   },
   {
@@ -39,6 +39,7 @@ export const ALL_NAV_GROUPS = [
       { label: "Patient Intake", path: "/patient-intake", icon: ClipboardList, roles: ["admin", "user", "receptionist"] },
       { label: "Appointments", path: "/appointments", icon: CalendarDays, roles: ["admin", "user", "receptionist"] },
       { label: "Triage", path: "/triage", icon: ClipboardCheck, roles: ["admin", "user", "receptionist"] },
+      { label: "Queue Display", path: "/queue", icon: Monitor, roles: ["admin", "user", "receptionist", "dentist", "doctor", "nurse"] },
       { label: "Surge Monitor", path: "/surge", icon: Siren, roles: ["admin", "user", "doctor", "nurse", "receptionist"] },
     ],
   },
@@ -48,6 +49,7 @@ export const ALL_NAV_GROUPS = [
     icon: Stethoscope,
     items: [
       { label: "Consultations", path: "/clinical", icon: Stethoscope, roles: ["admin", "user", "doctor", "clinician"] },
+      { label: "Dental Clinic", path: "/dental", icon: Smile, roles: ["admin", "doctor", "dentist", "clinician"] },
       { label: "Nursing", path: "/nursing", icon: ClipboardPen, roles: ["admin", "user", "nurse", "midwife"] },
       { label: "Laboratory", path: "/lab", icon: Microscope, roles: ["admin", "user", "doctor", "clinician", "lab_technician"] },
       { label: "Imaging", path: "/imaging", icon: Scan, roles: ["admin", "user", "doctor", "clinician", "radiographer"] },
@@ -88,7 +90,6 @@ export const ALL_NAV_GROUPS = [
       { label: "Doctor Schedule", path: "/doctor-schedule", icon: CalendarClock, roles: ["admin", "user", "receptionist"] },
       { label: "Staff Shifts", path: "/staff-shifts", icon: Users, roles: ["admin", "user"] },
       { label: "Doctor Handover", path: "/doctor-handover", icon: ArrowRightLeft, roles: ["admin", "user"] },
-      { label: "Queue Display", path: "/queue", icon: Monitor, roles: ["admin", "user", "receptionist"] },
     ],
   },
   {

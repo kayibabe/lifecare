@@ -15,6 +15,7 @@ from app.models.mortuary import DeathRecord, MortuaryAdmission
 from app.models.insurance import Insurer, SchemeMember, PreAuthorization, InsuranceClaim
 from app.models.scheduling import DoctorSchedule, DoctorHandover, ShiftHandoverLog
 from app.models.patient_message import PatientMessage
+from app.models.dental import DentalEncounter, DentalToothFinding, DentalTreatmentPlan, DentalTreatmentPlanItem
 
 __all__ = [
     "User", "UserRole",
@@ -34,4 +35,5 @@ __all__ = [
     "Insurer", "SchemeMember", "PreAuthorization", "InsuranceClaim",
     "DoctorSchedule", "DoctorHandover", "ShiftHandoverLog",
     "PatientMessage",
+    "DentalEncounter", "DentalToothFinding", "DentalTreatmentPlan", "DentalTreatmentPlanItem",
 ]

@@ -36,6 +36,7 @@ import Dashboard from '@/pages/Dashboard';
 import Reception from '@/pages/Reception';
 import Appointments from '@/pages/Appointments';
 import Clinical from '@/pages/Clinical';
+import Dental from '@/pages/Dental';
 import Lab from '@/pages/Lab';
 import Imaging from '@/pages/Imaging';
 import Pharmacy from '@/pages/Pharmacy';
@@ -136,6 +137,7 @@ const AuthenticatedApp = () => {
         <Route path="/reception" element={<Reception />} />
         <Route path="/appointments" element={<Appointments />} />
         <Route path="/clinical" element={<Clinical />} />
+        <Route path="/dental" element={<Dental />} />
         <Route path="/lab" element={<Lab />} />
         <Route path="/imaging" element={<Imaging />} />
         <Route path="/pharmacy" element={<Pharmacy />} />

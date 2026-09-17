@@ -987,6 +987,18 @@ function makePatientPortal(http) {
   };
 }
 
+function makeDentalClient(http) {
+  return {
+    listEncounters: (params = {}) => http.get('/dental/encounters', { params }),
+    createEncounter: (body) => http.post('/dental/encounters', body),
+    getEncounter: (id) => http.get(`/dental/encounters/${id}`),
+    updateEncounter: (id, body) => http.patch(`/dental/encounters/${id}`, body),
+    addToothFinding: (id, body) => http.post(`/dental/encounters/${id}/tooth-findings`, body),
+    createTreatmentPlan: (id, body) => http.post(`/dental/encounters/${id}/treatment-plan`, body),
+    updateTreatmentPlan: (id, body) => http.patch(`/dental/treatment-plans/${id}`, body),
+  };
+}
+
 // ─── PUBLIC API ───────────────────────────────────────────────────────────────
 
 export function createCustomClient(baseURL) {
@@ -1019,6 +1031,7 @@ export function createCustomClient(baseURL) {
     auth,
     patientAuth,
     patientPortal,
+    dental: makeDentalClient(http),
 
     reports: {
       analytics: (days = 30) => http.get('/admin/analytics', { params: { days } }),

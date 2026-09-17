@@ -41,7 +41,7 @@ async def list_patients(
     skip: int = 0,
     limit: int = Query(50, ge=1, le=500),
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_role(UserRole.admin, UserRole.receptionist, UserRole.doctor, UserRole.nurse, UserRole.clinician)),
+    _: User = Depends(require_role(UserRole.admin, UserRole.receptionist, UserRole.doctor, UserRole.dentist, UserRole.nurse, UserRole.clinician)),
 ):
     stmt = select(Patient).where(Patient.is_deleted == False)
     if q:
@@ -138,7 +138,7 @@ async def create_patient(
 async def get_patient(
     patient_id: str,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_role(UserRole.admin, UserRole.receptionist, UserRole.doctor, UserRole.nurse, UserRole.clinician, UserRole.pharmacist, UserRole.lab_technician)),
+    _: User = Depends(require_role(UserRole.admin, UserRole.receptionist, UserRole.doctor, UserRole.dentist, UserRole.nurse, UserRole.clinician, UserRole.pharmacist, UserRole.lab_technician)),
 ):
     result = await db.execute(
         select(Patient).where(Patient.id == patient_id, Patient.is_deleted == False)
@@ -178,7 +178,7 @@ async def list_patient_allergies(
     active_only: bool = True,
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role(
-        UserRole.admin, UserRole.receptionist, UserRole.doctor, UserRole.nurse,
+        UserRole.admin, UserRole.receptionist, UserRole.doctor, UserRole.dentist, UserRole.nurse,
         UserRole.clinician, UserRole.pharmacist,
     )),
 ):

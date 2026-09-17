@@ -13,6 +13,7 @@ class UserRole(str, enum.Enum):
     # Original backend roles
     receptionist = "receptionist"
     doctor = "doctor"
+    dentist = "dentist"
     nurse = "nurse"
     pharmacist = "pharmacist"
     billing_clerk = "billing_clerk"

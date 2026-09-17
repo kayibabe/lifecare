@@ -68,7 +68,7 @@ async def list_drugs(
     q: str | None = Query(None, max_length=100),
     category: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_role(UserRole.doctor, UserRole.nurse, UserRole.pharmacist, UserRole.admin)),
+    _: User = Depends(require_role(UserRole.doctor, UserRole.dentist, UserRole.nurse, UserRole.pharmacist, UserRole.admin)),
 ):
     stmt = select(Drug).where(Drug.is_active == True)
     if q:
@@ -165,7 +165,7 @@ async def create_prescription(
     body: PrescriptionCreate,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(UserRole.doctor, UserRole.clinician, UserRole.admin)),
+    current_user: User = Depends(require_role(UserRole.doctor, UserRole.dentist, UserRole.clinician, UserRole.admin)),
 ):
     conflicts = await _safety_conflicts(db, body.patient_id, [i.drug_id for i in body.items])
     if conflicts:

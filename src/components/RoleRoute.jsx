@@ -13,7 +13,7 @@ export default function RoleRoute() {
   const location = useLocation();
   const allowedRoles = ROUTE_ROLES[location.pathname];
 
-  if (allowedRoles && user?.role && !allowedRoles.includes(user.role)) {
+  if (Array.isArray(allowedRoles) && (allowedRoles.length === 0 || !allowedRoles.includes(user?.role))) {
     return <AccessDenied />;
   }
 
