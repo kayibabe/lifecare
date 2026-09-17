@@ -8,6 +8,7 @@ import DepartmentDashboard from "@/components/DepartmentDashboard";
 import InpatientDashboard from "@/components/InpatientDashboard";
 import WardBedDashboard from "@/components/WardBedDashboard";
 import PageHeader from "@/components/ui/PageHeader";
+import MetricCard from "@/components/ui/MetricCard";
 
 export default function Inpatient() {
   const [wards, setWards] = useState([]);
@@ -206,9 +207,9 @@ export default function Inpatient() {
       <DepartmentDashboard department="inpatient" />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="stat-card"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><Building className="w-5 h-5 text-primary" /></div><div><p className="text-sm text-muted-foreground">Wards</p><p className="text-xl font-bold">{wards.length}</p></div></div></div>
-        <div className="stat-card"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-chart-2/10 flex items-center justify-center"><BedDouble className="w-5 h-5 text-chart-2" /></div><div><p className="text-sm text-muted-foreground">Beds Available</p><p className="text-xl font-bold">{availableBeds.length}/{beds.length}</p></div></div></div>
-        <div className="stat-card"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center"><BedDouble className="w-5 h-5 text-destructive" /></div><div><p className="text-sm text-muted-foreground">Admitted Patients</p><p className="text-xl font-bold">{admissions.length}</p></div></div></div>
+        <MetricCard label="Wards" value={wards.length} icon={Building} to="/inpatient" />
+        <MetricCard label="Beds Available" value={`${availableBeds.length}/${beds.length}`} icon={BedDouble} iconColor="text-chart-2" to="/inpatient" />
+        <MetricCard label="Admitted Patients" value={admissions.length} icon={BedDouble} iconColor="text-destructive" to="/inpatient" />
       </div>
 
       <div className="bg-white rounded-lg border border-border">

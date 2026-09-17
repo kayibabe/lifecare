@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { apiClient } from "@/api/apiClient";
 import { Activity, Users, AlertTriangle, ClipboardList, Heart } from "lucide-react";
+import MetricCard from "@/components/ui/MetricCard";
+import { getLocalDateKey } from "@/lib/dashboardMetrics";
 
 export default function NurseDashboard() {
   const [stats, setStats] = useState({ admissions: 0, tasks: 0, criticalVitals: 0, discharges: 0 });
@@ -13,8 +15,8 @@ export default function NurseDashboard() {
         const [admissions, tasks, vitals, discharges] = await Promise.all([
           apiClient.entities.Admission.filter({ status: "admitted" }, "", 100),
           apiClient.entities.NurseTask.filter({ status: { $in: ["pending", "in_progress"] } }, "-created_date", 20),
-          apiClient.entities.VitalSigns.filter({ recorded_date: new Date().toISOString().slice(0, 10) }, "-recorded_date", 100),
-          apiClient.entities.Discharge.filter({ discharge_date: new Date().toISOString().slice(0, 10) }, "", 50),
+          apiClient.entities.VitalSigns.filter({ recorded_date: getLocalDateKey() }, "-recorded_date", 100),
+          apiClient.entities.Discharge.filter({ discharge_date: getLocalDateKey() }, "", 50),
         ]);
         
         const critical = vitals.filter(v => 
@@ -44,42 +46,10 @@ export default function NurseDashboard() {
       <div>
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Nursing Station Overview</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Admitted</p>
-                <p className="text-2xl font-bold">{stats.admissions}</p>
-              </div>
-              <Users className="w-5 h-5 text-primary" />
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Pending Tasks</p>
-                <p className="text-2xl font-bold">{stats.tasks}</p>
-              </div>
-              <ClipboardList className="w-5 h-5 text-chart-2" />
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Critical Vitals</p>
-                <p className="text-2xl font-bold text-destructive">{stats.criticalVitals}</p>
-              </div>
-              <AlertTriangle className="w-5 h-5 text-destructive" />
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Discharges Today</p>
-                <p className="text-2xl font-bold text-chart-3">{stats.discharges}</p>
-              </div>
-              <Activity className="w-5 h-5 text-chart-3" />
-            </div>
-          </div>
+          <MetricCard label="Admitted" value={stats.admissions} icon={Users} to="/inpatient" />
+          <MetricCard label="Pending Tasks" value={stats.tasks} icon={ClipboardList} iconColor="text-chart-2" to="/nursing" />
+          <MetricCard label="Critical Vitals" value={stats.criticalVitals} icon={AlertTriangle} iconColor="text-destructive" valueColor="text-destructive" to="/nursing" />
+          <MetricCard label="Discharges Today" value={stats.discharges} icon={Activity} iconColor="text-chart-3" valueColor="text-chart-3" to="/inpatient" />
         </div>
       </div>
 

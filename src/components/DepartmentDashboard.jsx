@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { apiClient } from "@/api/apiClient";
 import { ArrowRight, Users, ClipboardCheck, AlertCircle, Clock, Activity, Pill } from "lucide-react";
+import MetricCard from "@/components/ui/MetricCard";
+import { getLocalDateKey, getDateWindowIso, isPendingLabOrder, METRIC_LIMITS } from "@/lib/dashboardMetrics";
 
 const DEPT_CONFIGS = {
   reception: {
@@ -59,6 +61,18 @@ const DEPT_CONFIGS = {
   },
 };
 
+const METRIC_ROUTES = {
+  reception: { registrations: "/reception", checkins: "/reception", waitingQueue: "/queue" },
+  clinical: { consultations: "/clinical", diagnoses: "/clinical", prescriptions: "/pharmacy", avgConsultTime: "/clinical" },
+  lab: { orders: "/lab", results: "/lab", turnaround: "/lab", pending: "/lab" },
+  imaging: { orders: "/imaging", results: "/radiology-reports", turnaround: "/imaging", pending: "/imaging" },
+  pharmacy: { pendingRx: "/pharmacy", dispensed: "/pharmacy", lowStock: "/pharmacy", expiring: "/pharmacy" },
+  billing: { invoices: "/billing", collected: "/billing", outstanding: "/billing", claims: "/insurance-claims" },
+  inpatient: { admissions: "/inpatient", discharges: "/inpatient", occupiedBeds: "/inpatient", availableBeds: "/inpatient" },
+  maternal: { ancVisits: "/maternal", deliveries: "/maternal", postnatal: "/maternal", highRisk: "/maternal" },
+  nursing: { triageToday: "/triage", vitalsRecorded: "/nursing", medsAdministered: "/nursing", nursingNotes: "/nursing" },
+};
+
 export default function DepartmentDashboard({ department, compact = false }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -70,8 +84,8 @@ export default function DepartmentDashboard({ department, compact = false }) {
   useEffect(() => {
     async function load() {
       try {
-        const today = new Date().toISOString().slice(0, 10);
-        const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+        const today = getLocalDateKey();
+        const thirtyDaysAgo = getDateWindowIso(30);
 
         const result = {};
 
@@ -88,7 +102,7 @@ export default function DepartmentDashboard({ department, compact = false }) {
         if (department === "reception") {
           const [registrations, checkins] = await Promise.all([
             apiClient.entities.Patient.filter({ created_date: { $gte: today } }, "-created_date", 200),
-            apiClient.entities.Visit.filter({ created_date: { $gte: today } }, "-created_date", 200),
+            apiClient.entities.Visit.filter({ visit_date: { $gte: today } }, "-created_date", 200),
           ]);
           result.registrations = registrations.length;
           result.checkins = checkins.length;
@@ -97,7 +111,7 @@ export default function DepartmentDashboard({ department, compact = false }) {
 
         if (department === "clinical") {
           const [consults, diagnoses, prescriptions] = await Promise.all([
-            apiClient.entities.Consultation.filter({ created_date: { $gte: today } }, "-created_date", 200),
+            apiClient.entities.Consultation.filter({ consultation_date: { $gte: today } }, "-created_date", 200),
             apiClient.entities.Diagnosis.filter({ created_date: { $gte: today } }, "-created_date", 200),
             apiClient.entities.Prescription.filter({ created_date: { $gte: today } }, "-created_date", 200),
           ]);
@@ -109,12 +123,12 @@ export default function DepartmentDashboard({ department, compact = false }) {
 
         if (department === "lab") {
           const [orders, results] = await Promise.all([
-            apiClient.entities.LabOrder.filter({ created_date: { $gte: thirtyDaysAgo } }, "-created_date", 200),
-            apiClient.entities.LabResult.filter({ created_date: { $gte: thirtyDaysAgo } }, "-created_date", 200),
+            apiClient.entities.LabOrder.filter({ created_date: { $gte: thirtyDaysAgo } }, "-created_date", METRIC_LIMITS.operational),
+            apiClient.entities.LabResult.filter({ created_date: { $gte: thirtyDaysAgo } }, "-created_date", METRIC_LIMITS.operational),
           ]);
           result.orders = orders.length;
           result.results = results.length;
-          result.pending = orders.filter(o => o.status !== "completed" && o.status !== "verified").length;
+          result.pending = orders.filter(isPendingLabOrder).length;
           const completedWithResults = results.filter(r => r.status === "verified" || r.status === "reported");
           const avgTat = completedWithResults.length > 0
             ? Math.round(completedWithResults.reduce((sum, r) => {
@@ -128,8 +142,8 @@ export default function DepartmentDashboard({ department, compact = false }) {
 
         if (department === "imaging") {
           const [orders, results] = await Promise.all([
-            apiClient.entities.ImagingOrder.filter({ created_date: { $gte: thirtyDaysAgo } }, "-created_date", 200),
-            apiClient.entities.ImagingResult.filter({ created_date: { $gte: thirtyDaysAgo } }, "-created_date", 200),
+            apiClient.entities.ImagingOrder.filter({ created_date: { $gte: thirtyDaysAgo } }, "-created_date", METRIC_LIMITS.operational),
+            apiClient.entities.ImagingResult.filter({ created_date: { $gte: thirtyDaysAgo } }, "-created_date", METRIC_LIMITS.operational),
           ]);
           result.orders = orders.length;
           result.results = results.length;
@@ -139,7 +153,7 @@ export default function DepartmentDashboard({ department, compact = false }) {
 
         if (department === "pharmacy") {
           const [drugs, prescriptions, dispensings] = await Promise.all([
-            apiClient.entities.Drug.list("", 200),
+            apiClient.entities.Drug.list("", METRIC_LIMITS.operational),
             apiClient.entities.Prescription.filter({ status: { $in: ["pending", "partial"] } }, "-created_date", 100),
             apiClient.entities.PharmacyDispensing.filter({ created_date: { $gte: today } }, "-created_date", 100),
           ]);
@@ -239,10 +253,10 @@ export default function DepartmentDashboard({ department, compact = false }) {
       diagnoses: { label: "Diagnoses", icon: AlertCircle, color: "text-chart-4" },
       prescriptions: { label: "Prescriptions", icon: ClipboardCheck, color: "text-chart-2" },
       avgConsultTime: { label: "Avg Consult", icon: Clock, color: "text-chart-3", suffix: " min" },
-      orders: { label: "Orders", icon: ClipboardCheck, color: "text-primary" },
-      results: { label: "Results", icon: ClipboardCheck, color: "text-chart-3" },
+      orders: { label: department === "lab" ? "Orders (30d)" : "Orders", icon: ClipboardCheck, color: "text-primary" },
+      results: { label: department === "lab" ? "Results (30d)" : "Results", icon: ClipboardCheck, color: "text-chart-3" },
       turnaround: { label: "Avg TAT", icon: Clock, color: "text-chart-2", suffix: " hrs" },
-      pending: { label: "Pending", icon: AlertCircle, color: "text-destructive" },
+      pending: { label: department === "lab" ? "Pending (30d)" : "Pending", icon: AlertCircle, color: "text-destructive" },
       pendingRx: { label: "Pending Rx", icon: AlertCircle, color: "text-destructive" },
       dispensed: { label: "Dispensed Today", icon: ClipboardCheck, color: "text-chart-3" },
       lowStock: { label: "Low Stock", icon: AlertCircle, color: "text-destructive" },
@@ -294,13 +308,15 @@ export default function DepartmentDashboard({ department, compact = false }) {
       {/* Metrics */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4">
         {metrics.map(m => (
-          <div key={m.key} className="bg-muted/30 rounded-lg p-3 text-center">
-            <m.icon className={`w-4 h-4 mx-auto mb-1 ${m.color}`} />
-            <p className="text-lg font-bold">
-              {m.format === "currency" ? (m.value || 0).toLocaleString() : m.value}{m.suffix || ""}
-            </p>
-            <p className="text-[10px] text-muted-foreground leading-tight">{m.label}</p>
-          </div>
+          <MetricCard
+            key={m.key}
+            label={m.label}
+            value={`${m.format === "currency" ? (m.value || 0).toLocaleString() : m.value}${m.suffix || ""}`}
+            icon={m.icon}
+            iconColor={m.color}
+            to={METRIC_ROUTES[department]?.[m.key]}
+            className="bg-muted/30 border-transparent p-3 text-center shadow-none"
+          />
         ))}
       </div>
 

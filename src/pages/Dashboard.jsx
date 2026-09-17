@@ -23,6 +23,8 @@ import { queueLabel, visitLabel, priorityLabel } from "@/lib/labels";
 import DailyIntakeSummary from "@/components/AdminDashboardWidgets/DailyIntakeSummary";
 import RevenueBreakdown from "@/components/AdminDashboardWidgets/RevenueBreakdown";
 import WardOccupancySummary from "@/components/AdminDashboardWidgets/WardOccupancySummary";
+import MetricCard from "@/components/ui/MetricCard";
+import { getLocalDateKey, getDateWindowIso, isPendingLabOrder, METRIC_LIMITS } from "@/lib/dashboardMetrics";
 
 const CHART_COLORS = ["hsl(194, 65%, 42%)", "hsl(38, 92%, 50%)", "hsl(160, 60%, 40%)", "hsl(280, 50%, 50%)", "hsl(340, 65%, 50%)", "hsl(0, 72%, 51%)"];
 
@@ -201,19 +203,19 @@ export default function Dashboard() {
     async function load() {
       try {
         const [patients, appointments, labOrders, beds, drugs, visits, invoices] = await Promise.all([
-          apiClient.entities.Patient.list("-created_date", 500),
-          apiClient.entities.Appointment.filter({ appointment_date: new Date().toISOString().slice(0, 10) }, "-appointment_date", 200),
-          apiClient.entities.LabOrder.filter({ status: { $in: ["ordered", "in_progress"] } }, "-created_date", 500),
+          apiClient.entities.Patient.list("-created_date", METRIC_LIMITS.patients),
+          apiClient.entities.Appointment.filter({ appointment_date: getLocalDateKey() }, "-appointment_date", 200),
+          apiClient.entities.LabOrder.filter({ created_date: { $gte: getDateWindowIso(30) } }, "-created_date", METRIC_LIMITS.operational),
           apiClient.entities.Bed.filter({ status: "occupied" }, "", 500),
-          apiClient.entities.Drug.list("", 1000),
+          apiClient.entities.Drug.list("", METRIC_LIMITS.operational),
           apiClient.entities.Visit.list("-created_date", 10),
-          apiClient.entities.Invoice.filter({ status: "paid" }, "-created_date", 500),
+          apiClient.entities.Invoice.filter({ created_date: { $gte: getDateWindowIso(30) }, status: { $in: ["paid", "partial"] } }, "-created_date", METRIC_LIMITS.operational),
         ]);
         const rev = invoices.reduce((sum, inv) => sum + (inv.net_amount || inv.total_amount || 0), 0);
         setStats({
           patients: patients.length,
           appointments: appointments.length,
-          labOrders: labOrders.length,
+          labOrders: labOrders.filter(isPendingLabOrder).length,
           occupiedBeds: beds.length,
           drugs: drugs.filter(d => d.quantity_in_stock <= d.reorder_level).length,
           revenue: rev,
@@ -372,10 +374,10 @@ export default function Dashboard() {
         <div className={`grid gap-4 items-stretch ${isAdmin ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-6" : isDoctor || isPharmacist || isCashier ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4" : isStoreManager ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2 md:grid-cols-3"}`}>
           {(isAdmin || isReceptionist) && <StatCard label="Registered Patients" value={report?.total_patients ?? stats.patients} to="/reception" metaKey="patients" />}
           {(isAdmin || isReceptionist || isDoctor) && <StatCard label="Today's Appointments" value={report?.total_appointments_today ?? stats.appointments} sub={report ? `${report.appointments_completed} completed` : null} to="/appointments" metaKey="appointments" />}
-          {(isAdmin || isLabTech || isDoctor) && <StatCard label="Pending Lab Orders" value={report?.pending_lab_orders ?? stats.labOrders} to="/lab" metaKey="labOrders" />}
+          {(isAdmin || isLabTech || isDoctor) && <StatCard label="Pending Lab Orders (30d)" value={report?.pending_lab_orders ?? stats.labOrders} to="/lab" metaKey="labOrders" />}
           {(isAdmin || isNurse || isDoctor) && <StatCard label="Occupied Beds" value={report?.active_inpatients ?? stats.occupiedBeds} to="/inpatient" metaKey="beds" />}
           {(isAdmin || isPharmacist || isStoreManager) && <StatCard label="Low Stock Drugs" value={report?.drugs_low_stock ?? stats.drugs} color={report?.drugs_low_stock > 0 ? 'warning' : 'success'} to="/pharmacy" metaKey="drugs" />}
-          {(isAdmin || isCashier) && <StatCard label="Revenue (MWK)" value={(report?.all_time_revenue_mwk ?? stats.revenue).toLocaleString()} to="/billing" metaKey="revenue" />}
+          {(isAdmin || isCashier) && <StatCard label="Revenue (30d, MWK)" value={stats.revenue.toLocaleString()} to="/billing" metaKey="revenue" />}
           </div>
           </div>
 
@@ -417,40 +419,22 @@ export default function Dashboard() {
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {report.total_visits_today !== undefined && (
-              <div className="bg-white rounded-lg border border-border p-4 text-center">
-                <p className="text-2xl font-bold">{report.total_visits_today}</p>
-                <p className="text-xs text-muted-foreground mt-1">Today's Visits</p>
-              </div>
+              <MetricCard label="Today's Visits" value={report.total_visits_today} to="/reception" />
             )}
             {report.appointments_completed !== undefined && (
-              <div className="bg-white rounded-lg border border-border p-4 text-center">
-                <p className="text-2xl font-bold text-clinical-normal">{report.appointments_completed}</p>
-                <p className="text-xs text-muted-foreground mt-1">Completed</p>
-              </div>
+              <MetricCard label="Completed Appointments" value={report.appointments_completed} valueColor="text-clinical-normal" to="/appointments" />
             )}
             {report.appointments_no_show !== undefined && (
-              <div className="bg-white rounded-lg border border-border p-4 text-center">
-                <p className="text-2xl font-bold text-clinical-critical">{report.appointments_no_show}</p>
-                <p className="text-xs text-muted-foreground mt-1">No-shows</p>
-              </div>
+              <MetricCard label="No-shows" value={report.appointments_no_show} valueColor="text-clinical-critical" to="/appointments" />
             )}
             {report.active_inpatients !== undefined && (
-              <div className="bg-white rounded-lg border border-border p-4 text-center">
-                <p className="text-2xl font-bold text-chart-4">{report.active_inpatients}</p>
-                <p className="text-xs text-muted-foreground mt-1">Inpatients</p>
-              </div>
+              <MetricCard label="Inpatients" value={report.active_inpatients} valueColor="text-chart-4" to="/inpatient" />
             )}
             {report.pending_lab_orders !== undefined && (
-              <div className="bg-white rounded-lg border border-border p-4 text-center">
-                <p className="text-2xl font-bold text-chart-1">{report.pending_lab_orders}</p>
-                <p className="text-xs text-muted-foreground mt-1">Pending Labs</p>
-              </div>
+              <MetricCard label="Pending Labs (30d)" value={report.pending_lab_orders} valueColor="text-chart-1" to="/lab" />
             )}
             {report.drugs_low_stock !== undefined && (
-              <div className="bg-white rounded-lg border border-clinical-critical/20 p-4 text-center">
-                <p className="text-2xl font-bold text-clinical-critical">{report.drugs_low_stock}</p>
-                <p className="text-xs text-muted-foreground mt-1">Low Stock</p>
-              </div>
+              <MetricCard label="Low Stock" value={report.drugs_low_stock} valueColor="text-clinical-critical" to="/pharmacy" />
             )}
           </div>
         </div>

@@ -5,6 +5,8 @@ import {
   Bell, ArrowRight, GitBranch, Activity,
   RefreshCw, ChevronDown, ChevronUp
 } from "lucide-react";
+import MetricCard from "@/components/ui/MetricCard";
+import { getLocalDateKey } from "@/lib/dashboardMetrics";
 
 const REFRESH_INTERVAL = 15000; // 15 seconds
 
@@ -23,7 +25,7 @@ export default function InpatientDashboard() {
 
   const loadData = useCallback(async () => {
     try {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = getLocalDateKey();
       const [
         w, b, a, p, d, jList, notifications, vitalsToday
       ] = await Promise.all([
@@ -169,16 +171,7 @@ export default function InpatientDashboard() {
           { icon: Bell, label: "Alerts", value: alerts.length, sub: `${bedRequestAlerts.length} bed requests`, color: alerts.length > 0 ? "text-destructive" : "text-chart-3", bg: alerts.length > 0 ? "bg-destructive/10" : "bg-chart-3/10" },
           { icon: Activity, label: "Abnormal Vitals", value: Object.values(vitalSigns).filter(v => getVitalStatus(v)).length, sub: "needs review", color: "text-destructive", bg: "bg-destructive/10" },
         ].map(s => (
-          <div key={s.label} className="bg-card rounded-xl border border-border/50 p-3 flex items-center gap-3 hover:shadow-md transition-shadow">
-            <div className={`w-9 h-9 rounded-lg ${s.bg} flex items-center justify-center flex-shrink-0`}>
-              <s.icon className={`w-4 h-4 ${s.color}`} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-lg font-bold leading-tight">{s.value}</p>
-              <p className="text-[10px] text-muted-foreground">{s.label}</p>
-              {s.sub && <p className="text-[9px] text-muted-foreground/60">{s.sub}</p>}
-            </div>
-          </div>
+          <MetricCard key={s.label} label={s.label} value={s.value} sub={s.sub} icon={s.icon} iconColor={s.color} to="/inpatient" className={s.bg} />
         ))}
       </div>
 

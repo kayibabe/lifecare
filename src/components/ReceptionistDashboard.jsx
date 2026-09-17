@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { apiClient } from "@/api/apiClient";
 import { Users, Calendar, Clock, CheckCircle2 } from "lucide-react";
+import MetricCard from "@/components/ui/MetricCard";
+import { getLocalDateKey } from "@/lib/dashboardMetrics";
 
 export default function ReceptionistDashboard() {
   const [stats, setStats] = useState({ todayCheckins: 0, appointments: 0, waiting: 0, completed: 0 });
@@ -10,7 +12,7 @@ export default function ReceptionistDashboard() {
   useEffect(() => {
     async function load() {
       try {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = getLocalDateKey();
         const [visits, appointments] = await Promise.all([
           apiClient.entities.Visit.filter({
             visit_date: { $gte: today }
@@ -43,42 +45,10 @@ export default function ReceptionistDashboard() {
       <div>
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Reception Dashboard</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Check-ins Today</p>
-                <p className="text-2xl font-bold">{stats.todayCheckins}</p>
-              </div>
-              <Users className="w-5 h-5 text-primary" />
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Appointments</p>
-                <p className="text-2xl font-bold">{stats.appointments}</p>
-              </div>
-              <Calendar className="w-5 h-5 text-chart-1" />
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Waiting</p>
-                <p className="text-2xl font-bold text-chart-2">{stats.waiting}</p>
-              </div>
-              <Clock className="w-5 h-5 text-chart-2" />
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Completed</p>
-                <p className="text-2xl font-bold text-chart-3">{stats.completed}</p>
-              </div>
-              <CheckCircle2 className="w-5 h-5 text-chart-3" />
-            </div>
-          </div>
+          <MetricCard label="Check-ins Today" value={stats.todayCheckins} icon={Users} to="/reception" />
+          <MetricCard label="Appointments" value={stats.appointments} icon={Calendar} iconColor="text-chart-1" to="/appointments" />
+          <MetricCard label="Waiting" value={stats.waiting} icon={Clock} iconColor="text-chart-2" valueColor="text-chart-2" to="/queue" />
+          <MetricCard label="Completed" value={stats.completed} icon={CheckCircle2} iconColor="text-chart-3" valueColor="text-chart-3" to="/reception" />
         </div>
       </div>
 

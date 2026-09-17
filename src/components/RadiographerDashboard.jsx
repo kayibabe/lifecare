@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { apiClient } from "@/api/apiClient";
 import { Scan, Clock, CheckCircle2, AlertTriangle, FileText } from "lucide-react";
+import MetricCard from "@/components/ui/MetricCard";
+import { getLocalDateKey } from "@/lib/dashboardMetrics";
 
 export default function RadiographerDashboard() {
   const [stats, setStats] = useState({ ordersToday: 0, completed: 0, pending: 0, urgent: 0, avgTurnaround: 0 });
@@ -10,7 +12,7 @@ export default function RadiographerDashboard() {
   useEffect(() => {
     async function load() {
       try {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = getLocalDateKey();
         const [orders, results] = await Promise.all([
           apiClient.entities.ImagingOrder.filter({ order_date: { $gte: today } }, "-created_date", 100),
           apiClient.entities.ImagingResult.filter({ created_date: { $gte: today } }, "-created_date", 50),
@@ -57,51 +59,11 @@ export default function RadiographerDashboard() {
       <div>
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Today's Imaging Workload</h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Orders</p>
-                <p className="text-2xl font-bold">{stats.ordersToday}</p>
-              </div>
-              <Scan className="w-5 h-5 text-primary" />
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Completed</p>
-                <p className="text-2xl font-bold text-chart-3">{stats.completed}</p>
-              </div>
-              <CheckCircle2 className="w-5 h-5 text-chart-3" />
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Pending</p>
-                <p className="text-2xl font-bold text-chart-2">{stats.pending}</p>
-              </div>
-              <Clock className="w-5 h-5 text-chart-2" />
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Urgent</p>
-                <p className="text-2xl font-bold text-destructive">{stats.urgent}</p>
-              </div>
-              <AlertTriangle className="w-5 h-5 text-destructive" />
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Avg Turnaround</p>
-                <p className="text-2xl font-bold">{stats.avgTurnaround}m</p>
-              </div>
-              <FileText className="w-5 h-5 text-chart-4" />
-            </div>
-          </div>
+          <MetricCard label="Orders" value={stats.ordersToday} icon={Scan} to="/imaging" />
+          <MetricCard label="Completed" value={stats.completed} icon={CheckCircle2} iconColor="text-chart-3" valueColor="text-chart-3" to="/radiology-reports" />
+          <MetricCard label="Pending" value={stats.pending} icon={Clock} iconColor="text-chart-2" valueColor="text-chart-2" to="/imaging" />
+          <MetricCard label="Urgent" value={stats.urgent} icon={AlertTriangle} iconColor="text-destructive" valueColor="text-destructive" to="/imaging" />
+          <MetricCard label="Avg Turnaround" value={`${stats.avgTurnaround}m`} icon={FileText} iconColor="text-chart-4" to="/radiology-reports" />
         </div>
       </div>
 

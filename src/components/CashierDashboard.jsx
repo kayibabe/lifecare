@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { apiClient } from "@/api/apiClient";
 import { DollarSign, Receipt, TrendingUp, AlertCircle } from "lucide-react";
+import MetricCard from "@/components/ui/MetricCard";
+import { getLocalDateKey } from "@/lib/dashboardMetrics";
 
 export default function CashierDashboard() {
   const [stats, setStats] = useState({ totalRevenue: 0, pendingPayments: 0, shiftsOpen: 0, discrepancies: 0 });
@@ -10,7 +12,7 @@ export default function CashierDashboard() {
   useEffect(() => {
     async function load() {
       try {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = getLocalDateKey();
         const [invoices, payments, shifts] = await Promise.all([
           apiClient.entities.Invoice.filter({ created_date: { $gte: today } }, "-created_date", 50),
           apiClient.entities.Payment.filter({ payment_date: today }, "", 100),
@@ -50,42 +52,10 @@ export default function CashierDashboard() {
       <div>
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Daily Revenue Summary</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Today's Revenue</p>
-                <p className="text-2xl font-bold">MWK {(stats.totalRevenue).toLocaleString()}</p>
-              </div>
-              <DollarSign className="w-5 h-5 text-chart-3" />
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Pending Payments</p>
-                <p className="text-2xl font-bold">{stats.pendingPayments}</p>
-              </div>
-              <Receipt className="w-5 h-5 text-chart-2" />
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Active Shifts</p>
-                <p className="text-2xl font-bold">{stats.shiftsOpen}</p>
-              </div>
-              <TrendingUp className="w-5 h-5 text-primary" />
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Discrepancies</p>
-                <p className="text-2xl font-bold text-destructive">{stats.discrepancies}</p>
-              </div>
-              <AlertCircle className="w-5 h-5 text-destructive" />
-            </div>
-          </div>
+          <MetricCard label="Today's Revenue" value={`MWK ${stats.totalRevenue.toLocaleString()}`} icon={DollarSign} iconColor="text-chart-3" to="/billing" />
+          <MetricCard label="Pending Payments" value={stats.pendingPayments} icon={Receipt} iconColor="text-chart-2" to="/billing" />
+          <MetricCard label="Active Shifts" value={stats.shiftsOpen} icon={TrendingUp} to="/billing" />
+          <MetricCard label="Discrepancies" value={stats.discrepancies} icon={AlertCircle} iconColor="text-destructive" valueColor="text-destructive" to="/billing" />
         </div>
       </div>
 

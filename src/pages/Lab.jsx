@@ -7,6 +7,7 @@ import DepartmentDashboard from "@/components/DepartmentDashboard";
 import ExpiryAlerts from "@/components/ExpiryAlerts";
 import PatientLabTrendChart from "@/components/PatientLabTrendChart";
 import PageHeader from "@/components/ui/PageHeader";
+import { METRIC_LIMITS } from "@/lib/dashboardMetrics";
 
 export default function Lab() {
   const [orders, setOrders] = useState([]);
@@ -26,7 +27,7 @@ export default function Lab() {
     async function load() {
       try {
         const [o, p, jList] = await Promise.all([
-          apiClient.entities.LabOrder.list("-created_date", 100),
+          apiClient.entities.LabOrder.list("-created_date", METRIC_LIMITS.operational),
           apiClient.entities.Patient.list("-created_date", 200),
           apiClient.entities.PatientJourney.filter({ current_stage: { $in: ["LAB_PENDING", "LAB_PROCESSING"] }, status: "active" }, "-created_date", 30),
         ]);
@@ -49,7 +50,7 @@ export default function Lab() {
     setSubmitting(true);
     try {
       await apiClient.entities.LabOrder.create({ ...form, order_date: new Date().toISOString(), status: "ordered" });
-      const o = await apiClient.entities.LabOrder.list("-created_date", 100);
+      const o = await apiClient.entities.LabOrder.list("-created_date", METRIC_LIMITS.operational);
       setOrders(o);
       setShowForm(false);
     } catch (err) {
@@ -113,7 +114,7 @@ export default function Lab() {
 
     setResultForm(null);
     setResults({});
-    const o = await apiClient.entities.LabOrder.list("-created_date", 100);
+    const o = await apiClient.entities.LabOrder.list("-created_date", METRIC_LIMITS.operational);
     setOrders(o);
   };
 
@@ -284,7 +285,7 @@ export default function Lab() {
                         <button onClick={async () => {
                           const barcode = `SPC-${Date.now().toString(36).toUpperCase()}`;
                           await apiClient.entities.LabOrder.update(o.id, { status: "collected", collected_at: new Date().toISOString(), specimen_barcode: barcode });
-                          const oList = await apiClient.entities.LabOrder.list("-created_date", 100);
+                          const oList = await apiClient.entities.LabOrder.list("-created_date", METRIC_LIMITS.operational);
                           setOrders(oList);
                         }} className="p-1.5 rounded hover:bg-chart-4/10 text-chart-4 text-xs" title="Collect specimen & assign barcode">Collect</button>
                       )}

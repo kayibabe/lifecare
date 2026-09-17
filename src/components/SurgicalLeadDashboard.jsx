@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { apiClient } from "@/api/apiClient";
 import { Activity, Calendar, CheckCircle2, Clock, AlertTriangle, Users } from "lucide-react";
+import MetricCard from "@/components/ui/MetricCard";
+import { getLocalDateKey } from "@/lib/dashboardMetrics";
 
 export default function SurgicalLeadDashboard() {
   const [stats, setStats] = useState({ scheduled: 0, completed: 0, pending: 0, urgent: 0, staffAvailable: 0, theaterUtil: 0 });
@@ -10,7 +12,7 @@ export default function SurgicalLeadDashboard() {
   useEffect(() => {
     async function load() {
       try {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = getLocalDateKey();
         const [surgeries, staff] = await Promise.all([
           apiClient.entities.SurgicalBooking.filter({ scheduled_date: { $gte: today } }, "-scheduled_date", 100),
           apiClient.entities.DoctorSchedule.filter({ shift_date: today }, "", 50),
@@ -45,60 +47,12 @@ export default function SurgicalLeadDashboard() {
       <div>
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Surgical Operations</h2>
         <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-          <div className="stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Scheduled</p>
-                <p className="text-2xl font-bold">{stats.scheduled}</p>
-              </div>
-              <Calendar className="w-5 h-5 text-primary" />
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Completed</p>
-                <p className="text-2xl font-bold text-chart-3">{stats.completed}</p>
-              </div>
-              <CheckCircle2 className="w-5 h-5 text-chart-3" />
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Pending</p>
-                <p className="text-2xl font-bold text-chart-2">{stats.pending}</p>
-              </div>
-              <Clock className="w-5 h-5 text-chart-2" />
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Urgent</p>
-                <p className="text-2xl font-bold text-destructive">{stats.urgent}</p>
-              </div>
-              <AlertTriangle className="w-5 h-5 text-destructive" />
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Surgeons</p>
-                <p className="text-2xl font-bold">{stats.staffAvailable}</p>
-              </div>
-              <Users className="w-5 h-5 text-chart-4" />
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Theater Util</p>
-                <p className="text-2xl font-bold">{stats.theaterUtil}%</p>
-              </div>
-              <Activity className="w-5 h-5 text-chart-1" />
-            </div>
-          </div>
+          <MetricCard label="Scheduled" value={stats.scheduled} icon={Calendar} to="/surgery-calendar" />
+          <MetricCard label="Completed" value={stats.completed} icon={CheckCircle2} iconColor="text-chart-3" valueColor="text-chart-3" to="/surgery-calendar" />
+          <MetricCard label="Pending" value={stats.pending} icon={Clock} iconColor="text-chart-2" valueColor="text-chart-2" to="/surgery-calendar" />
+          <MetricCard label="Urgent" value={stats.urgent} icon={AlertTriangle} iconColor="text-destructive" valueColor="text-destructive" to="/surgery-calendar" />
+          <MetricCard label="Surgeons" value={stats.staffAvailable} icon={Users} iconColor="text-chart-4" to="/surgery-calendar" />
+          <MetricCard label="Theater Util" value={`${stats.theaterUtil}%`} icon={Activity} iconColor="text-chart-1" to="/surgery-calendar" />
         </div>
       </div>
 

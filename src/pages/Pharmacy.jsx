@@ -11,6 +11,7 @@ import SignaturePad from "@/components/SignaturePad";
 import SignatureStatus from "@/components/SignatureStatus";
 import PharmacyRequisitionDashboard from "@/components/PharmacyRequisitionDashboard";
 import PageHeader from "@/components/ui/PageHeader";
+import { METRIC_LIMITS } from "@/lib/dashboardMetrics";
 
 export default function Pharmacy() {
   const [drugs, setDrugs] = useState([]);
@@ -35,7 +36,7 @@ export default function Pharmacy() {
     async function load() {
       try {
         const [d, p, pi, disp, jList, patList] = await Promise.all([
-          apiClient.entities.Drug.list("-created_date", 200),
+          apiClient.entities.Drug.list("-created_date", METRIC_LIMITS.operational),
           apiClient.entities.Prescription.filter({ status: { $in: ["pending", "partial"] } }, "-created_date", 50),
           apiClient.entities.PrescriptionItem.filter({ status: { $in: ["pending", "partial"] } }, "-created_date", 100),
           apiClient.entities.PharmacyDispensing.list("-created_date", 50),
@@ -64,7 +65,7 @@ export default function Pharmacy() {
         ...drugForm, unit_price: Number(drugForm.unit_price), cost_price: Number(drugForm.cost_price),
         quantity_in_stock: Number(drugForm.quantity_in_stock), reorder_level: Number(drugForm.reorder_level),
       });
-      const d = await apiClient.entities.Drug.list("-created_date", 200);
+      const d = await apiClient.entities.Drug.list("-created_date", METRIC_LIMITS.operational);
       setDrugs(d);
       setShowAddDrug(false);
       setDrugForm({ name: "", generic_name: "", category: "", strength: "", form: "", manufacturer: "", unit_price: "", cost_price: "", quantity_in_stock: "", reorder_level: "10", batch_number: "", expiry_date: "" });
@@ -123,7 +124,7 @@ export default function Pharmacy() {
       }
 
       const [d, disp] = await Promise.all([
-        apiClient.entities.Drug.list("-created_date", 200),
+        apiClient.entities.Drug.list("-created_date", METRIC_LIMITS.operational),
         apiClient.entities.PharmacyDispensing.list("-created_date", 50),
       ]);
       setDrugs(d);
@@ -168,7 +169,7 @@ export default function Pharmacy() {
         console.warn("Waste-log tracking unavailable:", wasteLogError);
       }
       await apiClient.entities.Drug.update(drug.id, { status: "discontinued", quantity_in_stock: 0 });
-      const d = await apiClient.entities.Drug.list("-created_date", 200);
+      const d = await apiClient.entities.Drug.list("-created_date", METRIC_LIMITS.operational);
       setDrugs(d);
       toast({ title: "Waste disposal logged", description: `${drug.name} marked for incineration.` });
     } catch (e) {

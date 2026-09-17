@@ -3,6 +3,7 @@ import { apiClient } from "@/api/apiClient";
 import { Scan, Plus, Save, FileImage } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
 import { toast } from "@/components/ui/use-toast";
+import { METRIC_LIMITS } from "@/lib/dashboardMetrics";
 
 export default function Imaging() {
   const [orders, setOrders] = useState([]);
@@ -18,7 +19,7 @@ export default function Imaging() {
     async function load() {
       try {
         const [o, p] = await Promise.all([
-          apiClient.entities.ImagingOrder.list("-created_date", 100),
+          apiClient.entities.ImagingOrder.list("-created_date", METRIC_LIMITS.operational),
           apiClient.entities.Patient.list("-created_date", 200),
         ]);
         setOrders(o);
@@ -36,7 +37,7 @@ export default function Imaging() {
     setSubmitting(true);
     try {
       await apiClient.entities.ImagingOrder.create({ ...form, order_date: new Date().toISOString(), status: "ordered" });
-      const o = await apiClient.entities.ImagingOrder.list("-created_date", 100);
+      const o = await apiClient.entities.ImagingOrder.list("-created_date", METRIC_LIMITS.operational);
       setOrders(o);
       setShowForm(false);
     } catch (err) {
@@ -60,7 +61,7 @@ export default function Imaging() {
     await apiClient.entities.ImagingOrder.update(orderId, { status: "completed" });
     setResultForm(null);
     setResultData({ findings: "", impression: "" });
-    const o = await apiClient.entities.ImagingOrder.list("-created_date", 100);
+    const o = await apiClient.entities.ImagingOrder.list("-created_date", METRIC_LIMITS.operational);
     setOrders(o);
   };
 
