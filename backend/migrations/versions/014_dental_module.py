@@ -1,7 +1,10 @@
-"""Add dental clinic entities and dentist role support."""
+"""Add dental clinic entities and dentist role support.
+
+Idempotent because the application historically used SQLAlchemy create_all
+before Alembic was introduced.
+"""
 
 from alembic import op
-import sqlalchemy as sa
 
 revision = "014_dental_module"
 down_revision = "013_appt_created_by_nullable_fix"
@@ -10,97 +13,60 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # UserRole is the PostgreSQL enum generated from models.user.UserRole.
     op.execute("ALTER TYPE userrole ADD VALUE IF NOT EXISTS 'dentist'")
-
-    op.create_table(
-        "dental_encounters",
-        sa.Column("id", sa.UUID(), nullable=False),
-        sa.Column("encounter_id", sa.UUID(), nullable=False),
-        sa.Column("patient_id", sa.UUID(), nullable=False),
-        sa.Column("dentist_id", sa.UUID(), nullable=False),
-        sa.Column("chief_complaint", sa.Text(), nullable=True),
-        sa.Column("dental_history", sa.Text(), nullable=True),
-        sa.Column("examination_notes", sa.Text(), nullable=True),
-        sa.Column("diagnosis", sa.Text(), nullable=True),
-        sa.Column("status", sa.Enum("open", "treatment_planned", "completed", "referred", name="dentalencounterstatus"), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(["encounter_id"], ["encounters.id"]),
-        sa.ForeignKeyConstraint(["patient_id"], ["patients.id"]),
-        sa.ForeignKeyConstraint(["dentist_id"], ["users.id"]),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("encounter_id"),
-    )
-    op.create_index("ix_dental_encounters_encounter_id", "dental_encounters", ["encounter_id"])
-    op.create_index("ix_dental_encounters_patient_id", "dental_encounters", ["patient_id"])
-    op.create_index("ix_dental_encounters_dentist_id", "dental_encounters", ["dentist_id"])
-
-    op.create_table(
-        "dental_tooth_findings",
-        sa.Column("id", sa.UUID(), nullable=False),
-        sa.Column("dental_encounter_id", sa.UUID(), nullable=False),
-        sa.Column("tooth_number", sa.String(length=8), nullable=False),
-        sa.Column("surface", sa.String(length=30), nullable=True),
-        sa.Column("finding", sa.String(length=120), nullable=False),
-        sa.Column("severity", sa.String(length=30), nullable=True),
-        sa.Column("notes", sa.Text(), nullable=True),
-        sa.Column("recorded_by", sa.UUID(), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(["dental_encounter_id"], ["dental_encounters.id"]),
-        sa.ForeignKeyConstraint(["recorded_by"], ["users.id"]),
-        sa.PrimaryKeyConstraint("id"),
-    )
-    op.create_index("ix_dental_tooth_findings_encounter_id", "dental_tooth_findings", ["dental_encounter_id"])
-    op.create_index("ix_dental_tooth_findings_tooth_number", "dental_tooth_findings", ["tooth_number"])
-    op.create_index("ix_dental_tooth_findings_recorded_by", "dental_tooth_findings", ["recorded_by"])
-
-    op.create_table(
-        "dental_treatment_plans",
-        sa.Column("id", sa.UUID(), nullable=False),
-        sa.Column("dental_encounter_id", sa.UUID(), nullable=False),
-        sa.Column("status", sa.Enum("proposed", "accepted", "in_progress", "completed", "cancelled", name="dentaltreatmentstatus"), nullable=False),
-        sa.Column("notes", sa.Text(), nullable=True),
-        sa.Column("estimated_total", sa.Numeric(12, 2), nullable=False),
-        sa.Column("created_by", sa.UUID(), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(["dental_encounter_id"], ["dental_encounters.id"]),
-        sa.ForeignKeyConstraint(["created_by"], ["users.id"]),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("dental_encounter_id"),
-    )
-    op.create_index("ix_dental_treatment_plans_encounter_id", "dental_treatment_plans", ["dental_encounter_id"])
-    op.create_index("ix_dental_treatment_plans_created_by", "dental_treatment_plans", ["created_by"])
-
-    op.create_table(
-        "dental_treatment_plan_items",
-        sa.Column("id", sa.UUID(), nullable=False),
-        sa.Column("treatment_plan_id", sa.UUID(), nullable=False),
-        sa.Column("procedure_code", sa.String(length=30), nullable=False),
-        sa.Column("procedure_name", sa.String(length=150), nullable=False),
-        sa.Column("tooth_number", sa.String(length=8), nullable=True),
-        sa.Column("fee", sa.Numeric(12, 2), nullable=False),
-        sa.Column("status", sa.Enum("proposed", "accepted", "in_progress", "completed", "cancelled", name="dentaltreatmentstatus", create_type=False), nullable=False),
-        sa.Column("notes", sa.Text(), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(["treatment_plan_id"], ["dental_treatment_plans.id"]),
-        sa.PrimaryKeyConstraint("id"),
-    )
-    op.create_index("ix_dental_treatment_plan_items_plan_id", "dental_treatment_plan_items", ["treatment_plan_id"])
+    op.execute("""DO $$ BEGIN
+        CREATE TYPE dentalencounterstatus AS ENUM ('open', 'treatment_planned', 'completed', 'referred');
+    EXCEPTION WHEN duplicate_object THEN NULL; END $$;""")
+    op.execute("""DO $$ BEGIN
+        CREATE TYPE dentaltreatmentstatus AS ENUM ('proposed', 'accepted', 'in_progress', 'completed', 'cancelled');
+    EXCEPTION WHEN duplicate_object THEN NULL; END $$;""")
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS dental_encounters (
+            id UUID PRIMARY KEY, encounter_id UUID NOT NULL UNIQUE REFERENCES encounters(id),
+            patient_id UUID NOT NULL REFERENCES patients(id), dentist_id UUID NOT NULL REFERENCES users(id),
+            chief_complaint TEXT, dental_history TEXT, examination_notes TEXT, diagnosis TEXT,
+            status dentalencounterstatus NOT NULL, created_at TIMESTAMPTZ NOT NULL, updated_at TIMESTAMPTZ NOT NULL
+        )
+    """)
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS dental_tooth_findings (
+            id UUID PRIMARY KEY, dental_encounter_id UUID NOT NULL REFERENCES dental_encounters(id),
+            tooth_number VARCHAR(8) NOT NULL, surface VARCHAR(30), finding VARCHAR(120) NOT NULL,
+            severity VARCHAR(30), notes TEXT, recorded_by UUID NOT NULL REFERENCES users(id), created_at TIMESTAMPTZ NOT NULL
+        )
+    """)
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS dental_treatment_plans (
+            id UUID PRIMARY KEY, dental_encounter_id UUID NOT NULL UNIQUE REFERENCES dental_encounters(id),
+            status dentaltreatmentstatus NOT NULL, notes TEXT, estimated_total NUMERIC(12, 2) NOT NULL,
+            created_by UUID NOT NULL REFERENCES users(id), created_at TIMESTAMPTZ NOT NULL, updated_at TIMESTAMPTZ NOT NULL
+        )
+    """)
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS dental_treatment_plan_items (
+            id UUID PRIMARY KEY, treatment_plan_id UUID NOT NULL REFERENCES dental_treatment_plans(id),
+            procedure_code VARCHAR(30) NOT NULL, procedure_name VARCHAR(150) NOT NULL, tooth_number VARCHAR(8),
+            fee NUMERIC(12, 2) NOT NULL, status dentaltreatmentstatus NOT NULL, notes TEXT, created_at TIMESTAMPTZ NOT NULL
+        )
+    """)
+    for statement in (
+        "CREATE INDEX IF NOT EXISTS ix_dental_encounters_encounter_id ON dental_encounters(encounter_id)",
+        "CREATE INDEX IF NOT EXISTS ix_dental_encounters_patient_id ON dental_encounters(patient_id)",
+        "CREATE INDEX IF NOT EXISTS ix_dental_encounters_dentist_id ON dental_encounters(dentist_id)",
+        "CREATE INDEX IF NOT EXISTS ix_dental_tooth_findings_encounter_id ON dental_tooth_findings(dental_encounter_id)",
+        "CREATE INDEX IF NOT EXISTS ix_dental_tooth_findings_tooth_number ON dental_tooth_findings(tooth_number)",
+        "CREATE INDEX IF NOT EXISTS ix_dental_tooth_findings_recorded_by ON dental_tooth_findings(recorded_by)",
+        "CREATE INDEX IF NOT EXISTS ix_dental_treatment_plans_encounter_id ON dental_treatment_plans(dental_encounter_id)",
+        "CREATE INDEX IF NOT EXISTS ix_dental_treatment_plans_created_by ON dental_treatment_plans(created_by)",
+        "CREATE INDEX IF NOT EXISTS ix_dental_treatment_plan_items_plan_id ON dental_treatment_plan_items(treatment_plan_id)",
+    ):
+        op.execute(statement)
 
 
 def downgrade() -> None:
-    op.drop_index("ix_dental_treatment_plan_items_plan_id", table_name="dental_treatment_plan_items")
-    op.drop_table("dental_treatment_plan_items")
-    op.drop_index("ix_dental_treatment_plans_created_by", table_name="dental_treatment_plans")
-    op.drop_index("ix_dental_treatment_plans_encounter_id", table_name="dental_treatment_plans")
-    op.drop_table("dental_treatment_plans")
-    op.drop_index("ix_dental_tooth_findings_recorded_by", table_name="dental_tooth_findings")
-    op.drop_index("ix_dental_tooth_findings_tooth_number", table_name="dental_tooth_findings")
-    op.drop_index("ix_dental_tooth_findings_encounter_id", table_name="dental_tooth_findings")
-    op.drop_table("dental_tooth_findings")
-    op.drop_index("ix_dental_encounters_dentist_id", table_name="dental_encounters")
-    op.drop_index("ix_dental_encounters_patient_id", table_name="dental_encounters")
-    op.drop_index("ix_dental_encounters_encounter_id", table_name="dental_encounters")
-    op.drop_table("dental_encounters")
+    op.execute("DROP TABLE IF EXISTS dental_treatment_plan_items")
+    op.execute("DROP TABLE IF EXISTS dental_treatment_plans")
+    op.execute("DROP TABLE IF EXISTS dental_tooth_findings")
+    op.execute("DROP TABLE IF EXISTS dental_encounters")
+    op.execute("DROP TYPE IF EXISTS dentaltreatmentstatus")
+    op.execute("DROP TYPE IF EXISTS dentalencounterstatus")
