@@ -5,8 +5,8 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
     <div className="h-screen overflow-hidden flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-5">
-          <div className="w-24 h-24 mx-auto mb-3 overflow-hidden">
-            <img src="/logo.png" alt="LifeCare" className="w-full h-full object-cover object-top" />
+          <div className="w-32 h-32 mx-auto mb-3">
+            <img src="/lifecare-mark.png" alt="LifeCare" className="w-full h-full object-contain" />
           </div>
           <div className="flex flex-col items-center gap-0.5">
             <span className="text-lg font-bold text-foreground tracking-tight">LifeCare</span>

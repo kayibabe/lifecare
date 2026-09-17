@@ -64,8 +64,8 @@ export default function Landing() {
       >
         <div className="max-w-7xl mx-auto px-6 md:px-10 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 overflow-hidden rounded-md flex-shrink-0">
-              <img src="/logo.png" alt="LifeCare" className="w-full h-full object-cover object-top" />
+            <div className="w-14 h-14 flex-shrink-0">
+              <img src="/lifecare-mark.png" alt="LifeCare" className="w-full h-full object-contain" />
             </div>
             <div className="leading-tight">
               <span
@@ -552,8 +552,8 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-6 md:px-10 py-14 grid md:grid-cols-[1.5fr_1fr_1fr] gap-12">
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-14 h-14 overflow-hidden rounded-lg flex-shrink-0">
-                <img src="/logo.png" alt="LifeCare" className="w-full h-full object-cover object-top" />
+              <div className="w-16 h-16 flex-shrink-0">
+                <img src="/lifecare-mark.png" alt="LifeCare" className="w-full h-full object-contain" />
               </div>
               <div>
                 <span className="block font-heading font-bold text-white text-base">LifeCare</span>
