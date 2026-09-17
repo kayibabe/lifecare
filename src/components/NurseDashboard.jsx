@@ -46,10 +46,10 @@ export default function NurseDashboard() {
       <div>
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Nursing Station Overview</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <MetricCard label="Admitted" value={stats.admissions} icon={Users} to="/inpatient" />
-          <MetricCard label="Pending Tasks" value={stats.tasks} icon={ClipboardList} iconColor="text-chart-2" to="/nursing" />
-          <MetricCard label="Critical Vitals" value={stats.criticalVitals} icon={AlertTriangle} iconColor="text-destructive" valueColor="text-destructive" to="/nursing" />
-          <MetricCard label="Discharges Today" value={stats.discharges} icon={Activity} iconColor="text-chart-3" valueColor="text-chart-3" to="/inpatient" />
+          <MetricCard label="Admitted" value={stats.admissions} icon={Users} to="/inpatient?metric=admissions" />
+          <MetricCard label="Pending Tasks" value={stats.tasks} icon={ClipboardList} iconColor="text-chart-2" to="/nursing?metric=tasklist" />
+          <MetricCard label="Critical Vitals" value={stats.criticalVitals} icon={AlertTriangle} iconColor="text-destructive" valueColor="text-destructive" to="/nursing?metric=criticalVitals" />
+          <MetricCard label="Discharges Today" value={stats.discharges} icon={Activity} iconColor="text-chart-3" valueColor="text-chart-3" to="/inpatient?metric=discharges" />
         </div>
       </div>
 

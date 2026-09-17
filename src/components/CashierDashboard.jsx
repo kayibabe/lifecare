@@ -52,10 +52,10 @@ export default function CashierDashboard() {
       <div>
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Daily Revenue Summary</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <MetricCard label="Today's Revenue" value={`MWK ${stats.totalRevenue.toLocaleString()}`} icon={DollarSign} iconColor="text-chart-3" to="/billing" />
-          <MetricCard label="Pending Payments" value={stats.pendingPayments} icon={Receipt} iconColor="text-chart-2" to="/billing" />
-          <MetricCard label="Active Shifts" value={stats.shiftsOpen} icon={TrendingUp} to="/billing" />
-          <MetricCard label="Discrepancies" value={stats.discrepancies} icon={AlertCircle} iconColor="text-destructive" valueColor="text-destructive" to="/billing" />
+          <MetricCard label="Today's Revenue" value={`MWK ${stats.totalRevenue.toLocaleString()}`} icon={DollarSign} iconColor="text-chart-3" to="/billing?metric=revenue" />
+          <MetricCard label="Pending Payments" value={stats.pendingPayments} icon={Receipt} iconColor="text-chart-2" to="/billing?metric=outstanding" />
+          <MetricCard label="Active Shifts" value={stats.shiftsOpen} icon={TrendingUp} to="/billing?metric=shifts" />
+          <MetricCard label="Discrepancies" value={stats.discrepancies} icon={AlertCircle} iconColor="text-destructive" valueColor="text-destructive" to="/billing?metric=reconciliation" />
         </div>
       </div>
 

@@ -22,6 +22,7 @@ export default function Imaging() {
   const visibleOrders = useMemo(() => {
     if (requestedMetric === "pending") return orders.filter(o => !["completed", "reported", "cancelled"].includes(o.status));
     if (requestedMetric === "results") return orders.filter(o => ["completed", "reported"].includes(o.status));
+    if (requestedMetric === "urgent") return orders.filter(o => ["urgent", "stat"].includes(o.priority));
     return orders;
   }, [orders, requestedMetric]);
 
@@ -92,7 +93,7 @@ export default function Imaging() {
         </button>
       </PageHeader>
 
-      {requestedMetric !== "all" && <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">Showing <strong>{requestedMetric === "pending" ? "pending imaging orders" : requestedMetric === "results" ? "orders with results" : "imaging source records"}</strong> behind this metric.<button type="button" onClick={() => navigate("/imaging")} className="ml-3 underline hover:no-underline">Show all</button></div>}
+      {requestedMetric !== "all" && <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">Showing <strong>{requestedMetric === "pending" ? "pending imaging orders" : requestedMetric === "results" ? "orders with results" : requestedMetric === "urgent" ? "urgent imaging orders" : "imaging source records"}</strong> behind this metric.<button type="button" onClick={() => navigate("/imaging")} className="ml-3 underline hover:no-underline">Show all</button></div>}
 
       {showForm && (
         <div className="bg-card rounded-xl border border-border/60 p-6 shadow-sm mb-6">

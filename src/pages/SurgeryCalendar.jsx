@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
 import { apiClient } from "@/api/apiClient";
 import { ChevronLeft, ChevronRight, Plus, Clock, MapPin, User, AlertCircle, X, Search, CheckCircle, Calendar, ClipboardCheck, Activity, Package } from "lucide-react";
@@ -41,6 +42,9 @@ const PRIORITY_INDICATORS = {
 };
 
 export default function SurgeryCalendar() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedMetric = searchParams.get("metric") || "all";
   const [date, setDate] = useState(moment());
   const [bookings, setBookings] = useState([]);
   const [patients, setPatients] = useState([]);
@@ -162,9 +166,16 @@ export default function SurgeryCalendar() {
       ).slice(0, 6)
     : [];
 
+  const visibleBookings = useMemo(() => {
+    if (requestedMetric === "completed") return bookings.filter(b => b.status === "completed");
+    if (requestedMetric === "pending" || requestedMetric === "scheduled") return bookings.filter(b => b.status === "scheduled" || (requestedMetric === "scheduled" && b.status === "confirmed"));
+    if (requestedMetric === "urgent") return bookings.filter(b => ["urgent", "emergency"].includes(b.priority));
+    return bookings;
+  }, [bookings, requestedMetric]);
+
   const theaterKeys = Object.keys(THEATER_LABELS);
   const theaterBookings = {};
-  theaterKeys.forEach(k => { theaterBookings[k] = bookings.filter(b => b.theater_room === k && b.status !== "cancelled"); });
+  theaterKeys.forEach(k => { theaterBookings[k] = visibleBookings.filter(b => b.theater_room === k && b.status !== "cancelled"); });
 
   return (
     <div className="page-container">
@@ -181,12 +192,19 @@ export default function SurgeryCalendar() {
           </button>
       </PageHeader>
 
+      {requestedMetric !== "all" && (
+        <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
+          Showing <strong>{requestedMetric} surgical bookings</strong> for the selected date.
+          <button type="button" onClick={() => navigate("/surgery-calendar")} className="ml-3 underline hover:no-underline">Show all</button>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex justify-center py-20"><div className="w-8 h-8 border-3 border-muted border-t-primary rounded-full animate-spin" /></div>
-      ) : bookings.length === 0 ? (
+      ) : visibleBookings.length === 0 ? (
         <div className="bg-card rounded-xl border border-border/60 shadow-sm p-12 text-center">
           <Calendar className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-          <p className="text-muted-foreground text-sm">No surgical bookings for {date.format("D MMMM YYYY")}.</p>
+          <p className="text-muted-foreground text-sm">No matching surgical bookings for {date.format("D MMMM YYYY")}.</p>
           <button onClick={() => setShowForm(true)} className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium">
             <Plus className="w-4 h-4" /> Book First Surgery
           </button>

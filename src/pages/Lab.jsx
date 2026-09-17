@@ -30,6 +30,7 @@ export default function Lab() {
   const visibleOrders = useMemo(() => {
     if (requestedMetric === "pending") return orders.filter(isPendingLabOrder);
     if (requestedMetric === "results") return orders.filter(o => ["completed", "verified", "critical"].includes(o.status));
+    if (requestedMetric === "urgent") return orders.filter(o => ["urgent", "stat"].includes(o.priority));
     return orders;
   }, [orders, requestedMetric]);
 
@@ -170,7 +171,7 @@ export default function Lab() {
       <DepartmentDashboard department="lab" />
       {requestedMetric !== "all" && (
         <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
-          Showing <strong>{requestedMetric === "pending" ? "pending orders" : requestedMetric === "results" ? "orders with results" : "the laboratory source records"}</strong> for this dashboard metric.
+          Showing <strong>{requestedMetric === "pending" ? "pending orders" : requestedMetric === "results" ? "orders with results" : requestedMetric === "urgent" ? "urgent orders" : "the laboratory source records"}</strong> for this dashboard metric.
           <button type="button" onClick={() => navigate("/lab")} className="ml-3 underline hover:no-underline">Show all</button>
         </div>
       )}

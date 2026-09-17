@@ -45,10 +45,10 @@ export default function ReceptionistDashboard() {
       <div>
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Reception Dashboard</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <MetricCard label="Check-ins Today" value={stats.todayCheckins} icon={Users} to="/reception" />
-          <MetricCard label="Appointments" value={stats.appointments} icon={Calendar} iconColor="text-chart-1" to="/appointments" />
-          <MetricCard label="Waiting" value={stats.waiting} icon={Clock} iconColor="text-chart-2" valueColor="text-chart-2" to="/queue" />
-          <MetricCard label="Completed" value={stats.completed} icon={CheckCircle2} iconColor="text-chart-3" valueColor="text-chart-3" to="/reception" />
+          <MetricCard label="Check-ins Today" value={stats.todayCheckins} icon={Users} to="/reception?metric=checkins" />
+          <MetricCard label="Appointments" value={stats.appointments} icon={Calendar} iconColor="text-chart-1" to="/appointments?metric=appointments" />
+          <MetricCard label="Waiting" value={stats.waiting} icon={Clock} iconColor="text-chart-2" valueColor="text-chart-2" to="/reception?metric=waiting" />
+          <MetricCard label="Completed" value={stats.completed} icon={CheckCircle2} iconColor="text-chart-3" valueColor="text-chart-3" to="/reception?metric=completed" />
         </div>
       </div>
 

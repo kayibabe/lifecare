@@ -47,12 +47,12 @@ export default function SurgicalLeadDashboard() {
       <div>
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Surgical Operations</h2>
         <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-          <MetricCard label="Scheduled" value={stats.scheduled} icon={Calendar} to="/surgery-calendar" />
-          <MetricCard label="Completed" value={stats.completed} icon={CheckCircle2} iconColor="text-chart-3" valueColor="text-chart-3" to="/surgery-calendar" />
-          <MetricCard label="Pending" value={stats.pending} icon={Clock} iconColor="text-chart-2" valueColor="text-chart-2" to="/surgery-calendar" />
-          <MetricCard label="Urgent" value={stats.urgent} icon={AlertTriangle} iconColor="text-destructive" valueColor="text-destructive" to="/surgery-calendar" />
-          <MetricCard label="Surgeons" value={stats.staffAvailable} icon={Users} iconColor="text-chart-4" to="/surgery-calendar" />
-          <MetricCard label="Theater Util" value={`${stats.theaterUtil}%`} icon={Activity} iconColor="text-chart-1" to="/surgery-calendar" />
+          <MetricCard label="Scheduled" value={stats.scheduled} icon={Calendar} to="/surgery-calendar?metric=scheduled" />
+          <MetricCard label="Completed" value={stats.completed} icon={CheckCircle2} iconColor="text-chart-3" valueColor="text-chart-3" to="/surgery-calendar?metric=completed" />
+          <MetricCard label="Pending" value={stats.pending} icon={Clock} iconColor="text-chart-2" valueColor="text-chart-2" to="/surgery-calendar?metric=pending" />
+          <MetricCard label="Urgent" value={stats.urgent} icon={AlertTriangle} iconColor="text-destructive" valueColor="text-destructive" to="/surgery-calendar?metric=urgent" />
+          <MetricCard label="Surgeons" value={stats.staffAvailable} icon={Users} iconColor="text-chart-4" to="/surgery-calendar?metric=scheduled" />
+          <MetricCard label="Theater Util" value={`${stats.theaterUtil}%`} icon={Activity} iconColor="text-chart-1" to="/surgery-calendar?metric=scheduled" />
         </div>
       </div>
 

@@ -35,6 +35,7 @@ export default function Inpatient() {
   const [admitting, setAdmitting] = useState(false);
 
   useEffect(() => {
+    if (requestedMetric === "wards") setActiveTab("ward-view");
     if (["admissions", "discharges"].includes(requestedMetric)) setActiveTab("admissions");
     if (["occupiedBeds", "availableBeds"].includes(requestedMetric)) setActiveTab("beds");
   }, [requestedMetric]);
@@ -85,6 +86,11 @@ export default function Inpatient() {
   const getBedNumber = (bid) => beds.find(b => b.id === bid)?.bed_number || "—";
   const availableBeds = beds.filter(b => b.status === "available");
   const occupiedBeds = beds.filter(b => b.status === "occupied");
+  const visibleBeds = requestedMetric === "availableBeds"
+    ? availableBeds
+    : requestedMetric === "occupiedBeds"
+      ? occupiedBeds
+      : beds;
   const getWardBeds = (wid) => beds.filter(b => b.ward_id === wid);
 
   const addWard = async (e) => {
@@ -218,9 +224,9 @@ export default function Inpatient() {
       {requestedMetric !== "all" && <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">Showing <strong>{requestedMetric.replace(/([A-Z])/g, " $1").toLowerCase()}</strong> source records for this inpatient metric.<button type="button" onClick={() => navigate("/inpatient")} className="ml-3 underline hover:no-underline">Show all</button></div>}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <MetricCard label="Wards" value={wards.length} icon={Building} to="/inpatient" />
-        <MetricCard label="Beds Available" value={`${availableBeds.length}/${beds.length}`} icon={BedDouble} iconColor="text-chart-2" to="/inpatient" />
-        <MetricCard label="Admitted Patients" value={admissions.length} icon={BedDouble} iconColor="text-destructive" to="/inpatient" />
+        <MetricCard label="Wards" value={wards.length} icon={Building} to="/inpatient?metric=wards" />
+        <MetricCard label="Beds Available" value={`${availableBeds.length}/${beds.length}`} icon={BedDouble} iconColor="text-chart-2" to="/inpatient?metric=availableBeds" />
+        <MetricCard label="Admitted Patients" value={admissions.length} icon={BedDouble} iconColor="text-destructive" to="/inpatient?metric=admissions" />
       </div>
 
       <div className="bg-white rounded-lg border border-border">
@@ -235,6 +241,11 @@ export default function Inpatient() {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {wards.map(w => {
                 const wardBeds = getWardBeds(w.id);
+                const displayedBeds = requestedMetric === "availableBeds"
+                  ? wardBeds.filter(b => b.status === "available")
+                  : requestedMetric === "occupiedBeds"
+                    ? wardBeds.filter(b => b.status === "occupied")
+                    : wardBeds;
                 const occupied = wardBeds.filter(b => b.status === "occupied").length;
                 return (
                   <div key={w.id} className="bg-card rounded-xl border border-border/60 shadow-sm overflow-hidden flex flex-col">
@@ -250,11 +261,11 @@ export default function Inpatient() {
                       </span>
                     </div>
                     <div className="p-3 flex-1">
-                      {wardBeds.length === 0 ? (
+                      {displayedBeds.length === 0 ? (
                         <div className="py-6 text-center text-xs text-muted-foreground">No beds</div>
                       ) : (
                         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                          {wardBeds.map(b => (
+                          {displayedBeds.map(b => (
                             <button
                               key={b.id}
                               onClick={() => b.status !== "occupied" && toggleBedStatus(b.id, b.status)}
@@ -274,6 +285,7 @@ export default function Inpatient() {
                 );
               })}
               {wards.length === 0 && <p className="md:col-span-2 xl:col-span-3 py-8 text-center text-sm text-muted-foreground">No wards configured. Add a ward first.</p>}
+              {wards.length > 0 && visibleBeds.length === 0 && <p className="md:col-span-2 xl:col-span-3 py-8 text-center text-sm text-muted-foreground">No beds match this metric.</p>}
             </div>
           )}
 

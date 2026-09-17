@@ -46,10 +46,10 @@ export default function PharmacistDashboard() {
       <div>
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Pharmacy Inventory Status</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <MetricCard label="Low Stock" value={stats.lowStock} icon={AlertTriangle} iconColor="text-destructive" valueColor="text-destructive" to="/pharmacy" />
-          <MetricCard label="Pending Reqs" value={stats.pendingRequisitions} icon={Package} to="/pharmacy" />
-          <MetricCard label="Today's Dispensings" value={stats.dispensings} icon={Pill} iconColor="text-chart-2" valueColor="text-chart-2" to="/pharmacy" />
-          <MetricCard label="Expiring Soon" value={stats.expiringDrugs} icon={Clock} iconColor="text-chart-2" valueColor="text-chart-2" to="/pharmacy" />
+          <MetricCard label="Low Stock" value={stats.lowStock} icon={AlertTriangle} iconColor="text-destructive" valueColor="text-destructive" to="/pharmacy?metric=lowStock" />
+          <MetricCard label="Pending Reqs" value={stats.pendingRequisitions} icon={Package} to="/pharmacy?metric=pendingReqs" />
+          <MetricCard label="Today's Dispensings" value={stats.dispensings} icon={Pill} iconColor="text-chart-2" valueColor="text-chart-2" to="/pharmacy?metric=dispensed" />
+          <MetricCard label="Expiring Soon" value={stats.expiringDrugs} icon={Clock} iconColor="text-chart-2" valueColor="text-chart-2" to="/pharmacy?metric=expiring" />
         </div>
       </div>
 

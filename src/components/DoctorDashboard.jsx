@@ -46,10 +46,10 @@ export default function DoctorDashboard() {
       <div>
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Today's Clinical Summary</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <MetricCard label="Consultations" value={stats.todayConsultations} icon={Stethoscope} to="/clinical" />
-          <MetricCard label="Pending Labs" value={stats.pendingLabs} icon={FlaskConical} iconColor="text-chart-1" to="/lab" />
-          <MetricCard label="Prescriptions" value={stats.prescriptions} icon={CheckCircle2} iconColor="text-chart-3" to="/pharmacy" />
-          <MetricCard label="Urgent Labs" value={stats.alerts} icon={AlertTriangle} iconColor="text-destructive" valueColor="text-destructive" to="/lab" />
+          <MetricCard label="Consultations" value={stats.todayConsultations} icon={Stethoscope} to="/clinical?metric=consultations" />
+          <MetricCard label="Pending Labs" value={stats.pendingLabs} icon={FlaskConical} iconColor="text-chart-1" to="/lab?metric=pending" />
+          <MetricCard label="Prescriptions" value={stats.prescriptions} icon={CheckCircle2} iconColor="text-chart-3" to="/pharmacy?metric=pendingRx" />
+          <MetricCard label="Urgent Labs" value={stats.alerts} icon={AlertTriangle} iconColor="text-destructive" valueColor="text-destructive" to="/lab?metric=urgent" />
         </div>
       </div>
 

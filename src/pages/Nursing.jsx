@@ -49,7 +49,7 @@ export default function Nursing() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const tabByMetric = { triageToday: "triage", vitalsRecorded: "vitals", medsAdministered: "medication", nursingNotes: "notes" };
+    const tabByMetric = { triageToday: "triage", vitalsRecorded: "vitals", criticalVitals: "vitals", alerts: "overview", medsAdministered: "medication", nursingNotes: "notes", tasklist: "tasklist" };
     if (tabByMetric[requestedMetric]) setActiveTab(tabByMetric[requestedMetric]);
   }, [requestedMetric]);
 

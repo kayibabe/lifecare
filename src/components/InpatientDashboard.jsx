@@ -171,7 +171,9 @@ export default function InpatientDashboard() {
           { icon: Bell, label: "Alerts", value: alerts.length, sub: `${bedRequestAlerts.length} bed requests`, color: alerts.length > 0 ? "text-destructive" : "text-chart-3", bg: alerts.length > 0 ? "bg-destructive/10" : "bg-chart-3/10" },
           { icon: Activity, label: "Abnormal Vitals", value: Object.values(vitalSigns).filter(v => getVitalStatus(v)).length, sub: "needs review", color: "text-destructive", bg: "bg-destructive/10" },
         ].map(s => (
-          <MetricCard key={s.label} label={s.label} value={s.value} sub={s.sub} icon={s.icon} iconColor={s.color} to="/inpatient" className={s.bg} />
+          <MetricCard key={s.label} label={s.label} value={s.value} sub={s.sub} icon={s.icon} iconColor={s.color}
+            to={s.label === "Occupied Beds" ? "/inpatient?metric=occupiedBeds" : s.label === "Admitted" ? "/inpatient?metric=admissions" : s.label === "Today's Discharges" ? "/inpatient?metric=discharges" : s.label === "Abnormal Vitals" ? "/nursing?metric=criticalVitals" : "/nursing?metric=alerts"}
+            className={s.bg} />
         ))}
       </div>
 

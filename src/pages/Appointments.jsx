@@ -1,10 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiClient } from "@/api/apiClient";
 import { Calendar as CalendarIcon, Plus, Check, X, Square, CheckSquare, Pencil } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import PageHeader from "@/components/ui/PageHeader";
+import { getLocalDateKey } from "@/lib/dashboardMetrics";
 
 export default function Appointments() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedMetric = searchParams.get("metric") || "all";
   const [appointments, setAppointments] = useState([]);
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,6 +22,14 @@ export default function Appointments() {
   const [bulkBusy, setBulkBusy] = useState(false);
   const [editingAppt, setEditingAppt] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const visibleAppointments = useMemo(() => {
+    if (requestedMetric === "appointments") return appointments.filter(a => a.appointment_date === getLocalDateKey());
+    if (requestedMetric === "completed") return appointments.filter(a => a.status === "completed");
+    if (requestedMetric === "no_show") return appointments.filter(a => a.status === "no_show");
+    if (requestedMetric === "scheduled") return appointments.filter(a => a.status === "scheduled");
+    return appointments;
+  }, [appointments, requestedMetric]);
 
   useEffect(() => {
     async function load() {
@@ -113,6 +126,13 @@ export default function Appointments() {
         </button>
       </PageHeader>
 
+      {requestedMetric !== "all" && (
+        <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
+          Showing <strong>{requestedMetric === "appointments" ? "today's appointments" : requestedMetric.replace(/_/g, " ")}</strong> from the appointment records.
+          <button type="button" onClick={() => navigate("/appointments")} className="ml-3 underline hover:no-underline">Show all</button>
+        </div>
+      )}
+
       {showForm && (
         <div className="bg-card rounded-xl border border-border/60 p-6 shadow-sm mb-6">
           <h3 className="font-heading text-lg font-semibold mb-4">{editingAppt ? "Edit Appointment" : "Schedule Appointment"}</h3>
@@ -193,7 +213,7 @@ export default function Appointments() {
               </tr>
             </thead>
             <tbody>
-              {appointments.map(a => (
+              {visibleAppointments.map(a => (
                 <tr key={a.id} className="border-b border-border/40 hover:bg-muted/30 transition-colors">
                   <td className="py-3 px-4">
                     {a.status === "scheduled" && (
@@ -230,7 +250,7 @@ export default function Appointments() {
                   </td>
                 </tr>
               ))}
-              {appointments.length === 0 && (
+              {visibleAppointments.length === 0 && (
                 <tr><td colSpan={8} className="py-12 text-center text-sm text-muted-foreground">No appointments scheduled.</td></tr>
               )}
             </tbody>

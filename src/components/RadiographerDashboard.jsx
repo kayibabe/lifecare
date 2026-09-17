@@ -59,11 +59,11 @@ export default function RadiographerDashboard() {
       <div>
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Today's Imaging Workload</h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <MetricCard label="Orders" value={stats.ordersToday} icon={Scan} to="/imaging" />
-          <MetricCard label="Completed" value={stats.completed} icon={CheckCircle2} iconColor="text-chart-3" valueColor="text-chart-3" to="/radiology-reports" />
-          <MetricCard label="Pending" value={stats.pending} icon={Clock} iconColor="text-chart-2" valueColor="text-chart-2" to="/imaging" />
-          <MetricCard label="Urgent" value={stats.urgent} icon={AlertTriangle} iconColor="text-destructive" valueColor="text-destructive" to="/imaging" />
-          <MetricCard label="Avg Turnaround" value={`${stats.avgTurnaround}m`} icon={FileText} iconColor="text-chart-4" to="/radiology-reports" />
+          <MetricCard label="Orders" value={stats.ordersToday} icon={Scan} to="/imaging?metric=orders" />
+          <MetricCard label="Completed" value={stats.completed} icon={CheckCircle2} iconColor="text-chart-3" valueColor="text-chart-3" to="/imaging?metric=results" />
+          <MetricCard label="Pending" value={stats.pending} icon={Clock} iconColor="text-chart-2" valueColor="text-chart-2" to="/imaging?metric=pending" />
+          <MetricCard label="Urgent" value={stats.urgent} icon={AlertTriangle} iconColor="text-destructive" valueColor="text-destructive" to="/imaging?metric=urgent" />
+          <MetricCard label="Avg Turnaround" value={`${stats.avgTurnaround}m`} icon={FileText} iconColor="text-chart-4" to="/imaging?metric=results" />
         </div>
       </div>
 

@@ -38,6 +38,7 @@ export default function Reception() {
 
   const visibleVisits = useMemo(() => {
     if (requestedMetric === "waiting") return visits.filter(v => v.queue_status === "waiting");
+    if (requestedMetric === "completed") return visits.filter(v => v.queue_status === "completed");
     return visits;
   }, [visits, requestedMetric]);
 
@@ -286,7 +287,7 @@ export default function Reception() {
       </div>
       {requestedMetric !== "all" && (
         <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
-          Showing <strong>{requestedMetric === "registrations" ? "today's registered patients" : requestedMetric === "checkins" ? "today's check-ins" : "the waiting queue"}</strong> behind this reception metric.
+          Showing <strong>{requestedMetric === "registrations" ? "today's registered patients" : requestedMetric === "checkins" ? "today's check-ins" : requestedMetric === "completed" ? "completed visits" : "the waiting queue"}</strong> behind this reception metric.
           <button type="button" onClick={() => navigate("/reception")} className="ml-3 underline hover:no-underline">Show all</button>
         </div>
       )}

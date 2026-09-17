@@ -39,6 +39,8 @@ export default function Billing() {
   useEffect(() => {
     if (requestedMetric === "revenue") setActiveTab("reports");
     if (requestedMetric === "invoices" || requestedMetric === "outstanding") setActiveTab("invoices");
+    if (requestedMetric === "shifts") setActiveTab("shifts");
+    if (requestedMetric === "reconciliation") setActiveTab("reconciliation");
   }, [requestedMetric]);
 
   // Split billing state

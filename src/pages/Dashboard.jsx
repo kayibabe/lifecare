@@ -372,12 +372,12 @@ export default function Dashboard() {
            <span className="w-1 h-3.5 rounded-full bg-primary" /> Key Performance Indicators
          </h2>
         <div className={`grid gap-4 items-stretch ${isAdmin ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-6" : isDoctor || isPharmacist || isCashier ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4" : isStoreManager ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2 md:grid-cols-3"}`}>
-          {(isAdmin || isReceptionist) && <StatCard label="Registered Patients" value={report?.total_patients ?? stats.patients} to="/reception" metaKey="patients" />}
-          {(isAdmin || isReceptionist || isDoctor) && <StatCard label="Today's Appointments" value={report?.total_appointments_today ?? stats.appointments} sub={report ? `${report.appointments_completed} completed` : null} to="/appointments" metaKey="appointments" />}
-          {(isAdmin || isLabTech || isDoctor) && <StatCard label="Pending Lab Orders (30d)" value={report?.pending_lab_orders ?? stats.labOrders} to="/lab" metaKey="labOrders" />}
-          {(isAdmin || isNurse || isDoctor) && <StatCard label="Occupied Beds" value={report?.active_inpatients ?? stats.occupiedBeds} to="/inpatient" metaKey="beds" />}
-          {(isAdmin || isPharmacist || isStoreManager) && <StatCard label="Low Stock Drugs" value={report?.drugs_low_stock ?? stats.drugs} color={report?.drugs_low_stock > 0 ? 'warning' : 'success'} to="/pharmacy" metaKey="drugs" />}
-          {(isAdmin || isCashier) && <StatCard label="Revenue (30d, MWK)" value={stats.revenue.toLocaleString()} to="/billing" metaKey="revenue" />}
+          {(isAdmin || isReceptionist) && <StatCard label="Registered Patients" value={report?.total_patients ?? stats.patients} to="/reception?metric=registrations" metaKey="patients" />}
+          {(isAdmin || isReceptionist || isDoctor) && <StatCard label="Today's Appointments" value={report?.total_appointments_today ?? stats.appointments} sub={report ? `${report.appointments_completed} completed` : null} to="/appointments?metric=appointments" metaKey="appointments" />}
+          {(isAdmin || isLabTech || isDoctor) && <StatCard label="Pending Lab Orders (30d)" value={report?.pending_lab_orders ?? stats.labOrders} to="/lab?metric=pending" metaKey="labOrders" />}
+          {(isAdmin || isNurse || isDoctor) && <StatCard label="Occupied Beds" value={report?.active_inpatients ?? stats.occupiedBeds} to="/inpatient?metric=occupiedBeds" metaKey="beds" />}
+          {(isAdmin || isPharmacist || isStoreManager) && <StatCard label="Low Stock Drugs" value={report?.drugs_low_stock ?? stats.drugs} color={report?.drugs_low_stock > 0 ? 'warning' : 'success'} to="/pharmacy?metric=lowStock" metaKey="drugs" />}
+          {(isAdmin || isCashier) && <StatCard label="Revenue (30d, MWK)" value={stats.revenue.toLocaleString()} to="/billing?metric=revenue" metaKey="revenue" />}
           </div>
           </div>
 
@@ -419,22 +419,22 @@ export default function Dashboard() {
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {report.total_visits_today !== undefined && (
-              <MetricCard label="Today's Visits" value={report.total_visits_today} to="/reception" />
+              <MetricCard label="Today's Visits" value={report.total_visits_today} to="/reception?metric=checkins" />
             )}
             {report.appointments_completed !== undefined && (
-              <MetricCard label="Completed Appointments" value={report.appointments_completed} valueColor="text-clinical-normal" to="/appointments" />
+              <MetricCard label="Completed Appointments" value={report.appointments_completed} valueColor="text-clinical-normal" to="/appointments?metric=completed" />
             )}
             {report.appointments_no_show !== undefined && (
-              <MetricCard label="No-shows" value={report.appointments_no_show} valueColor="text-clinical-critical" to="/appointments" />
+              <MetricCard label="No-shows" value={report.appointments_no_show} valueColor="text-clinical-critical" to="/appointments?metric=no_show" />
             )}
             {report.active_inpatients !== undefined && (
-              <MetricCard label="Inpatients" value={report.active_inpatients} valueColor="text-chart-4" to="/inpatient" />
+              <MetricCard label="Inpatients" value={report.active_inpatients} valueColor="text-chart-4" to="/inpatient?metric=admissions" />
             )}
             {report.pending_lab_orders !== undefined && (
-              <MetricCard label="Pending Labs (30d)" value={report.pending_lab_orders} valueColor="text-chart-1" to="/lab" />
+              <MetricCard label="Pending Labs (30d)" value={report.pending_lab_orders} valueColor="text-chart-1" to="/lab?metric=pending" />
             )}
             {report.drugs_low_stock !== undefined && (
-              <MetricCard label="Low Stock" value={report.drugs_low_stock} valueColor="text-clinical-critical" to="/pharmacy" />
+              <MetricCard label="Low Stock" value={report.drugs_low_stock} valueColor="text-clinical-critical" to="/pharmacy?metric=lowStock" />
             )}
           </div>
         </div>

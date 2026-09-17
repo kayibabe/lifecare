@@ -32,7 +32,7 @@ export default function Pharmacy() {
   const [transitioning, setTransitioning] = useState(false);
 
   useEffect(() => {
-    const tabByMetric = { pendingRx: "prescriptions", dispensed: "dispensing", lowStock: "inventory", expiring: "inventory" };
+    const tabByMetric = { pendingRx: "prescriptions", pendingReqs: "queue", dispensed: "dispensing", lowStock: "inventory", expiring: "inventory" };
     if (tabByMetric[requestedMetric]) setActiveTab(tabByMetric[requestedMetric]);
   }, [requestedMetric]);
 
@@ -65,6 +65,15 @@ export default function Pharmacy() {
   }, []);
 
   const [savingDrug, setSavingDrug] = useState(false);
+
+  const visibleDrugs = requestedMetric === "lowStock"
+    ? drugs.filter(d => d.quantity_in_stock <= d.reorder_level)
+    : requestedMetric === "expiring"
+      ? drugs.filter(d => d.expiry_date && new Date(d.expiry_date) < new Date(Date.now() + 90 * 86400000) && new Date(d.expiry_date) >= new Date())
+      : drugs;
+  const visibleDispensings = requestedMetric === "dispensed"
+    ? dispensings.filter(d => d.dispensing_date?.startsWith(getLocalDateKey()))
+    : dispensings;
 
   const addDrug = async (e) => {
     e.preventDefault();
@@ -250,7 +259,7 @@ export default function Pharmacy() {
 
       <DepartmentDashboard department="pharmacy" />
 
-      {requestedMetric !== "all" && <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">Showing <strong>{requestedMetric === "pendingRx" ? "pending prescriptions" : requestedMetric === "dispensed" ? "dispensing records" : requestedMetric === "lowStock" ? "low-stock inventory" : "expiring inventory"}</strong> behind this pharmacy metric.<button type="button" onClick={() => navigate("/pharmacy")} className="ml-3 underline hover:no-underline">Show all</button></div>}
+      {requestedMetric !== "all" && <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">Showing <strong>{requestedMetric === "pendingRx" ? "pending prescriptions" : requestedMetric === "pendingReqs" ? "pending pharmacy requests" : requestedMetric === "dispensed" ? "today's dispensing records" : requestedMetric === "lowStock" ? "low-stock inventory" : "expiring inventory"}</strong> behind this pharmacy metric.<button type="button" onClick={() => navigate("/pharmacy")} className="ml-3 underline hover:no-underline">Show all</button></div>}
 
       <InventoryAlerts />
       <ExpiryAlerts department="pharmacy" />
@@ -356,7 +365,7 @@ export default function Pharmacy() {
               <table className="w-full text-sm">
                 <thead><tr className="border-b border-border"><th className="text-left py-2 px-3 font-medium text-muted-foreground">Drug</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">Strength</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">Stock</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">Price</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">Expiry</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">FEFO</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">Actions</th></tr></thead>
                 <tbody>
-                  {[...drugs].sort((a, b) => { if (!a.expiry_date) return 1; if (!b.expiry_date) return -1; return new Date(a.expiry_date) - new Date(b.expiry_date); }).map(d => {
+                  {[...visibleDrugs].sort((a, b) => { if (!a.expiry_date) return 1; if (!b.expiry_date) return -1; return new Date(a.expiry_date) - new Date(b.expiry_date); }).map(d => {
                     const daysToExpiry = d.expiry_date ? Math.round((new Date(d.expiry_date) - Date.now()) / 86400000) : null;
                     return (
                     <tr key={d.id} className={`border-b border-border/40 hover:bg-muted/30 ${d.quantity_in_stock <= d.reorder_level ? "bg-destructive/5" : ""}`}>
@@ -391,7 +400,7 @@ export default function Pharmacy() {
               <table className="w-full text-sm">
                 <thead><tr className="border-b border-border"><th className="text-left py-2 px-3 font-medium text-muted-foreground">Date</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">Drug</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">Quantity</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">Signature</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">Actions</th></tr></thead>
                 <tbody>
-                  {dispensings.map(d => (
+                  {visibleDispensings.map(d => (
                     <tr key={d.id} className="border-b border-border/40">
                       <td className="py-2.5 px-3">{new Date(d.dispensing_date).toLocaleDateString("en-GB")}</td>
                       <td className="py-2.5 px-3 font-medium">{d.drug_name}</td>
