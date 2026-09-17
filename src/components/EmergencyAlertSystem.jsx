@@ -47,8 +47,8 @@ export default function EmergencyAlertSystem() {
     const isOpen = open === kind;
     return (
       <div className="relative">
-        <button type="button" onClick={() => setOpen(isOpen ? null : kind)} className={`relative rounded-lg p-2 transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${items.length ? iconClass : "text-muted-foreground"}`} aria-label={`${label}: ${items.length}`} aria-expanded={isOpen} title={`${label}: ${items.length}`}>
-          <Bell className={`h-5 w-5 ${kind === "emergency" && items.length ? "animate-pulse" : ""}`} />
+        <button type="button" onClick={() => setOpen(isOpen ? null : kind)} className={`relative rounded-lg p-2 transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${items.length ? iconClass : "text-muted-foreground"} ${kind === "emergency" && items.length ? "animate-pulse" : ""}`} aria-label={`${label}: ${items.length}`} aria-expanded={isOpen} title={`${label}: ${items.length}`}>
+          <Bell className="h-5 w-5" />
           {items.length > 0 && <span className={`absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white ${badgeClass}`}>{items.length > 99 ? "99+" : items.length}</span>}
         </button>
         {isOpen && (
