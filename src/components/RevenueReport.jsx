@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { apiClient } from "@/api/apiClient";
 import { TrendingUp, Receipt, Building2, Loader2, RefreshCw, FileText } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
+import { getDateWindowIso, getLocalDateKey } from "@/lib/dashboardMetrics";
 
 const PIE_COLORS = ["hsl(194, 65%, 42%)", "hsl(38, 92%, 50%)", "hsl(160, 60%, 40%)", "hsl(280, 50%, 50%)", "hsl(340, 65%, 50%)"];
 
@@ -21,9 +22,29 @@ export default function RevenueReport() {
   const fetchReport = async (p) => {
     setLoading(true);
     try {
-      const { data: result } = await apiClient.functions.invoke("generateRevenueReport", { period: p });
-      setData(result);
-    } catch (e) { console.error(e); }
+      const days = p === "today" ? 1 : p === "7days" ? 7 : p === "90days" ? 90 : p === "year" ? 365 : 30;
+      const invoices = await apiClient.entities.Invoice.filter({ created_date: { $gte: getDateWindowIso(days) } }, "-created_date", 500);
+      const included = invoices.filter(invoice => ["paid", "partial"].includes(invoice.status));
+      const totalRevenue = included.reduce((sum, invoice) => sum + (invoice.net_amount || invoice.total_amount || 0), 0);
+      const totalCollected = included.reduce((sum, invoice) => sum + (invoice.paid_amount || (invoice.status === "paid" ? (invoice.net_amount || invoice.total_amount || 0) : 0)), 0);
+      const outstanding = invoices.filter(invoice => ["pending", "partial"].includes(invoice.status)).reduce((sum, invoice) => sum + (invoice.net_amount || invoice.total_amount || 0) - (invoice.paid_amount || 0), 0);
+      const daily = {};
+      const byPayment = {};
+      included.forEach(invoice => {
+        const day = invoice.created_date?.substring(0, 10) || getLocalDateKey();
+        const amount = invoice.net_amount || invoice.total_amount || 0;
+        daily[day] = (daily[day] || 0) + amount;
+        const type = invoice.payment_type || "unknown";
+        byPayment[type] = (byPayment[type] || 0) + amount;
+      });
+      setData({
+        summary: { total_revenue: totalRevenue, total_collected: totalCollected, total_outstanding: outstanding, total_invoices: invoices.length, collection_rate: totalRevenue ? Math.round((totalCollected / totalRevenue) * 100) : 0 },
+        daily_trend: Object.entries(daily).sort(([a], [b]) => a.localeCompare(b)).map(([date, amount]) => ({ date, amount })),
+        by_department: [],
+        by_payment_type: Object.entries(byPayment).map(([type, amount]) => ({ type, amount })),
+        insurance_claims: null,
+      });
+    } catch (e) { console.error(e); setData(null); }
     finally { setLoading(false); }
   };
 

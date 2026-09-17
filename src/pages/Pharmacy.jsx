@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiClient } from "@/api/apiClient";
 import { Pill, Plus, Save, AlertTriangle, Clock, TrendingDown, Loader2, BarChart3, Calendar, ArrowRight, CheckCircle, GitBranch, PenTool, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -14,6 +15,9 @@ import PageHeader from "@/components/ui/PageHeader";
 import { METRIC_LIMITS } from "@/lib/dashboardMetrics";
 
 export default function Pharmacy() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedMetric = searchParams.get("metric") || "all";
   const [drugs, setDrugs] = useState([]);
   const [prescriptions, setPrescriptions] = useState([]);
   const [prescriptionItems, setPrescriptionItems] = useState([]);
@@ -26,6 +30,11 @@ export default function Pharmacy() {
   const [forecastLoading, setForecastLoading] = useState(false);
   const [showAddDrug, setShowAddDrug] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
+
+  useEffect(() => {
+    const tabByMetric = { pendingRx: "prescriptions", dispensed: "dispensing", lowStock: "inventory", expiring: "inventory" };
+    if (tabByMetric[requestedMetric]) setActiveTab(tabByMetric[requestedMetric]);
+  }, [requestedMetric]);
 
   // Signature state
   const [signingDoc, setSigningDoc] = useState(null);
@@ -240,6 +249,8 @@ export default function Pharmacy() {
       </PageHeader>
 
       <DepartmentDashboard department="pharmacy" />
+
+      {requestedMetric !== "all" && <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">Showing <strong>{requestedMetric === "pendingRx" ? "pending prescriptions" : requestedMetric === "dispensed" ? "dispensing records" : requestedMetric === "lowStock" ? "low-stock inventory" : "expiring inventory"}</strong> behind this pharmacy metric.<button type="button" onClick={() => navigate("/pharmacy")} className="ml-3 underline hover:no-underline">Show all</button></div>}
 
       <InventoryAlerts />
       <ExpiryAlerts department="pharmacy" />

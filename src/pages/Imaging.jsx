@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiClient } from "@/api/apiClient";
 import { Scan, Plus, Save, FileImage } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
@@ -6,6 +7,9 @@ import { toast } from "@/components/ui/use-toast";
 import { METRIC_LIMITS } from "@/lib/dashboardMetrics";
 
 export default function Imaging() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedMetric = searchParams.get("metric") || "all";
   const [orders, setOrders] = useState([]);
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,6 +18,12 @@ export default function Imaging() {
   const [form, setForm] = useState({ patient_id: "", study_type: "xray", body_part: "", clinical_indication: "", priority: "routine" });
   const [resultForm, setResultForm] = useState(null);
   const [resultData, setResultData] = useState({ findings: "", impression: "" });
+
+  const visibleOrders = useMemo(() => {
+    if (requestedMetric === "pending") return orders.filter(o => !["completed", "reported", "cancelled"].includes(o.status));
+    if (requestedMetric === "results") return orders.filter(o => ["completed", "reported"].includes(o.status));
+    return orders;
+  }, [orders, requestedMetric]);
 
   useEffect(() => {
     async function load() {
@@ -29,6 +39,10 @@ export default function Imaging() {
     }
     load();
   }, []);
+
+  useEffect(() => {
+    if (requestedMetric !== "all" && !loading) requestAnimationFrame(() => document.getElementById("imaging-source")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }, [requestedMetric, loading]);
 
   const getPatientName = (pid) => patients.find(p => p.id === pid) ? `${patients.find(p => p.id === pid).first_name} ${patients.find(p => p.id === pid).last_name}` : "Unknown";
 
@@ -78,6 +92,8 @@ export default function Imaging() {
         </button>
       </PageHeader>
 
+      {requestedMetric !== "all" && <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">Showing <strong>{requestedMetric === "pending" ? "pending imaging orders" : requestedMetric === "results" ? "orders with results" : "imaging source records"}</strong> behind this metric.<button type="button" onClick={() => navigate("/imaging")} className="ml-3 underline hover:no-underline">Show all</button></div>}
+
       {showForm && (
         <div className="bg-card rounded-xl border border-border/60 p-6 shadow-sm mb-6">
           <h3 className="font-heading text-lg font-semibold mb-4">New Imaging Order</h3>
@@ -119,7 +135,7 @@ export default function Imaging() {
         </div>
       )}
 
-      <div className="bg-card rounded-xl border border-border/60 shadow-sm">
+      <div id="imaging-source" className="bg-card rounded-xl border border-border/60 shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -134,7 +150,7 @@ export default function Imaging() {
               </tr>
             </thead>
             <tbody>
-              {orders.map(o => (
+              {visibleOrders.map(o => (
                 <tr key={o.id} className="border-b border-border/40 hover:bg-muted/30 transition-colors">
                   <td className="py-3 px-4">{new Date(o.created_date).toLocaleDateString("en-GB")}</td>
                   <td className="py-3 px-4 font-medium">{getPatientName(o.patient_id)}</td>
@@ -150,7 +166,7 @@ export default function Imaging() {
                   </td>
                 </tr>
               ))}
-              {orders.length === 0 && <tr><td colSpan={7} className="py-12 text-center text-sm text-muted-foreground">No imaging orders.</td></tr>}
+              {visibleOrders.length === 0 && <tr><td colSpan={7} className="py-12 text-center text-sm text-muted-foreground">No imaging orders match this metric.</td></tr>}
             </tbody>
           </table>
         </div>

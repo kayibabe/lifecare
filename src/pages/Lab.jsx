@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiClient } from "@/api/apiClient";
 import { FlaskConical, Plus, Save, ClipboardCheck, Square, CheckSquare, Play, ArrowRight, CheckCircle, GitBranch } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
@@ -7,9 +8,12 @@ import DepartmentDashboard from "@/components/DepartmentDashboard";
 import ExpiryAlerts from "@/components/ExpiryAlerts";
 import PatientLabTrendChart from "@/components/PatientLabTrendChart";
 import PageHeader from "@/components/ui/PageHeader";
-import { METRIC_LIMITS } from "@/lib/dashboardMetrics";
+import { METRIC_LIMITS, isPendingLabOrder } from "@/lib/dashboardMetrics";
 
 export default function Lab() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedMetric = searchParams.get("metric") || "all";
   const [orders, setOrders] = useState([]);
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,6 +26,12 @@ export default function Lab() {
   const [bulkBusy, setBulkBusy] = useState(false);
   const [labJourneys, setLabJourneys] = useState([]);
   const [transitioning, setTransitioning] = useState(false);
+
+  const visibleOrders = useMemo(() => {
+    if (requestedMetric === "pending") return orders.filter(isPendingLabOrder);
+    if (requestedMetric === "results") return orders.filter(o => ["completed", "verified", "critical"].includes(o.status));
+    return orders;
+  }, [orders, requestedMetric]);
 
   useEffect(() => {
     async function load() {
@@ -39,6 +49,12 @@ export default function Lab() {
     }
     load();
   }, []);
+
+  useEffect(() => {
+    if (requestedMetric !== "all" && !loading) {
+      requestAnimationFrame(() => document.getElementById("lab-orders")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    }
+  }, [requestedMetric, loading]);
 
   const getPatientName = (pid) => {
     const p = patients.find(pt => pt.id === pid);
@@ -152,6 +168,12 @@ export default function Lab() {
       </PageHeader>
 
       <DepartmentDashboard department="lab" />
+      {requestedMetric !== "all" && (
+        <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
+          Showing <strong>{requestedMetric === "pending" ? "pending orders" : requestedMetric === "results" ? "orders with results" : "the laboratory source records"}</strong> for this dashboard metric.
+          <button type="button" onClick={() => navigate("/lab")} className="ml-3 underline hover:no-underline">Show all</button>
+        </div>
+      )}
       <ExpiryAlerts department="laboratory" />
 
       <PatientLabTrendChart />
@@ -242,7 +264,7 @@ export default function Lab() {
         </div>
       )}
 
-      <div className="bg-card rounded-xl border border-border/60 shadow-sm">
+      <div id="lab-orders" className="bg-card rounded-xl border border-border/60 shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -261,7 +283,7 @@ export default function Lab() {
               </tr>
             </thead>
             <tbody>
-              {orders.map(o => (
+              {visibleOrders.map(o => (
                 <tr key={o.id} className="border-b border-border/40 hover:bg-muted/30 transition-colors">
                   <td className="py-3 px-4">
                     {o.status === "ordered" && (
@@ -295,7 +317,7 @@ export default function Lab() {
                   </td>
                 </tr>
               ))}
-              {orders.length === 0 && <tr><td colSpan={7} className="py-12 text-center text-sm text-muted-foreground">No lab orders.</td></tr>}
+              {visibleOrders.length === 0 && <tr><td colSpan={7} className="py-12 text-center text-sm text-muted-foreground">No lab orders match this metric.</td></tr>}
             </tbody>
           </table>
         </div>

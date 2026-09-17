@@ -62,15 +62,15 @@ const DEPT_CONFIGS = {
 };
 
 const METRIC_ROUTES = {
-  reception: { registrations: "/reception", checkins: "/reception", waitingQueue: "/queue" },
-  clinical: { consultations: "/clinical", diagnoses: "/clinical", prescriptions: "/pharmacy", avgConsultTime: "/clinical" },
-  lab: { orders: "/lab", results: "/lab", turnaround: "/lab", pending: "/lab" },
-  imaging: { orders: "/imaging", results: "/radiology-reports", turnaround: "/imaging", pending: "/imaging" },
-  pharmacy: { pendingRx: "/pharmacy", dispensed: "/pharmacy", lowStock: "/pharmacy", expiring: "/pharmacy" },
-  billing: { invoices: "/billing", collected: "/billing", outstanding: "/billing", claims: "/insurance-claims" },
-  inpatient: { admissions: "/inpatient", discharges: "/inpatient", occupiedBeds: "/inpatient", availableBeds: "/inpatient" },
+  reception: { registrations: "/reception?metric=registrations", checkins: "/reception?metric=checkins", waitingQueue: "/reception?metric=waiting" },
+  clinical: { consultations: "/clinical?metric=consultations", diagnoses: "/clinical?metric=diagnoses", prescriptions: "/pharmacy?metric=pendingRx", avgConsultTime: "/clinical?metric=avgConsultTime" },
+  lab: { orders: "/lab?metric=orders", results: "/lab?metric=results", turnaround: "/lab?metric=turnaround", pending: "/lab?metric=pending" },
+  imaging: { orders: "/imaging?metric=orders", results: "/imaging?metric=results", turnaround: "/imaging?metric=turnaround", pending: "/imaging?metric=pending" },
+  pharmacy: { pendingRx: "/pharmacy?metric=pendingRx", dispensed: "/pharmacy?metric=dispensed", lowStock: "/pharmacy?metric=lowStock", expiring: "/pharmacy?metric=expiring" },
+  billing: { invoices: "/billing?metric=invoices", collected: "/billing?metric=revenue", outstanding: "/billing?metric=outstanding", claims: "/insurance-claims" },
+  inpatient: { admissions: "/inpatient?metric=admissions", discharges: "/inpatient?metric=discharges", occupiedBeds: "/inpatient?metric=occupiedBeds", availableBeds: "/inpatient?metric=availableBeds" },
   maternal: { ancVisits: "/maternal", deliveries: "/maternal", postnatal: "/maternal", highRisk: "/maternal" },
-  nursing: { triageToday: "/triage", vitalsRecorded: "/nursing", medsAdministered: "/nursing", nursingNotes: "/nursing" },
+  nursing: { triageToday: "/nursing?metric=triageToday", vitalsRecorded: "/nursing?metric=vitalsRecorded", medsAdministered: "/nursing?metric=medsAdministered", nursingNotes: "/nursing?metric=nursingNotes" },
 };
 
 export default function DepartmentDashboard({ department, compact = false }) {

@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { apiClient } from "@/api/apiClient";
 import { formatApiError } from "@/api/customClient";
 import { Search, UserPlus, Clock, MapPin, Users, RefreshCw, DoorOpen, Pencil, X, Save } from "lucide-react";
@@ -9,8 +10,12 @@ import SectionTitle from "@/components/ui/SectionTitle";
 import InsuranceVerifier from "@/components/InsuranceVerifier";
 import PatientJourneyTimeline from "@/components/PatientJourneyTimeline";
 import DepartmentDashboard from "@/components/DepartmentDashboard";
+import { getLocalDateKey } from "@/lib/dashboardMetrics";
 
 export default function Reception() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedMetric = searchParams.get("metric") || "all";
   const [patients, setPatients] = useState([]);
   const [visits, setVisits] = useState([]);
   const [search, setSearch] = useState("");
@@ -31,6 +36,11 @@ export default function Reception() {
     visit_type: "outpatient", priority: "normal",
   });
 
+  const visibleVisits = useMemo(() => {
+    if (requestedMetric === "waiting") return visits.filter(v => v.queue_status === "waiting");
+    return visits;
+  }, [visits, requestedMetric]);
+
   useEffect(() => {
     async function load() {
       try {
@@ -50,7 +60,16 @@ export default function Reception() {
     load();
   }, []);
 
-  const filteredPatients = patients.filter(p =>
+  useEffect(() => {
+    if (requestedMetric !== "all" && !loading) {
+      requestAnimationFrame(() => document.getElementById("reception-source")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    }
+  }, [requestedMetric, loading]);
+
+  const metricPatients = requestedMetric === "registrations"
+    ? patients.filter(p => p.created_date?.substring(0, 10) === getLocalDateKey())
+    : patients;
+  const filteredPatients = metricPatients.filter(p =>
     `${p.first_name} ${p.last_name}`.toLowerCase().includes(search.toLowerCase()) ||
     p.mrn?.toLowerCase().includes(search.toLowerCase()) ||
     p.phone?.includes(search)
@@ -265,6 +284,12 @@ export default function Reception() {
       <div className="mb-6">
         <DepartmentDashboard department="reception" />
       </div>
+      {requestedMetric !== "all" && (
+        <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
+          Showing <strong>{requestedMetric === "registrations" ? "today's registered patients" : requestedMetric === "checkins" ? "today's check-ins" : "the waiting queue"}</strong> behind this reception metric.
+          <button type="button" onClick={() => navigate("/reception")} className="ml-3 underline hover:no-underline">Show all</button>
+        </div>
+      )}
 
       <div className="bg-white rounded-lg border border-border">
         <div className="p-4 border-b border-border flex items-center gap-3">
@@ -279,7 +304,7 @@ export default function Reception() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div id="reception-source" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-lg border border-border">
           <div className="p-4 border-b border-border">
             <SectionTitle icon={Users} as="h3">Patients ({filteredPatients.length})</SectionTitle>
@@ -317,7 +342,7 @@ export default function Reception() {
 
         <div className="bg-white rounded-lg border border-border">
           <div className="p-4 border-b border-border flex items-center justify-between">
-            <SectionTitle icon={Clock} as="h3">Today's Queue ({visits.length})</SectionTitle>
+            <SectionTitle icon={Clock} as="h3">Today's Queue ({visibleVisits.length})</SectionTitle>
             {roomVacancyNotifs.length > 0 && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-chart-3/10 text-chart-3 rounded-full text-xs font-medium">
                 <DoorOpen className="w-3 h-3" /> {roomVacancyNotifs.length} room{roomVacancyNotifs.length > 1 ? "s" : ""} free
@@ -335,7 +360,7 @@ export default function Reception() {
           )}
 
           <div className="divide-y divide-border max-h-[500px] overflow-y-auto">
-            {visits.map(v => {
+            {visibleVisits.map(v => {
               const journey = activeJourneys.find(j => j.visit_id === v.id);
               return (
                 <div key={v.id} className="p-3 hover:bg-muted/40 transition-colors">
@@ -355,7 +380,7 @@ export default function Reception() {
                 </div>
               );
             })}
-            {visits.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">Queue is empty.</p>}
+            {visibleVisits.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">No records match this metric.</p>}
           </div>
         </div>
       </div>

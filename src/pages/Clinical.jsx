@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiClient } from "@/api/apiClient";
 import { Stethoscope, Heart, FileText, Pill, Plus, Save, AlertTriangle, ShieldAlert, FlaskConical, ArrowRight, CheckCircle, GitBranch, PenTool, ArrowRightLeft, Clock, FileBadge, FileWarning, Zap, Scissors, Beaker, Pencil, X } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -19,6 +19,8 @@ import PageHeader from "@/components/ui/PageHeader";
 
 export default function Clinical() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedMetric = searchParams.get("metric") || "all";
   const [visits, setVisits] = useState([]);
   const [patients, setPatients] = useState([]);
   const [selectedVisit, setSelectedVisit] = useState(null);
@@ -32,6 +34,10 @@ export default function Clinical() {
   const [diagnoses, setDiagnoses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("vitals");
+
+  useEffect(() => {
+    if (["consultations", "diagnoses", "avgConsultTime"].includes(requestedMetric)) setActiveTab("consultation");
+  }, [requestedMetric]);
   const [cdsWarnings, setCdsWarnings] = useState([]);
   const [labOrders, setLabOrders] = useState([]);
   const [journey, setJourney] = useState(null);
@@ -438,6 +444,7 @@ export default function Clinical() {
   return (
     <div className="page-container space-y-6">
       <PageHeader title="Clinical" subtitle="Consultations, vitals, prescriptions & decision support" icon={Stethoscope} />
+      {requestedMetric !== "all" && <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">Showing <strong>{requestedMetric.replace(/([A-Z])/g, " $1").toLowerCase()}</strong> clinical source records from this metric.<button type="button" onClick={() => navigate("/clinical")} className="ml-3 underline hover:no-underline">Show all</button></div>}
       <div className="mb-6">
         <DepartmentDashboard department="clinical" />
       </div>

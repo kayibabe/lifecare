@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
 import { apiClient } from "@/api/apiClient";
 import {
@@ -34,6 +35,9 @@ const TRIAGE_CATEGORIES = [
 ];
 
 export default function Nursing() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedMetric = searchParams.get("metric") || "all";
   const [activeTab, setActiveTab] = useState("triage");
   const [loading, setLoading] = useState(true);
   const [triageQueue, setTriageQueue] = useState([]);
@@ -43,6 +47,11 @@ export default function Nursing() {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [transitioning, setTransitioning] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const tabByMetric = { triageToday: "triage", vitalsRecorded: "vitals", medsAdministered: "medication", nursingNotes: "notes" };
+    if (tabByMetric[requestedMetric]) setActiveTab(tabByMetric[requestedMetric]);
+  }, [requestedMetric]);
 
   // Vitals form
   const [vitalsForm, setVitalsForm] = useState({
@@ -392,6 +401,8 @@ export default function Nursing() {
       </div>
 
       <DepartmentDashboard department="nursing" />
+
+      {requestedMetric !== "all" && <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">Showing <strong>{requestedMetric.replace(/([A-Z])/g, " $1").toLowerCase()}</strong> source records for this nursing metric.<button type="button" onClick={() => navigate("/nursing")} className="ml-3 underline hover:no-underline">Show all</button></div>}
 
       <RealTimeVitals compact />
 

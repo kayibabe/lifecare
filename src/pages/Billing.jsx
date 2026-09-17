@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiClient } from "@/api/apiClient";
 import { formatApiError } from "@/api/customClient";
 import { Receipt, Plus, Save, CreditCard, DollarSign, FileText, Search, Download, CheckCircle, GitBranch, Shield, UserCircle, ChevronDown, ChevronUp, Users, Trash2, Pencil, X } from "lucide-react";
@@ -10,6 +11,9 @@ import LiveAuditMonitor from "@/components/LiveAuditMonitor";
 import PageHeader from "@/components/ui/PageHeader";
 
 export default function Billing() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedMetric = searchParams.get("metric") || "all";
   const [invoices, setInvoices] = useState([]);
   const [patients, setPatients] = useState([]);
   const [payments, setPayments] = useState([]);
@@ -31,6 +35,11 @@ export default function Billing() {
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [invoiceEditForm, setInvoiceEditForm] = useState({ payment_mode: "cash", discount: "", notes: "" });
   const [creatingInvoice, setCreatingInvoice] = useState(false);
+
+  useEffect(() => {
+    if (requestedMetric === "revenue") setActiveTab("reports");
+    if (requestedMetric === "invoices" || requestedMetric === "outstanding") setActiveTab("invoices");
+  }, [requestedMetric]);
 
   // Split billing state
   const [splitBilling, setSplitBilling] = useState(false);
@@ -308,6 +317,13 @@ export default function Billing() {
         <button onClick={() => setShowCreateInvoice(!showCreateInvoice)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 shadow-sm"><Plus className="w-4 h-4" /> New Invoice</button>
       </PageHeader>
 
+      {requestedMetric !== "all" && (
+        <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
+          Showing <strong>{requestedMetric === "revenue" ? "the 30-day revenue report" : requestedMetric === "outstanding" ? "outstanding invoices" : "billing invoices"}</strong> behind this billing metric.
+          <button type="button" onClick={() => navigate("/billing")} className="ml-3 underline hover:no-underline">Show all</button>
+        </div>
+      )}
+
       {/* Patient Search */}
       <div className="mb-6 relative">
         <div className="flex items-center gap-2 px-4 py-2.5 bg-card rounded-lg border border-border/60 shadow-sm">
@@ -472,7 +488,7 @@ export default function Billing() {
         <div className="border-b border-border flex">
           {["invoices", "payments", "claims", "reconciliation", "reports", "shifts"].map(t => <button key={t} onClick={() => setActiveTab(t)} className={`px-4 py-3 text-sm font-medium capitalize ${activeTab === t ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"}`}>{t}</button>)}
         </div>
-        <div className="p-4">
+        <div id="billing-source" className="p-4">
 
           {/* INVOICES TAB — with split billing detail */}
           {activeTab === "invoices" && (

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
 import { apiClient } from "@/api/apiClient";
 import { BedDouble, Plus, Save, Building, DoorOpen, FileText, Loader2, ArrowRightLeft, AlertCircle } from "lucide-react";
@@ -11,6 +12,9 @@ import PageHeader from "@/components/ui/PageHeader";
 import MetricCard from "@/components/ui/MetricCard";
 
 export default function Inpatient() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedMetric = searchParams.get("metric") || "all";
   const [wards, setWards] = useState([]);
   const [beds, setBeds] = useState([]);
   const [admissions, setAdmissions] = useState([]);
@@ -29,6 +33,11 @@ export default function Inpatient() {
   const [showIncidentForm, setShowIncidentForm] = useState(false);
   const [selectedAdmission, setSelectedAdmission] = useState(null);
   const [admitting, setAdmitting] = useState(false);
+
+  useEffect(() => {
+    if (["admissions", "discharges"].includes(requestedMetric)) setActiveTab("admissions");
+    if (["occupiedBeds", "availableBeds"].includes(requestedMetric)) setActiveTab("beds");
+  }, [requestedMetric]);
 
   useEffect(() => {
     async function load() {
@@ -205,6 +214,8 @@ export default function Inpatient() {
       )}
 
       <DepartmentDashboard department="inpatient" />
+
+      {requestedMetric !== "all" && <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">Showing <strong>{requestedMetric.replace(/([A-Z])/g, " $1").toLowerCase()}</strong> source records for this inpatient metric.<button type="button" onClick={() => navigate("/inpatient")} className="ml-3 underline hover:no-underline">Show all</button></div>}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <MetricCard label="Wards" value={wards.length} icon={Building} to="/inpatient" />
