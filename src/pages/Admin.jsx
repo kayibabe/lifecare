@@ -17,8 +17,11 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("users");
   const [showInvite, setShowInvite] = useState(false);
+  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [createUserForm, setCreateUserForm] = useState({ employee_id: "", full_name: "", role: "user", department: "", phone: "", email: "", password: "" });
   const [inviteForm, setInviteForm] = useState({ email: "", role: "user" });
   const [updatingRole, setUpdatingRole] = useState(null);
+  const [updatingUser, setUpdatingUser] = useState(null);
   const [editingUser, setEditingUser] = useState(null); // { id, full_name }
   const [editingName, setEditingName] = useState("");
   const [editingScheme, setEditingScheme] = useState(null);
@@ -40,7 +43,7 @@ export default function Admin() {
     { value: "store_manager", label: "Store Manager" },
   ];
   const [showSchemeForm, setShowSchemeForm] = useState(false);
-  const [schemeForm, setSchemeForm] = useState({ name: "", code: "", contact_phone: "", contact_email: "", coverage_details: "" });
+  const [schemeForm, setSchemeForm] = useState({ name: "", payer_type: "medical_scheme", contact_person: "", phone: "", email: "", address: "" });
   const [exporting, setExporting] = useState(false);
   const [toast, setToast] = useState(null); // { type: 'success'|'error', title, message }
   const [userSearch, setUserSearch] = useState("");
@@ -85,6 +88,19 @@ export default function Admin() {
     }
   };
 
+  const createUser = async (e) => {
+    e.preventDefault();
+    try {
+      const created = await apiClient.entities.User.create(createUserForm);
+      setUsers(prev => [...prev, created].sort((a, b) => (a.full_name || "").localeCompare(b.full_name || "")));
+      setCreateUserForm({ employee_id: "", full_name: "", role: "user", department: "", phone: "", email: "", password: "" });
+      setShowCreateUser(false);
+      showToast("success", "User Created", `${created.full_name} can now sign in with ${created.employee_id}.`);
+    } catch (err) {
+      showToast("error", "User Creation Failed", err.response?.data?.detail || err.message);
+    }
+  };
+
   const updateUserRole = async (userId, newRole) => {
     setUpdatingRole(userId);
     try {
@@ -104,12 +120,24 @@ export default function Admin() {
 
   const saveEditName = async (userId) => {
     try {
-      await apiClient.entities.User.update(userId, { display_name: editingName });
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, display_name: editingName } : u));
+      await apiClient.entities.User.update(userId, { full_name: editingName });
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, full_name: editingName, display_name: editingName } : u));
     } catch (err) {
       showToast("error", "Name Update Failed", err.message);
     } finally {
       setEditingUser(null);
+    }
+  };
+
+  const toggleUserStatus = async (user) => {
+    setUpdatingUser(user.id);
+    try {
+      await apiClient.entities.User.update(user.id, { is_active: !user.is_active });
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, is_active: !user.is_active } : u));
+    } catch (err) {
+      showToast("error", "Status Update Failed", err.response?.data?.detail || err.message);
+    } finally {
+      setUpdatingUser(null);
     }
   };
 
@@ -119,7 +147,7 @@ export default function Admin() {
     const s = await apiClient.entities.MedicalAidScheme.list("", 50);
     setSchemes(s);
     setShowSchemeForm(false);
-    setSchemeForm({ name: "", code: "", contact_phone: "", contact_email: "", coverage_details: "" });
+    setSchemeForm({ name: "", payer_type: "medical_scheme", contact_person: "", phone: "", email: "", address: "" });
   };
 
   const startEditScheme = (scheme) => {
@@ -135,6 +163,18 @@ export default function Admin() {
       setEditingScheme(null);
     } catch (err) {
       showToast("error", "Update Failed", err.message);
+    }
+  };
+
+  const toggleSchemeStatus = async () => {
+    const scheme = schemes.find(s => s.id === editingScheme);
+    if (!scheme) return;
+    try {
+      await apiClient.entities.MedicalAidScheme.update(editingScheme, { is_active: scheme.is_active === false });
+      setSchemes(prev => prev.map(s => s.id === editingScheme ? { ...s, is_active: scheme.is_active === false } : s));
+      setEditingScheme(null);
+    } catch (err) {
+      showToast("error", "Scheme Status Update Failed", err.response?.data?.detail || err.message);
     }
   };
 
@@ -192,7 +232,10 @@ export default function Admin() {
             <div>
               <div className="flex justify-between items-center mb-4">
                 <p className="text-sm text-muted-foreground">{users.filter(u => !userSearch || u.display_name?.toLowerCase().includes(userSearch.toLowerCase()) || u.full_name?.toLowerCase().includes(userSearch.toLowerCase()) || u.email?.toLowerCase().includes(userSearch.toLowerCase()) || u.role?.toLowerCase().includes(userSearch.toLowerCase())).length} of {users.length} users</p>
-                <button onClick={() => setShowInvite(!showInvite)} className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium"><UserPlus className="w-4 h-4" /> Invite User</button>
+                <div className="flex gap-2">
+                  <button onClick={() => setShowCreateUser(!showCreateUser)} className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium"><Plus className="w-4 h-4" /> Create User</button>
+                  <button onClick={() => setShowInvite(!showInvite)} className="inline-flex items-center gap-2 px-4 py-2 border border-border rounded-lg text-sm font-medium"><UserPlus className="w-4 h-4" /> Invite User</button>
+                </div>
               </div>
 
               <div className="mb-4">
@@ -213,7 +256,19 @@ export default function Admin() {
                 </form>
               )}
 
-              <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b border-border"><th className="text-left py-2 px-3 font-medium text-muted-foreground">Name</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">Email</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">Role</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">Joined</th></tr></thead><tbody>
+              {showCreateUser && (
+                <form onSubmit={createUser} className="mb-4 p-4 bg-muted/30 rounded-xl space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {[{ key: "employee_id", label: "Employee ID *", required: true }, { key: "full_name", label: "Full name *", required: true }, { key: "department", label: "Department" }, { key: "phone", label: "Phone" }, { key: "email", label: "Email", type: "email" }, { key: "password", label: "Temporary password *", type: "password", required: true }].map(field => (
+                      <div key={field.key}><label className="block text-xs text-muted-foreground mb-1">{field.label}</label><input type={field.type || "text"} required={field.required} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={createUserForm[field.key]} onChange={e => setCreateUserForm({ ...createUserForm, [field.key]: e.target.value })} /></div>
+                    ))}
+                    <div><label className="block text-xs text-muted-foreground mb-1">Role</label><select className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={createUserForm.role} onChange={e => setCreateUserForm({ ...createUserForm, role: e.target.value })}>{STAFF_ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}</select></div>
+                  </div>
+                  <div className="flex gap-3"><button type="submit" className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium"><Save className="w-3 h-3 inline mr-1" /> Create</button><button type="button" onClick={() => setShowCreateUser(false)} className="px-4 py-2 border border-border rounded-lg text-sm">Cancel</button></div>
+                </form>
+              )}
+
+              <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b border-border"><th className="text-left py-2 px-3 font-medium text-muted-foreground">Name</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">Email</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">Role</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">Status</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">Joined</th><th className="text-right py-2 px-3 font-medium text-muted-foreground">Actions</th></tr></thead><tbody>
                 {users.filter(u => !userSearch || u.display_name?.toLowerCase().includes(userSearch.toLowerCase()) || u.full_name?.toLowerCase().includes(userSearch.toLowerCase()) || u.email?.toLowerCase().includes(userSearch.toLowerCase()) || u.role?.toLowerCase().includes(userSearch.toLowerCase())).map(u => (
                   <tr key={u.id} className="border-b border-border/40">
                     <td className="py-2.5 px-3 font-medium">
@@ -253,7 +308,9 @@ export default function Admin() {
                         {updatingRole === u.id && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
                       </div>
                     </td>
+                    <td className="py-2.5 px-3"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${u.is_active === false ? "bg-muted text-muted-foreground" : "bg-emerald-100 text-emerald-700"}`}>{u.is_active === false ? "Inactive" : "Active"}</span></td>
                     <td className="py-2.5 px-3 text-muted-foreground">{new Date(u.created_date).toLocaleDateString("en-GB")}</td>
+                    <td className="py-2.5 px-3 text-right"><button onClick={() => toggleUserStatus(u)} disabled={updatingUser === u.id} className="text-xs font-medium text-primary hover:underline disabled:opacity-50">{updatingUser === u.id ? "Saving…" : u.is_active === false ? "Activate" : "Deactivate"}</button></td>
                   </tr>
                 ))}
               </tbody></table></div>
@@ -271,10 +328,11 @@ export default function Admin() {
                 <form onSubmit={addScheme} className="mb-4 p-4 bg-muted/30 rounded-xl space-y-3">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div><label className="block text-xs text-muted-foreground mb-1">Name *</label><input required className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={schemeForm.name} onChange={e => setSchemeForm({...schemeForm, name: e.target.value})} /></div>
-                    <div><label className="block text-xs text-muted-foreground mb-1">Code *</label><input required className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={schemeForm.code} onChange={e => setSchemeForm({...schemeForm, code: e.target.value})} /></div>
-                    <div><label className="block text-xs text-muted-foreground mb-1">Phone</label><input className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={schemeForm.contact_phone} onChange={e => setSchemeForm({...schemeForm, contact_phone: e.target.value})} /></div>
-                    <div><label className="block text-xs text-muted-foreground mb-1">Email</label><input className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={schemeForm.contact_email} onChange={e => setSchemeForm({...schemeForm, contact_email: e.target.value})} /></div>
-                    <div className="md:col-span-2"><label className="block text-xs text-muted-foreground mb-1">Coverage Details</label><input className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={schemeForm.coverage_details} onChange={e => setSchemeForm({...schemeForm, coverage_details: e.target.value})} /></div>
+                    <div><label className="block text-xs text-muted-foreground mb-1">Payer type</label><select className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={schemeForm.payer_type} onChange={e => setSchemeForm({...schemeForm, payer_type: e.target.value})}><option value="medical_scheme">Medical Scheme</option><option value="insurance">Insurance</option></select></div>
+                    <div><label className="block text-xs text-muted-foreground mb-1">Contact person</label><input className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={schemeForm.contact_person} onChange={e => setSchemeForm({...schemeForm, contact_person: e.target.value})} /></div>
+                    <div><label className="block text-xs text-muted-foreground mb-1">Phone</label><input className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={schemeForm.phone} onChange={e => setSchemeForm({...schemeForm, phone: e.target.value})} /></div>
+                    <div><label className="block text-xs text-muted-foreground mb-1">Email</label><input type="email" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={schemeForm.email} onChange={e => setSchemeForm({...schemeForm, email: e.target.value})} /></div>
+                    <div className="md:col-span-2"><label className="block text-xs text-muted-foreground mb-1">Address</label><input className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={schemeForm.address} onChange={e => setSchemeForm({...schemeForm, address: e.target.value})} /></div>
                   </div>
                   <div className="flex gap-3"><button type="submit" className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium"><Save className="w-3 h-3 inline mr-1" /> Save</button><button type="button" onClick={() => setShowSchemeForm(false)} className="px-4 py-2 border border-border rounded-lg text-sm">Cancel</button></div>
                 </form>
@@ -284,9 +342,9 @@ export default function Admin() {
                 {schemes.map(s => (
                   <button key={s.id} onClick={() => startEditScheme(s)} className="p-4 border border-border rounded-xl hover:border-primary/30 hover:shadow-md transition-all text-left cursor-pointer">
                     <p className="font-semibold text-sm">{s.name}</p>
-                    <p className="text-xs text-muted-foreground font-mono">{s.code}</p>
-                    {s.contact_phone && <p className="text-xs text-muted-foreground mt-1">{s.contact_phone}</p>}
-                    {s.contact_email && <p className="text-xs text-muted-foreground">{s.contact_email}</p>}
+                    <p className="text-xs text-muted-foreground capitalize">{s.payer_type?.replace(/_/g, " ") || "medical scheme"} · {s.is_active === false ? "Inactive" : "Active"}</p>
+                    {s.phone && <p className="text-xs text-muted-foreground mt-1">{s.phone}</p>}
+                    {s.email && <p className="text-xs text-muted-foreground">{s.email}</p>}
                   </button>
                 ))}
                 {schemes.length === 0 && <p className="col-span-3 py-8 text-center text-sm text-muted-foreground">No schemes configured.</p>}
@@ -410,24 +468,29 @@ export default function Admin() {
                 <input className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={schemeEditForm.name || ""} onChange={e => setSchemeEditForm({...schemeEditForm, name: e.target.value})} />
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Code</label>
-                <input className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={schemeEditForm.code || ""} onChange={e => setSchemeEditForm({...schemeEditForm, code: e.target.value})} />
+                <label className="block text-xs text-muted-foreground mb-1">Payer type</label>
+                <select className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={schemeEditForm.payer_type || "medical_scheme"} onChange={e => setSchemeEditForm({...schemeEditForm, payer_type: e.target.value})}><option value="medical_scheme">Medical Scheme</option><option value="insurance">Insurance</option></select>
+              </div>
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">Contact person</label>
+                <input className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={schemeEditForm.contact_person || ""} onChange={e => setSchemeEditForm({...schemeEditForm, contact_person: e.target.value})} />
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Phone</label>
-                <input className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={schemeEditForm.contact_phone || ""} onChange={e => setSchemeEditForm({...schemeEditForm, contact_phone: e.target.value})} />
+                <input className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={schemeEditForm.phone || ""} onChange={e => setSchemeEditForm({...schemeEditForm, phone: e.target.value})} />
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Email</label>
-                <input className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={schemeEditForm.contact_email || ""} onChange={e => setSchemeEditForm({...schemeEditForm, contact_email: e.target.value})} />
+                <input type="email" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={schemeEditForm.email || ""} onChange={e => setSchemeEditForm({...schemeEditForm, email: e.target.value})} />
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Coverage Details</label>
-                <input className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={schemeEditForm.coverage_details || ""} onChange={e => setSchemeEditForm({...schemeEditForm, coverage_details: e.target.value})} />
+                <label className="block text-xs text-muted-foreground mb-1">Address</label>
+                <input className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={schemeEditForm.address || ""} onChange={e => setSchemeEditForm({...schemeEditForm, address: e.target.value})} />
               </div>
             </div>
             <div className="flex gap-3 mt-4">
               <button onClick={saveEditScheme} className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium">Save Changes</button>
+              <button onClick={toggleSchemeStatus} className="px-4 py-2 border border-border rounded-lg text-sm">{schemes.find(s => s.id === editingScheme)?.is_active === false ? "Activate" : "Deactivate"}</button>
               <button onClick={() => setEditingScheme(null)} className="px-4 py-2 border border-border rounded-lg text-sm">Cancel</button>
             </div>
           </div>

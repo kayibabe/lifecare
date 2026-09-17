@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectinload
 from datetime import date, datetime, time, timedelta, timezone
 from app.models.encounter import Encounter
 from app.models.lab import LabOrder
-from app.models.pharmacy import Drug, DrugStock, Prescription, PrescriptionItem
+from app.models.pharmacy import Drug, Prescription
 from app.models.billing import BillingInvoice
 from pydantic import BaseModel, field_validator
 from app.core.database import get_db
@@ -16,7 +16,6 @@ from app.models.user import User, UserRole
 from app.models.patient import Patient
 from app.models.audit import AuditLog
 import uuid
-from datetime import datetime
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -51,8 +50,18 @@ class UserResponse(BaseModel):
 
 
 class UserUpdate(BaseModel):
+    full_name: str | None = None
+    department: str | None = None
+    phone: str | None = None
+    email: str | None = None
+    password: str | None = None
     is_active: bool | None = None
     role: UserRole | None = None
+
+    @field_validator("password")
+    @classmethod
+    def password_policy(cls, v: str | None) -> str | None:
+        return validate_password_strength(v) if v else v
 
 
 @router.get("/users", response_model=list[UserResponse])
@@ -113,7 +122,19 @@ async def update_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    old = {"is_active": user.is_active, "role": user.role.value}
+    old = {"full_name": user.full_name, "department": user.department, "phone": user.phone, "email": user.email, "is_active": user.is_active, "role": user.role.value}
+    if body.full_name is not None:
+        if not body.full_name.strip():
+            raise HTTPException(status_code=422, detail="Full name cannot be blank")
+        user.full_name = body.full_name.strip()
+    if body.department is not None:
+        user.department = body.department or None
+    if body.phone is not None:
+        user.phone = body.phone or None
+    if body.email is not None:
+        user.email = body.email or None
+    if body.password:
+        user.password_hash = hash_password(body.password)
     if body.is_active is not None:
         user.is_active = body.is_active
     if body.role is not None:
@@ -124,7 +145,7 @@ async def update_user(
     await log_action(
         db, action="update", entity_type="user",
         user_id=current_user.id, entity_id=user.id,
-        old_value=old, new_value={"is_active": user.is_active, "role": user.role.value},
+        old_value=old, new_value={"full_name": user.full_name, "department": user.department, "phone": user.phone, "email": user.email, "is_active": user.is_active, "role": user.role.value, "password_changed": bool(body.password)},
         request=request,
     )
     return user

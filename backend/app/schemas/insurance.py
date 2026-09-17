@@ -20,6 +20,23 @@ class InsurerCreate(BaseModel):
         return v.strip()
 
 
+class InsurerUpdate(BaseModel):
+    name: str | None = None
+    payer_type: PayerType | None = None
+    contact_person: str | None = None
+    phone: str | None = None
+    email: str | None = None
+    address: str | None = None
+    is_active: bool | None = None
+
+    @field_validator("name")
+    @classmethod
+    def name_not_blank(cls, v: str | None) -> str | None:
+        if v is not None and not v.strip():
+            raise ValueError("Field cannot be blank")
+        return v.strip() if v else v
+
+
 class InsurerResponse(BaseModel):
     id: str
     name: str

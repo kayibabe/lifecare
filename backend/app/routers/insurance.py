@@ -12,7 +12,7 @@ from app.models.insurance import (
     PayerType, MemberStatus, PreAuthStatus, ClaimStatus,
 )
 from app.schemas.insurance import (
-    InsurerCreate, InsurerResponse, MemberCreate, MemberResponse,
+    InsurerCreate, InsurerUpdate, InsurerResponse, MemberCreate, MemberResponse,
     PreAuthCreate, PreAuthDecision, PreAuthResponse,
     ClaimCreate, ClaimDecision, ClaimResponse,
 )
@@ -93,6 +93,26 @@ async def get_insurer(
     _: User = Depends(require_role(*_LOOKUP)),
 ):
     insurer = await _get_insurer_or_404(insurer_id, db)
+    return insurer
+
+
+@router.put("/insurers/{insurer_id}", response_model=InsurerResponse)
+async def update_insurer(
+    insurer_id: str,
+    body: InsurerUpdate,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role(UserRole.billing_clerk, UserRole.admin)),
+):
+    insurer = await _get_insurer_or_404(insurer_id, db)
+    updates = body.model_dump(exclude_unset=True)
+    if "name" in updates:
+        existing = await db.execute(select(Insurer).where(func.lower(Insurer.name) == updates["name"].lower(), Insurer.id != insurer_id))
+        if existing.scalar_one_or_none():
+            raise HTTPException(status_code=409, detail="An insurer with this name already exists")
+    for key, value in updates.items():
+        setattr(insurer, key, value)
+    await db.flush()
+    await db.refresh(insurer)
     return insurer
 
 
