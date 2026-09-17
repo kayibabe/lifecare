@@ -30,8 +30,8 @@ export default function PatientLogin() {
         <div className="bg-card border border-border rounded-2xl shadow-sm">
           {/* Header */}
           <div className="px-8 pt-8 pb-6 text-center border-b border-border">
-            <div className="w-28 h-28 mx-auto mb-3 overflow-hidden">
-              <img src="/logo.png" alt="LifeCare" className="w-full h-full object-cover object-top" />
+            <div className="w-36 h-36 mx-auto mb-3">
+              <img src="/logo.png" alt="LifeCare" className="w-full h-full object-contain" />
             </div>
             <h1 className="text-lg font-bold text-foreground tracking-tight">LifeCare</h1>
             <p className="text-[11px] mt-1 text-muted-foreground tracking-widest uppercase">Health Management Information System</p>

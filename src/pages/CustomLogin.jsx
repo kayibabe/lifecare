@@ -48,7 +48,7 @@ export default function CustomLogin() {
           <div className="px-8 pt-8 pb-6 text-center border-b border-border">
             <div className="w-36 h-36 mx-auto mb-3">
               <img
-                src="/lifecare-mark.png"
+                src="/logo.png"
                 alt="LifeCare"
                 className="w-full h-full object-contain"
               />

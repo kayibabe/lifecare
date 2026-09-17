@@ -222,7 +222,7 @@ export default function Layout() {
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 py-4 border-b border-sidebar-border/60">
         {/* Icon mark — crops the logo to show only the circular emblem */}
-        <img src="/lifecare-mark.png" alt="LifeCare emblem" className="flex-shrink-0 w-10 h-10 object-contain" />
+        <img src="/logo.png" alt="LifeCare emblem" className="flex-shrink-0 w-10 h-10 object-contain" />
         {!collapsed && (
           <div className="overflow-hidden">
             <h1 className="text-[11.5px] font-bold text-sidebar-foreground leading-tight tracking-tight">LifeCare · HIMS</h1>

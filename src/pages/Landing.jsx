@@ -65,7 +65,7 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-6 md:px-10 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 flex-shrink-0">
-              <img src="/lifecare-mark.png" alt="LifeCare" className="w-full h-full object-contain" />
+              <img src="/logo.png" alt="LifeCare" className="w-full h-full object-contain" />
             </div>
             <div className="leading-tight">
               <span
@@ -158,6 +158,11 @@ export default function Landing() {
 
         <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-10 pt-32 pb-24 grid lg:grid-cols-2 gap-16 items-center">
           <div>
+            <img
+              src="/logo.png"
+              alt="LifeCare emblem"
+              className="w-28 h-28 md:w-36 md:h-36 object-contain mb-6 drop-shadow-[0_8px_24px_rgba(0,0,0,0.2)]"
+            />
             <div
               className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-semibold uppercase tracking-widest mb-8"
               style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)", border: "1px solid rgba(255,255,255,0.2)" }}
@@ -553,7 +558,7 @@ export default function Landing() {
           <div>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-16 h-16 flex-shrink-0">
-                <img src="/lifecare-mark.png" alt="LifeCare" className="w-full h-full object-contain" />
+                <img src="/logo.png" alt="LifeCare" className="w-full h-full object-contain" />
               </div>
               <div>
                 <span className="block font-heading font-bold text-white text-base">LifeCare</span>

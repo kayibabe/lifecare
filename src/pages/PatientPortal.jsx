@@ -152,8 +152,8 @@ export default function PatientPortal() {
       {/* Top bar */}
       <div className="flex items-center justify-between px-6 md:px-10 py-4 border-b border-border">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 aspect-[1240/730] overflow-hidden">
-            <img src="/logo.png" alt="LifeCare" className="w-full h-full object-cover object-top" />
+          <div className="w-8 h-8">
+            <img src="/logo.png" alt="LifeCare" className="w-full h-full object-contain" />
           </div>
           <span className="font-heading font-semibold text-sm text-foreground">LifeCare</span>
         </div>

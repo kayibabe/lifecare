@@ -57,6 +57,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           >
             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
+          <img src="/logo.png" alt="LifeCare emblem" className="w-8 h-8 object-contain" />
           <span className="font-bold text-lg">LifeCare</span>
           <span className="text-blue-300 text-sm hidden sm:inline">LifeCare</span>
         </div>

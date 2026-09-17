@@ -24,6 +24,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-blue-50">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg p-8">
         <div className="text-center mb-6">
+          <img src="/logo.png" alt="LifeCare emblem" className="w-28 h-28 mx-auto mb-3 object-contain" />
           <h1 className="text-2xl font-bold text-blue-800">LifeCare</h1>
           <p className="text-sm text-gray-500 mt-1">LifeCare</p>
         </div>
