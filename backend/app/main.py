@@ -21,6 +21,7 @@ import app.models.insurance      # ensure insurance tables are registered with B
 import app.models.scheduling     # ensure scheduling tables are registered with Base.metadata
 import app.models.patient_message  # ensure patient_messages table is registered with Base.metadata
 import app.models.dental  # ensure dental tables are registered with Base.metadata
+import app.models.report_export  # ensure report export history is registered with Base.metadata
 
 _log = logging.getLogger(__name__)
 

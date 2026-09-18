@@ -1036,9 +1036,24 @@ export function createCustomClient(baseURL) {
 
     reports: {
       analytics: (days = 30) => http.get('/admin/analytics', { params: { days } }),
+      comparison: (days = 30) => http.get('/admin/reports/comparison', { params: { days } }),
       clinicalActivity: (days = 30) => http.get('/admin/reports/clinical-activity', { params: { days } }),
       financeSummary: (days = 30) => http.get('/admin/reports/finance-summary', { params: { days } }),
       pharmacySummary: (days = 30) => http.get('/admin/reports/pharmacy-summary', { params: { days } }),
+      mohMonthly: (period) => http.get('/admin/reports/moh-monthly', { params: { period } }),
+      createMohExport: (period) => http.post(`/admin/reports/moh-monthly/exports?period=${encodeURIComponent(period)}`, null),
+      mohExports: (period) => http.get('/admin/reports/moh-monthly/exports', { params: period ? { period } : {} }),
+      patientFlow: (days = 30) => http.get('/admin/reports/patient-flow', { params: { days } }),
+      dataQuality: () => http.get('/admin/reports/data-quality'),
+      providerPerformance: (days = 30) => http.get('/admin/reports/provider-performance', { params: { days } }),
+      auditSummary: (days = 30) => http.get('/admin/reports/audit-summary', { params: { days } }),
+      demographics: () => http.get('/admin/reports/demographics'),
+      diagnoses: (days = 30) => http.get('/admin/reports/diagnoses', { params: { days } }),
+      referrals: (days = 30) => http.get('/admin/reports/referrals', { params: { days } }),
+      inpatient: (days = 30) => http.get('/admin/reports/inpatient', { params: { days } }),
+      theatreMortuary: (days = 30) => http.get('/admin/reports/theatre-mortuary', { params: { days } }),
+      dental: (days = 30) => http.get('/admin/reports/dental', { params: { days } }),
+      nursingOperations: (days = 30) => http.get('/admin/reports/nursing-operations', { params: { days } }),
     },
 
     functions: {

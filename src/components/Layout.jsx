@@ -146,7 +146,7 @@ const UNSUPPORTED_ROUTES = new Set([
   "/surgical-dashboard", "/surgery-calendar", "/surgical-requisitions",
   "/surgical-dispensing", "/surgical-supply-tracker", "/doctor-schedule",
   "/staff-shifts", "/doctor-handover", "/journey-map", "/patient-outcomes",
-  "/patient-feedback", "/moh-reports", "/physician-performance", "/waste",
+  "/patient-feedback", "/physician-performance", "/waste",
   "/my-signatures", "/signature-audit", "/inventory-audit",
   "/surge",
 ]);
